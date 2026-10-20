@@ -1,9 +1,7 @@
 import { ReactElement, useState, useEffect, useRef } from "react";
-import FullCalendar, {
-  EventContentArg,
-  EventInput,
-} from "@fullcalendar/react"; // must go before plugins
-import timeGridPlugin, { DayTimeColsView } from "@fullcalendar/timegrid";
+import FullCalendar from "@fullcalendar/react"; // must go before plugins
+import { EventContentArg, EventInput } from "@fullcalendar/core";
+import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import * as ICAL from "ical.js";
@@ -11,7 +9,6 @@ import { Button, Spin, Tooltip } from "antd";
 import { useRoleInCourse } from "../../hooks/useRoleInCourse";
 import { Role } from "@koh/common";
 import styled from "styled-components";
-import "./fullcalendar.css";
 
 const CalendarWrapper = styled.div`
   margin-bottom: 20px;
@@ -63,9 +60,8 @@ export default function SchedulePanel({
 
   // allows us to render tooltips around events (in case of cluttered calendars)
   const renderEventContent = (arg: EventContentArg) => {
-    const data = calendarRef.current.getApi().getCurrentData();
-    const viewSpec = data.viewSpecs[arg.view.type].component;
-    if (viewSpec === DayTimeColsView) {
+    // Only the week and day time-grid views get tooltips.
+    if (arg.view.type.startsWith("timeGrid")) {
       return (
         <Tooltip title={`${arg.timeText}: ${arg.event.title}`}>
           <span>
