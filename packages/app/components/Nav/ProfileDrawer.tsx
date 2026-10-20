@@ -1,5 +1,4 @@
 import {
-  FileTextOutlined,
   LogoutOutlined,
   MacCommandOutlined,
   QuestionCircleOutlined,

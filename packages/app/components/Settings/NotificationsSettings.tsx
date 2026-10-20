@@ -5,7 +5,7 @@ import {
   ERROR_MESSAGES,
   UpdateProfileParams,
 } from "@koh/common";
-import { Button, Form, Input, List, message, Switch, Tooltip } from "antd";
+import { Button, Form, List, message, Switch, Tooltip } from "antd";
 import { pick } from "lodash";
 import { HeaderTitle } from "./Styled";
 import React, { ReactElement, useEffect, useState } from "react";
