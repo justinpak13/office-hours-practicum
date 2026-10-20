@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next -p 3001",
-    "build": "next build",
-    "prod:start": "next start -p 3001",
+    "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider next -p 3001",
+    "build": "cross-env NODE_OPTIONS=--openssl-legacy-provider next build",
+    "prod:start": "cross-env NODE_OPTIONS=--openssl-legacy-provider next start -p 3001",
     "test": "jest",
     "tsc": "tsc"
   },
@@ -57,17 +57,18 @@
     "@testing-library/jest-dom": "^5.7.0",
     "@testing-library/react": "^10.0.4",
     "@types/jest": "^25.2.2",
-    "@types/node": "^13.13.2",
+    "@types/node": "^22.0.0",
     "@types/react": "^16.9.34",
     "@types/react-big-calendar": "^0.24.2",
     "@types/styled-components": "^5.1.1",
     "babel-plugin-styled-components": "^1.10.7",
+    "cross-env": "^7.0.2",
     "eslint-plugin-cypress": "^2.11.1",
     "eslint-plugin-react": "^7.20.6",
     "eslint-plugin-react-hooks": "^4.1.0",
     "form-data": "^3.0.0",
     "jest": "^26.0.1",
-    "typescript": "^4.0.0"
+    "typescript": "^5.9.3"
   },
   "jest": {
     "transform": {

@@ -4,7 +4,7 @@
 
 | Tool | Version |
 |---|---|
-| [Node](https://nodejs.org/en/download/) | 14.x ([nvm](https://github.com/nvm-sh/nvm) can install it) |
+| [Node](https://nodejs.org/en/download/) | 22.x (run `nvm use` in the repo root; [nvm](https://github.com/nvm-sh/nvm) reads `.nvmrc`) |
 | [Yarn](https://classic.yarnpkg.com/en/docs/install) | 1.x. Yarn 2+ does not work with this repo |
 | [Docker](https://docs.docker.com/get-docker/) | Runs Postgres 11.5 and Redis for development |
 
