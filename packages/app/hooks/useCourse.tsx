@@ -1,8 +1,8 @@
 import { API } from "@koh/api-client";
 import { GetCourseResponse } from "@koh/common";
-import useSWR, { responseInterface } from "swr";
+import useSWR, { SWRResponse } from "swr";
 
-type courseResponse = responseInterface<GetCourseResponse, any>;
+type courseResponse = SWRResponse<GetCourseResponse, any>;
 
 interface UseCourseReturn {
   course?: courseResponse["data"];

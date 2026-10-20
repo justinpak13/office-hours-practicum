@@ -1,9 +1,9 @@
 import { Question } from "@koh/common";
-import { responseInterface } from "swr";
+import { SWRResponse } from "swr";
 import { useProfile } from "./useProfile";
 import { useQuestions } from "./useQuestions";
 
-type queueResponse = responseInterface<Question, any>;
+type queueResponse = SWRResponse<Question, any>;
 
 interface UseStudentQuestionReturn {
   studentQuestion?: queueResponse["data"];
