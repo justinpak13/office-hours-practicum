@@ -1,9 +1,9 @@
 import { Role } from "@koh/common";
-import { Modal, Form, Switch, Radio, Input } from "antd";
-import { FormInstance } from "antd/lib/form";
-import TextArea from "antd/lib/input/TextArea";
+import { Modal, Form, Switch, Radio, Input, FormInstance } from "antd";
 import { ReactElement } from "react";
 import { useState } from "react";
+
+const { TextArea } = Input;
 
 interface QueueCreateModalProps {
   visible: boolean;

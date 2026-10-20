@@ -1,6 +1,5 @@
 import { RephraseQuestionPayload } from "@koh/common";
-import { Button } from "antd";
-import Modal from "antd/lib/modal/Modal";
+import { Button, Modal } from "antd";
 import React, { ReactElement } from "react";
 
 type StudentQuestionRephraseModalProps = {

@@ -1,6 +1,5 @@
 import { ReactElement } from "react";
-import Modal from "antd/lib/modal/Modal";
-import { Switch, Input, Form } from "antd";
+import { Modal, Switch, Input, Form } from "antd";
 import styled from "styled-components";
 import { API } from "@koh/api-client";
 import { useQueue } from "../../../hooks/useQueue";

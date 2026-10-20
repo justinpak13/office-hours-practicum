@@ -1,7 +1,7 @@
 import React, { ReactElement } from "react";
 import styled from "styled-components";
 import { Menu } from "antd";
-import { MenuProps } from "antd/lib/menu";
+import type { MenuProps } from "antd";
 import Link from "next/link";
 import { QueuePartial } from "@koh/common";
 
@@ -78,7 +78,7 @@ function createQueueTab(queueTabItem: NavBarQueueTabItem) {
             href="/course/[cid]/queue/[qid]"
             as={`/course/${queueTabItem.courseId}/queue/${openQueue.id}`}
           >
-            <a>{openQueue.room}</a>
+            {openQueue.room}
           </Link>
         </QueueMenuItem>
       ))}
@@ -90,7 +90,7 @@ function createGeneralTab(tabItem: NavBarGeneralTabItem) {
   return (
     <MenuItem key={tabItem.href}>
       <Link href={tabItem.href} as={tabItem.as}>
-        <a>{tabItem.text}</a>
+        {tabItem.text}
       </Link>
     </MenuItem>
   );

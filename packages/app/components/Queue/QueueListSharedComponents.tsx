@@ -6,7 +6,7 @@ import {
   StopOutlined,
 } from "@ant-design/icons";
 import { Button, message, Modal, Popconfirm, Tag, Tooltip } from "antd";
-import { ButtonProps } from "antd/lib/button";
+import type { ButtonProps } from "antd";
 import Linkify from "react-linkify";
 import moment from "moment";
 import React, { ReactElement, ReactNode, useState } from "react";

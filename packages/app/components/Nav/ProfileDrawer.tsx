@@ -88,7 +88,7 @@ export default function ProfileDrawer({
                 <Link
                   href={{ pathname: "/settings", query: { cid: courseId } }}
                 >
-                  <a>Settings</a>
+                  Settings
                 </Link>
               </Menu.Item>
               <Menu.Item
@@ -115,7 +115,7 @@ export default function ProfileDrawer({
               </Menu.Item>
               <Menu.Item key="3" icon={<ReadOutlined />}>
                 <Link href={"/about"}>
-                  <a>About Us</a>
+                  About Us
                 </Link>
               </Menu.Item>
               <Menu.Item key="4" icon={<LogoutOutlined />}>

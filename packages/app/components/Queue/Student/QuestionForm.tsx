@@ -1,6 +1,6 @@
 import { OpenQuestionStatus, Question, QuestionType } from "@koh/common";
 import { Alert, Button, Input, Modal, Radio } from "antd";
-import { RadioChangeEvent } from "antd/lib/radio";
+import type { RadioChangeEvent } from "antd";
 import { NextRouter, useRouter } from "next/router";
 import { default as React, ReactElement, useEffect, useState } from "react";
 import styled from "styled-components";

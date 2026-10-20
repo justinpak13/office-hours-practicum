@@ -144,7 +144,7 @@ export default function NavBar({ courseId }: NavBarProps): ReactElement {
           onClick={() => setDefaultCourse(c.course)}
         >
           <Link href="/course/[cid]/today" as={`/course/${c.course.id}/today`}>
-            <a>{c.course.name}</a>
+            {c.course.name}
           </Link>
         </CoursesMenuItem>
       ))}

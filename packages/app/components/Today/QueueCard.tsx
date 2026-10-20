@@ -192,7 +192,7 @@ const QueueCard = ({
             <Link
               href="/course/[cid]/queue/[qid]"
               as={`/course/${cid}/queue/${queue.id}`}
-            >
+              legacyBehavior>
               <OpenQueueButton
                 style={{}}
                 size="large"

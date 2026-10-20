@@ -1,6 +1,5 @@
 import { LimboQuestionStatus, Question } from "@koh/common";
-import { Button } from "antd";
-import Modal from "antd/lib/modal/Modal";
+import { Button, Modal } from "antd";
 import { ReactElement } from "react";
 
 type StudentRemovedFromQueueModalProps = {

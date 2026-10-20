@@ -329,7 +329,7 @@ function NotifReminderButton({ courseId }: { courseId: number }) {
           pathname: "/settings",
           query: { cid: courseId, defaultPage: SettingsOptions.NOTIFICATIONS },
         }}
-      >
+        legacyBehavior>
         <NotifRemindButton>Sign Up for Notifications</NotifRemindButton>
       </Link>
     </>
