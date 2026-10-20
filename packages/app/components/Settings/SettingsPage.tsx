@@ -75,7 +75,9 @@ export default function SettingsPage({
   const [uploading, setUploading] = useState(false);
   const isMobile = useIsMobile();
   const windowWidth = useWindowWidth();
-  const [avatarSize, setAvatarSize] = useState(windowWidth / 2);
+  // Start at 0 so the server and browser render the same HTML; the effect
+  // below sets the real size once the page is running in the browser.
+  const [avatarSize, setAvatarSize] = useState(0);
 
   useEffect(() => {
     const widthDivider = isMobile ? 6 : 10;

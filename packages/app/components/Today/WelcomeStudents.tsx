@@ -1,10 +1,17 @@
 import Link from "next/link";
 import { Modal } from "antd";
-import { ReactElement } from "react";
+import { ReactElement, useEffect, useState } from "react";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 
 export default function WelcomeStudents(): ReactElement {
   const [firstTime, setFirstTime] = useLocalStorage("firstTime", true);
+  // localStorage only exists in the browser, so render nothing on the server
+  // and show the modal after the page has loaded.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <Modal
