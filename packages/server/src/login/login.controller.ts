@@ -102,7 +102,7 @@ export class LoginController {
       { expiresIn: 60 },
     );
 
-    if (token === null || token === undefined) {
+    if (token === null) {
       console.error('Temporary JWT is invalid');
       throw new HttpException(
         ERROR_MESSAGES.loginController.invalidTempJWTToken,
@@ -158,7 +158,7 @@ export class LoginController {
       { expiresIn: 60 * 60 * 24 * 30 },
     );
 
-    if (authToken === null || authToken === undefined) {
+    if (authToken === null) {
       console.error('Authroziation JWT is invalid');
       throw new HttpException(
         ERROR_MESSAGES.loginController.invalidTempJWTToken,

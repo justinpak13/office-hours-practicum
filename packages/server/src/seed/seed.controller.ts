@@ -11,7 +11,7 @@ import { UserCourseModel } from 'profile/user-course.entity';
 import { UserModel } from 'profile/user.entity';
 import { QuestionGroupModel } from 'question/question-group.entity';
 import { SemesterModel } from 'semester/semester.entity';
-import { Connection, getManager } from 'typeorm';
+import { Connection } from 'typeorm';
 import {
   CourseFactory,
   EventFactory,
@@ -51,8 +51,9 @@ export class SeedController {
     await this.seedService.deleteAll(CourseSectionMappingModel);
     await this.seedService.deleteAll(CourseModel);
     await this.seedService.deleteAll(SemesterModel);
-    const manager = getManager();
-    manager.query('ALTER SEQUENCE user_model_id_seq RESTART WITH 1;');
+    await this.connection.query(
+      'ALTER SEQUENCE user_model_id_seq RESTART WITH 1;',
+    );
 
     return 'Data successfully reset';
   }

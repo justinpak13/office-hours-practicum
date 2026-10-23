@@ -203,7 +203,7 @@ export class SSEService<T> implements OnModuleDestroy {
           Sentry.captureException(err);
         });
         // Don't publish a malformed "undefined" frame when payload gen failed
-        if (payloadData === undefined) {
+        if (payloadData === null) {
           return;
         }
         const toSend = serialize(payloadData);

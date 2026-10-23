@@ -16,7 +16,7 @@ import {
 import { partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
-import { Between, Brackets, Connection, getRepository, In } from 'typeorm';
+import { Between, Brackets, Connection, In } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
@@ -129,7 +129,7 @@ export class CourseService {
     coursePatch: EditCourseInfoParams,
   ): Promise<void> {
     const course = await CourseModel.findOne({ where: { id: courseId } });
-    if (course === null || course === undefined) {
+    if (course === null) {
       throw new HttpException(
         ERROR_MESSAGES.courseController.courseNotFound,
         HttpStatus.NOT_FOUND,
@@ -353,7 +353,7 @@ export class CourseService {
     search?: string,
     role?: Role,
   ): Promise<GetCourseUserInfoResponse> {
-    const query = await getRepository(UserModel)
+    const query = await UserModel.getRepository('UserModel')
       .createQueryBuilder()
       .leftJoin(
         UserCourseModel,

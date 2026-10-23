@@ -70,7 +70,7 @@ export class CourseController {
       relations: ['queues', 'queues.staffList'],
     });
 
-    if (course === null || course === undefined) {
+    if (course === null) {
       console.error(
         ERROR_MESSAGES.courseController.courseNotFound + 'Course ID: ' + id,
       );
@@ -100,7 +100,7 @@ export class CourseController {
 
     const userCourseModel = await UserCourseModel.findOne({
       where: {
-        user,
+        userId: user.id,
         courseId: id,
       },
     });
@@ -217,7 +217,7 @@ export class CourseController {
 
     const userCourseModel = await UserCourseModel.findOne({
       where: {
-        user,
+        userId: user.id,
         courseId,
       },
     });
@@ -312,7 +312,7 @@ export class CourseController {
   ): Promise<QueueModel> {
     const userCourseModel = await UserCourseModel.findOne({
       where: {
-        user,
+        userId: user.id,
         courseId,
       },
     });
@@ -492,7 +492,7 @@ export class CourseController {
       );
     const userId = user.id;
     let userCourse = await UserCourseModel.findOne({
-      where: { courseId, userId },
+      where: { courseId, userId: user.id },
     });
     if (!userCourse) {
       try {

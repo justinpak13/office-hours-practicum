@@ -92,7 +92,7 @@ export class QueueController {
     @Body() body: UpdateQueueParams,
   ): Promise<QueueModel> {
     const queue = await this.queueService.getQueue(queueId);
-    if (queue === undefined) {
+    if (queue === null) {
       throw new NotFoundException();
     }
     queue.notes = body.notes;

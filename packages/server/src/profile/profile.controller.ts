@@ -58,7 +58,7 @@ export class ProfileController {
     @User(['courses', 'courses.course', 'phoneNotif', 'desktopNotifs'])
     user: UserModel,
   ): Promise<GetProfileResponse> {
-    if (user === null || user === undefined) {
+    if (user === null) {
       console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
       throw new HttpException(
         ERROR_MESSAGES.profileController.accountNotAvailable,
@@ -101,7 +101,7 @@ export class ProfileController {
       'insights',
     ]);
 
-    if (userResponse === null || userResponse === undefined) {
+    if (userResponse === null) {
       console.error(ERROR_MESSAGES.profileController.userResponseNotFound);
       throw new HttpException(
         ERROR_MESSAGES.profileController.userResponseNotFound,
@@ -110,7 +110,8 @@ export class ProfileController {
     }
 
     const pendingCourses = await this.profileService.getPendingCourses(user.id);
-    const hasUnregisteredCourses = await this.profileService.hasUnregisteredCourses(user.id);
+    const hasUnregisteredCourses =
+      await this.profileService.hasUnregisteredCourses(user.id);
 
     return {
       ...userResponse,

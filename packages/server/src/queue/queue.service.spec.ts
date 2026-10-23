@@ -183,7 +183,7 @@ describe('QueueService', () => {
         groups: [],
       };
       let lqr = await personalize(blank, user.id, Role.STUDENT);
-      expect(lqr.yourQuestion).toEqual(undefined);
+      expect(lqr.yourQuestion).toBeFalsy();
 
       // Create a question in this queue
       const question = await QuestionFactory.create({

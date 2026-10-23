@@ -67,7 +67,7 @@ export class QuestionController {
       relations: ['creator', 'taHelped'],
     });
 
-    if (question === undefined) {
+    if (question === null) {
       throw new NotFoundException();
     }
     return question;
@@ -158,7 +158,7 @@ export class QuestionController {
       where: { id: questionId },
       relations: ['creator', 'queue', 'taHelped'],
     });
-    if (question === undefined) {
+    if (question === null) {
       throw new NotFoundException();
     }
 
@@ -227,7 +227,7 @@ export class QuestionController {
       },
     );
 
-    if (question === undefined || question === null) {
+    if (question === null) {
       throw new HttpException(
         ERROR_MESSAGES.questionController.notFound,
         HttpStatus.NOT_FOUND,
