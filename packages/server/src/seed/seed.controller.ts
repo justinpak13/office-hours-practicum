@@ -261,7 +261,9 @@ export class SeedController {
   ): Promise<UserCourseModel> {
     let ta: UserCourseModel;
     if (body.courseId) {
-      const course = await CourseModel.findOneOrFail(body.courseId);
+      const course = await CourseModel.findOneOrFail({
+        where: { id: body.courseId },
+      });
       ta = await UserCourseFactory.create({ role: body.role, course: course });
     } else {
       ta = await UserCourseFactory.create({ role: body.role });
@@ -283,7 +285,9 @@ export class SeedController {
       allowQuestions: body.allowQuestions ?? false,
     };
     if (body.courseId) {
-      const course = await CourseModel.findOneOrFail(body.courseId);
+      const course = await CourseModel.findOneOrFail({
+        where: { id: body.courseId },
+      });
       options['course'] = course;
     }
     const queue: QueueModel = await QueueFactory.create(options);
@@ -301,11 +305,15 @@ export class SeedController {
   ): Promise<QuestionModel> {
     const options = {};
     if (body.queueId) {
-      const queue = await QueueModel.findOneOrFail(body.queueId);
+      const queue = await QueueModel.findOneOrFail({
+        where: { id: body.queueId },
+      });
       options['queue'] = queue;
     }
     if (body.studentId) {
-      const student = await UserModel.findOneOrFail(body.studentId);
+      const student = await UserModel.findOneOrFail({
+        where: { id: body.studentId },
+      });
       options['creator'] = student;
     }
     const question: QuestionModel = await QuestionFactory.create({
@@ -329,7 +337,9 @@ export class SeedController {
       officeHours: [],
     };
     if (body.courseId) {
-      const course = await CourseModel.findOneOrFail(body.courseId);
+      const course = await CourseModel.findOneOrFail({
+        where: { id: body.courseId },
+      });
       options['course'] = course;
     }
     return await QueueFactory.create(options);
