@@ -417,7 +417,9 @@ describe('Question Integration', () => {
         id: q.id,
         text: 'NEW TEXT',
       });
-      expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
+      expect(
+        await QuestionModel.findOne({ where: { id: q.id } }),
+      ).toMatchObject({
         text: 'NEW TEXT',
       });
     });
@@ -693,15 +695,21 @@ describe('Question Integration', () => {
       expect(newGroup.questions.length).toEqual(2);
       expect(newGroup.questions.find((q) => q.id === q1.id)).toBeTruthy();
       expect(newGroup.questions.find((q) => q.id === q2.id)).toBeTruthy();
-      expect(await QuestionModel.findOne({ id: q3.id })).toMatchObject({
+      expect(
+        await QuestionModel.findOne({ where: { id: q3.id } }),
+      ).toMatchObject({
         groupId: null,
         status: QuestionStatusKeys.Queued,
       });
-      expect(await QuestionModel.findOne({ id: q1.id })).toMatchObject({
+      expect(
+        await QuestionModel.findOne({ where: { id: q1.id } }),
+      ).toMatchObject({
         groupId: newGroup.id,
         status: QuestionStatusKeys.Helping,
       });
-      expect(await QuestionModel.findOne({ id: q2.id })).toMatchObject({
+      expect(
+        await QuestionModel.findOne({ where: { id: q2.id } }),
+      ).toMatchObject({
         groupId: newGroup.id,
         status: QuestionStatusKeys.Helping,
       });
@@ -801,15 +809,21 @@ describe('Question Integration', () => {
         .send({ queueId: queue.id })
         .expect(200);
 
-      expect(await QuestionModel.findOne({ id: g1q3.id })).toMatchObject({
+      expect(
+        await QuestionModel.findOne({ where: { id: g1q3.id } }),
+      ).toMatchObject({
         groupId: group1.id,
         status: QuestionStatusKeys.PriorityQueued,
       });
-      expect(await QuestionModel.findOne({ id: g1q1.id })).toMatchObject({
+      expect(
+        await QuestionModel.findOne({ where: { id: g1q1.id } }),
+      ).toMatchObject({
         groupId: group1.id,
         status: QuestionStatusKeys.Resolved,
       });
-      expect(await QuestionModel.findOne({ id: g1q2.id })).toMatchObject({
+      expect(
+        await QuestionModel.findOne({ where: { id: g1q2.id } }),
+      ).toMatchObject({
         groupId: group1.id,
         status: QuestionStatusKeys.Resolved,
       });
