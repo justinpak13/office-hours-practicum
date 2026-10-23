@@ -128,7 +128,7 @@ export class CourseService {
     courseId: number,
     coursePatch: EditCourseInfoParams,
   ): Promise<void> {
-    const course = await CourseModel.findOne(courseId);
+    const course = await CourseModel.findOne({ where: { id: courseId } });
     if (course === null || course === undefined) {
       throw new HttpException(
         ERROR_MESSAGES.courseController.courseNotFound,
@@ -168,7 +168,9 @@ export class CourseService {
       let courseCrnMapExists = false;
 
       for (const courseCrnMap of courseCrnMaps) {
-        const conflictCourse = await CourseModel.findOne(courseCrnMap.courseId);
+        const conflictCourse = await CourseModel.findOne({
+          where: { id: courseCrnMap.courseId },
+        });
         if (conflictCourse && conflictCourse.semesterId === course.semesterId) {
           if (courseCrnMap.courseId !== courseId) {
             throw new BadRequestException(
