@@ -46,7 +46,7 @@ describe('QueueService', () => {
 
       await service.cleanQueue(queue.id);
 
-      const question = await QuestionModel.findOne({});
+      const question = await QuestionModel.findOne({ where: {} });
       expect(question.status).toEqual('Queued');
     });
     it('if no staff are present all questions with open status are marked as stale', async () => {
@@ -150,13 +150,18 @@ describe('QueueService', () => {
 
       await service.checkoutAllStaff();
 
-      const updatedQueue1 = await QueueModel.findOne(queue.id, {
+      const updatedQueue1 = await QueueModel.findOne({
+        where: { id: queue.id },
         relations: ['staffList'],
       });
-      const updatedQueue2 = await QueueModel.findOne(queue2.id, {
+
+      const updatedQueue1 = await QueueModel.findOne({
+        where: { id: queue2.id },
         relations: ['staffList'],
       });
-      const updatedQueue3 = await QueueModel.findOne(queue3.id, {
+
+      const updatedQueue1 = await QueueModel.findOne({
+        where: { id: queue3.id },
         relations: ['staffList'],
       });
       const checkoutEvents = await EventModel.createQueryBuilder().getMany();

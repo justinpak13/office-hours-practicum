@@ -392,8 +392,8 @@ describe('Course Integration', () => {
       });
 
       expect(
-        (await QueueModel.findOne({}, { relations: ['staffList'] })).staffList
-          .length,
+        (await QueueModel.findOne({ where: {}, relations: ['staffList'] }))
+          .staffList.length,
       ).toEqual(1);
 
       await supertest({ userId: ta.id })
@@ -401,7 +401,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ where: {}, relations: ['staffList'] }),
       ).toMatchObject({
         staffList: [],
       });
@@ -440,7 +440,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ where: {}, relations: ['staffList'] }),
       ).toMatchObject({
         staffList: [],
       });
@@ -473,13 +473,13 @@ describe('Course Integration', () => {
       await supertest({ userId: ta.id })
         .delete(`/courses/${tcf.courseId}/ta_location/${queue.room}`)
         .expect(200);
-      const q3 = await QueueModel.findOne(
-        {
+      const q3 = await QueueModel.findOne({
+        where: {
           room: queue.room,
           isDisabled: false,
         },
-        { relations: ['staffList'] },
-      );
+        relations: ['staffList'],
+      });
 
       expect(q3.staffList.length).toBe(0);
     });
@@ -511,9 +511,9 @@ describe('Course Integration', () => {
         .send({ notes: 'ta queue', isProfessorQueue: false })
         .expect(201);
 
-      const q1 = await QueueModel.findOne({ room: 'abcd1' });
-      const q2 = await QueueModel.findOne({ room: 'abcd2' });
-      const q3 = await QueueModel.findOne({ room: 'abcd3' });
+      const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
+      const q2 = await QueueModel.findOne({ where: { room: 'abcd2' } });
+      const q3 = await QueueModel.findOne({ where: { room: 'abcd3' } });
 
       expect(q1).toBeDefined();
       expect(q2).toBeDefined();

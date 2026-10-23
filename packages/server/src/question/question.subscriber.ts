@@ -75,7 +75,8 @@ export class QuestionSubscriber
 
     if (numberOfQuestions === 0) {
       const staff = (
-        await QueueModel.findOne(event.entity.queueId, {
+        await QueueModel.findOne({
+          where: { id: event.entity.queueId },
           relations: ['staffList'],
         })
       ).staffList;

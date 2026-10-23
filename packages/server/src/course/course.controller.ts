@@ -65,7 +65,8 @@ export class CourseController {
     @User() user: UserModel,
   ): Promise<GetCourseResponse> {
     // TODO: for all course endpoint, check if they're a student or a TA
-    const course = await CourseModel.findOne(id, {
+    const course = await CourseModel.findOne({
+      where: { id: id },
       relations: ['queues', 'queues.staffList'],
     });
 
@@ -205,14 +206,14 @@ export class CourseController {
       );
     }
 
-    const queue = await QueueModel.findOne(
-      {
+    const queue = await QueueModel.findOne({
+      where: {
         room,
         courseId,
         isDisabled: false,
       },
-      { relations: ['staffList'] },
-    );
+      relations: ['staffList'],
+    });
 
     const userCourseModel = await UserCourseModel.findOne({
       where: {
@@ -324,9 +325,11 @@ export class CourseController {
     }
 
     const queue = await QueueModel.findOne({
-      room,
-      courseId,
-      isDisabled: false,
+      where: {
+        room,
+        courseId,
+        isDisabled: false,
+      },
     });
 
     if (queue) {
@@ -372,14 +375,14 @@ export class CourseController {
     @Param('room') room: string,
     @User() user: UserModel,
   ): Promise<TACheckoutResponse> {
-    const queue = await QueueModel.findOne(
-      {
+    const queue = await QueueModel.findOne({
+      where: {
         room,
         courseId,
         isDisabled: false,
       },
-      { relations: ['staffList'] },
-    );
+      relations: ['staffList'],
+    });
 
     if (queue === undefined || queue === null) {
       throw new HttpException(
@@ -620,7 +623,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async toggleSelfEnroll(@Param('id') courseId: number): Promise<void> {
-    const course = await CourseModel.findOne(courseId);
+    const course = await CourseModel.findOne({ where: { id: courseId } });
     course.selfEnroll = !course.selfEnroll;
     await course.save();
   }

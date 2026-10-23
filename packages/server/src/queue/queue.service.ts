@@ -28,7 +28,8 @@ export class QueueService {
   ) {}
 
   async getQueue(queueId: number): Promise<QueueModel> {
-    const queue = await QueueModel.findOne(queueId, {
+    const queue = await QueueModel.findOne({
+      where: { id: queueId },
       relations: ['staffList'],
     });
     if (!queue) {

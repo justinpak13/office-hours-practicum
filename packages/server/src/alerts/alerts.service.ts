@@ -24,9 +24,12 @@ export class AlertsService {
       switch (alert.alertType) {
         case AlertType.REPHRASE_QUESTION:
           const payload = alert.payload as RephraseQuestionPayload;
-          const question = await QuestionModel.findOne(payload.questionId);
+          const question = await QuestionModel.findOne({
+            where: { id: payload.questionId },
+          });
 
-          const queue = await QueueModel.findOne(payload.queueId, {
+          const queue = await QueueModel.findOne({
+            where: { id: payload.queueId },
             relations: ['staffList'],
           });
           const isQueueOpen = await queue?.checkIsOpen();
