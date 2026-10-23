@@ -353,8 +353,7 @@ export class CourseService {
     search?: string,
     role?: Role,
   ): Promise<GetCourseUserInfoResponse> {
-    const query = await UserModel.getRepository('UserModel')
-      .createQueryBuilder()
+    const query = UserModel.createQueryBuilder('UserModel')
       .leftJoin(
         UserCourseModel,
         'UserCourseModel',

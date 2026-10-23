@@ -12,15 +12,52 @@ import { QuestionModel } from '../../question/question.entity';
 import { QueueCleanService } from './queue-clean.service';
 import { QueueModel } from '../queue.entity';
 import { EventModel } from '../../profile/event-model.entity';
+import { RedisService } from 'nestjs-redis';
+
+// 1. Bulletproof mock for the 'redlock' library at the top of the file
+jest.mock('redlock', () => {
+  const mockRedlockInstance = {
+    on: jest.fn().mockReturnThis(),
+    acquire: jest.fn().mockResolvedValue({
+      unlock: jest.fn().mockResolvedValue(true),
+    }),
+  };
+
+  // Create a constructor function that returns our mock instance
+  const MockRedlock = jest.fn().mockImplementation(() => mockRedlockInstance);
+
+  // Export both as default and named export to match any import style
+  return {
+    __esModule: true,
+    default: MockRedlock,
+    Redlock: MockRedlock,
+  };
+});
 
 describe('QueueService', () => {
   let service: QueueCleanService;
   let conn: Connection;
 
   beforeAll(async () => {
+    // 1. Create a mock client that includes 'evalsha' and 'eval'
+    // since Redlock utilizes these for distributed locking algorithms
     const module: TestingModule = await Test.createTestingModule({
       imports: [TestTypeOrmModule],
-      providers: [QueueCleanService],
+
+      providers: [
+        QueueCleanService,
+        {
+          provide: RedisService,
+          useValue: {
+            // Return a basic mock object for your database client call
+            getClient: jest.fn().mockReturnValue({
+              get: jest.fn(),
+              set: jest.fn(),
+              del: jest.fn(),
+            }),
+          },
+        },
+      ],
     }).compile();
     service = module.get<QueueCleanService>(QueueCleanService);
     conn = module.get<Connection>(Connection);
@@ -155,12 +192,12 @@ describe('QueueService', () => {
         relations: ['staffList'],
       });
 
-      const updatedQueue1 = await QueueModel.findOne({
+      const updatedQueue2 = await QueueModel.findOne({
         where: { id: queue2.id },
         relations: ['staffList'],
       });
 
-      const updatedQueue1 = await QueueModel.findOne({
+      const updatedQueue3 = await QueueModel.findOne({
         where: { id: queue3.id },
         relations: ['staffList'],
       });

@@ -10,7 +10,6 @@ import { RedisService } from 'nestjs-redis';
 import * as Redlock from 'redlock';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
-import { Connection } from 'typeorm';
 import { QuestionModel } from '../../question/question.entity';
 import { QueueModel } from '../queue.entity';
 import { AlertModel } from '../../alerts/alerts.entity';
@@ -20,10 +19,7 @@ import { AlertModel } from '../../alerts/alerts.entity';
  */
 @Injectable()
 export class QueueCleanService {
-  constructor(
-    private connection: Connection,
-    private readonly redisService: RedisService,
-  ) {}
+  constructor(private readonly redisService: RedisService) {}
 
   // Runs `work` behind a Redlock so the nightly jobs fire once even though
   // pm2 runs multiple cluster instances that each schedule these crons.
@@ -32,7 +28,7 @@ export class QueueCleanService {
     work: () => Promise<void>,
   ): Promise<void> {
     const ttl = 120000;
-    const redisDB = await this.redisService.getClient('db');
+    const redisDB = this.redisService.getClient('db');
     const redlock = new Redlock([redisDB]);
     redlock.on('clientError', (err) =>
       console.error('A redis error has occurred:', err),

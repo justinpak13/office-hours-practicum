@@ -28,7 +28,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { Connection, In } from 'typeorm';
+import { In } from 'typeorm';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import {
   NotificationService,
@@ -52,7 +52,6 @@ import { QuestionService } from './question.service';
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionController {
   constructor(
-    private connection: Connection,
     private notifService: NotificationService,
     private questionService: QuestionService,
   ) {}
@@ -63,7 +62,7 @@ export class QuestionController {
     @Param('questionId') questionId: number,
   ): Promise<GetQuestionResponse> {
     const question = await QuestionModel.findOne({
-      where: { id: questionId },
+      where: { questionId },
       relations: ['creator', 'taHelped'],
     });
 
@@ -220,12 +219,10 @@ export class QuestionController {
   @Post(':questionId/notify')
   @Roles(Role.TA, Role.PROFESSOR)
   async notify(@Param('questionId') questionId: number): Promise<void> {
-    const question = await QuestionModel.findOne(
-      { where: { id: questionId } },
-      {
-        relations: ['queue'],
-      },
-    );
+    const question = await QuestionModel.findOne({
+      where: { id: questionId },
+      relations: ['queue'],
+    });
 
     if (question === null) {
       throw new HttpException(
