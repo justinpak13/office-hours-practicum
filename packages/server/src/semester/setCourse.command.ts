@@ -97,8 +97,10 @@ export class SetSemesterCommand {
   async getSemester(sea: Season, year: number) {
     // we need to some id matching
     return await SemesterModel.findOne({
-      season: sea,
-      year: year,
+      where: {
+        season: sea,
+        year: year,
+      },
     });
   }
 }

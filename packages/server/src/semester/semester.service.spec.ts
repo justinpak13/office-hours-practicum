@@ -74,8 +74,10 @@ describe('SemesterService', () => {
 
     async function getSemester(sea: Season, year: number) {
       return await SemesterModel.findOne({
-        season: sea,
-        year: year,
+        where: {
+          season: sea,
+          year: year,
+        },
       });
     }
 
