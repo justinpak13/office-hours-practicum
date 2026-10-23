@@ -10,7 +10,7 @@ export class BackfillDefaultUserTeamsMessages {
     autoExit: true,
   })
   async fix(): Promise<void> {
-    const users = await UserModel.find();
+    const users = await UserModel.find({ take: 1 })[0];
 
     users.forEach((user) => {
       user.defaultMessage = `Hello! I'm ${user.firstName}. How can I help you today?`;

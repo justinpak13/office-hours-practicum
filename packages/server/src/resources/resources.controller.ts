@@ -39,7 +39,7 @@ export class ResourcesController {
         if (stats && !refresh) {
           res.sendFile(filename, { root: process.env.UPLOAD_LOCATION });
         } else {
-          const course = await CourseModel.findOne(courseId);
+          const course = await CourseModel.findOne({ where: { id: courseId } });
           if (course === null || course === undefined || !course.enabled) {
             console.error(
               ERROR_MESSAGES.courseController.courseNotFound +

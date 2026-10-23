@@ -286,9 +286,9 @@ describe('Login Integration', () => {
           })
           .expect(201);
 
-        const noUserCourse = await UserCourseModel.findOne(
-          fundiesUserCourse.id,
-        );
+        const noUserCourse = await UserCourseModel.findOne({
+          where: { id: fundiesUserCourse.id },
+        });
         expect(noUserCourse).toBeUndefined();
 
         const totalUserCoursesUpdated = await UserCourseModel.count();
@@ -350,9 +350,9 @@ describe('Login Integration', () => {
           })
           .expect(201);
 
-        const overrideStillExists = await UserCourseModel.findOne(
-          overrideCourse.id,
-        );
+        const overrideStillExists = await UserCourseModel.findOne({
+          where: { id: overrideCourse.id },
+        });
         expect(overrideStillExists).toBeDefined();
         expect(overrideStillExists).toEqual({
           courseId: overrideCourse.courseId,

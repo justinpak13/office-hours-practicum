@@ -191,7 +191,9 @@ export class LoginCourseService {
         year,
         courses: [],
       }).save();
-      this.logger.log(`New semester created: ${season} ${year} (id=${semModel.id})`);
+      this.logger.log(
+        `New semester created: ${season} ${year} (id=${semModel.id})`,
+      );
     }
     return semModel;
   }
@@ -225,7 +227,7 @@ export class LoginCourseService {
     if (!photoUrl) {
       return;
     }
-    const user = await UserModel.findOne(userId);
+    const user = await UserModel.findOne({ where: { id: userId } });
     if (!user || (user.photoURL && isCustomPhoto(user.photoURL))) {
       return;
     }

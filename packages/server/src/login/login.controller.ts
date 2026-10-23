@@ -195,7 +195,7 @@ export class LoginController {
 
   @Get('self_enroll_courses')
   async selfEnrollEnabledAnywhere(): Promise<GetSelfEnrollResponse> {
-    const courses = await CourseModel.find();
+    const courses = await CourseModel.find({ take: 1 })[0];
     return { courses: courses.filter((course) => course.selfEnroll) };
   }
 
@@ -205,7 +205,7 @@ export class LoginController {
     @Param('id') courseId: number,
     @User() user: UserModel,
   ): Promise<void> {
-    const course = await CourseModel.findOne(courseId);
+    const course = await CourseModel.findOne({ where: { id: courseId } });
 
     if (!course || !course.selfEnroll) {
       throw new UnauthorizedException(

@@ -12,7 +12,7 @@ export class BackfillMakeEmptyPhotoURLNull {
   async fix(): Promise<void> {
     let countOfChanged = 0;
 
-    const users = await UserModel.find();
+    const users = await UserModel.find({ take: 1 })[0];
     users.forEach((user) => {
       if (user.photoURL === '') {
         user.photoURL = null;

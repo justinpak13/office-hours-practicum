@@ -9,7 +9,8 @@ export class CourseRolesGuard extends RolesGuard {
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     request: any,
   ): Promise<{ courseId: number; user: UserModel }> {
-    const user = await UserModel.findOne(request.user.userId, {
+    const user = await UserModel.findOne({
+      where: { id: request.user.userId },
       relations: ['courses'],
     });
 

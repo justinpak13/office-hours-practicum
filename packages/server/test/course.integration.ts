@@ -269,7 +269,7 @@ describe('Course Integration', () => {
 
       expect(response.body).toMatchSnapshot();
 
-      const events = await EventModel.find();
+      const events = await EventModel.find({ take: 1 })[0];
       expect(events.length).toBe(1);
       expect(events[0].eventType).toBe(EventType.TA_CHECKED_IN);
       expect(events[0].queueId).toBe(queue.id);
@@ -287,7 +287,7 @@ describe('Course Integration', () => {
         .post(`/courses/${queue.course.id}/ta_location/${queue.room}`)
         .expect(401);
 
-      const events = await EventModel.find();
+      const events = await EventModel.find({ take: 1 })[0];
       expect(events.length).toBe(0);
     });
 
@@ -406,7 +406,7 @@ describe('Course Integration', () => {
         staffList: [],
       });
 
-      const events = await EventModel.find();
+      const events = await EventModel.find({ take: 1 })[0];
       expect(events.length).toBe(1);
       expect(events[0].eventType).toBe(EventType.TA_CHECKED_OUT);
       expect(events[0].queueId).toBe(queue.id);
