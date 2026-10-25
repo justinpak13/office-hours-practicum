@@ -39,7 +39,7 @@ export class RedisService implements OnModuleDestroy {
   }
 
   onModuleDestroy(): void {
-    Object.values(this.clients).forEach(c => c.disconnect());
+    Object.values(this.clients).forEach((c) => c.disconnect());
   }
 }
 

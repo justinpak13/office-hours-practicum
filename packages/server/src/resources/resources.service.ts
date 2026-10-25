@@ -10,7 +10,6 @@ import * as path from 'path';
 import * as checkDiskSpace from 'check-disk-space';
 import { Connection } from 'typeorm';
 import { RedisService } from '../redis/redis.module';
-import * as Redlock from 'redlock';
 import { ERROR_MESSAGES } from '@koh/common';
 
 /**
@@ -30,29 +29,18 @@ export class ResourcesService {
    */
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
   public async refetchAllCalendarsJob(): Promise<void> {
-    const resource = 'locks:icalcron';
-    const ttl = 60000;
-
-    const redisDB = await this.redisService.getClient('db');
-
-    const redlock = new Redlock([redisDB]);
-
-    redlock.on('clientError', function (err) {
-      console.error('A redis error has occurred:', err);
-    });
-
     try {
-      await redlock.lock(resource, ttl).then(async (lock) => {
-        console.log('updating course icals');
-        await this.refetchAllCalendars();
-
-        return lock.unlock().catch(function (err) {
-          console.error('Error unlocking Redlock:', err);
-        });
-      });
-      console.log('Successfully updated course calendars');
+      const ran = await this.redisService.withLock(
+        'locks:icalcron',
+        60000,
+        async () => {
+          console.log('updating course icals');
+          await this.refetchAllCalendars();
+        },
+      );
+      if (ran) console.log('Successfully updated course calendars');
     } catch (error) {
-      console.error('A problem locking Redlock has occurred:', error);
+      console.error('Error refetching course calendars:', error);
     }
   }
 
