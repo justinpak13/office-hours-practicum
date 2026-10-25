@@ -33,7 +33,10 @@ export class RedisService implements OnModuleDestroy {
     try {
       await work();
     } finally {
-      await db.eval(RELEASE_LOCK, 1, key, token);
+      // A failed release must not mask a work() error; the lock still expires at its TTL
+      await db
+        .eval(RELEASE_LOCK, 1, key, token)
+        .catch((err) => console.error('Error releasing lock:', key, err));
     }
     return true;
   }

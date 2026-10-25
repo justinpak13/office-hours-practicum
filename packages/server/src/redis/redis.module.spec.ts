@@ -56,6 +56,17 @@ describe('RedisService.withLock', () => {
     expect(fakeDb.eval).toHaveBeenCalledTimes(1);
   });
 
+  it('rethrows the work error when the release also fails', async () => {
+    fakeDb.set.mockResolvedValue('OK');
+    fakeDb.eval.mockRejectedValue(new Error('redis down'));
+    const error = new Error('boom');
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    await expect(
+      service.withLock('locks:test', 1000, () => Promise.reject(error)),
+    ).rejects.toBe(error);
+  });
+
   it('sets the key only if absent with a millisecond expiry', async () => {
     fakeDb.set.mockResolvedValue('OK');
 
