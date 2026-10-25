@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as checkDiskSpace from 'check-disk-space';
 import { Connection } from 'typeorm';
-import { RedisService } from 'nestjs-redis';
+import { RedisService } from '../redis/redis.module';
 import * as Redlock from 'redlock';
 import { ERROR_MESSAGES } from '@koh/common';
 

@@ -12,7 +12,7 @@ import { QuestionModel } from '../../question/question.entity';
 import { QueueCleanService } from './queue-clean.service';
 import { QueueModel } from '../queue.entity';
 import { EventModel } from '../../profile/event-model.entity';
-import { RedisService } from 'nestjs-redis';
+import { RedisService } from '../../redis/redis.module';
 
 // 1. Bulletproof mock for the 'redlock' library at the top of the file
 jest.mock('redlock', () => {

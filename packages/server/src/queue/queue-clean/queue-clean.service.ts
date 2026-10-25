@@ -6,7 +6,7 @@ import {
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import async from 'async';
-import { RedisService } from 'nestjs-redis';
+import { RedisService } from '../../redis/redis.module';
 import * as Redlock from 'redlock';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';

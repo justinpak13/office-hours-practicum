@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModuleBuilder } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RedisModule } from 'nestjs-redis';
+import { RedisModule } from '../../src/redis/redis.module';
 import { NotificationService } from 'notification/notification.service';
 import * as supertest from 'supertest';
 import { mocked } from 'ts-jest/utils';
@@ -46,11 +46,7 @@ export function setupIntegrationTest(
         LoginModule,
         TestTypeOrmModule,
         TestConfigModule,
-        RedisModule.register([
-          { name: 'pub' },
-          { name: 'sub' },
-          { name: 'db' },
-        ]),
+        RedisModule,
       ],
     });
 
