@@ -2,7 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { each } from 'async';
 import { serialize } from 'class-transformer';
 import { Response } from 'express';
-import { RedisService } from 'nestjs-redis';
+import { RedisService } from '../redis/redis.module';
 import { ERROR_MESSAGES } from '@koh/common';
 import * as Sentry from '@sentry/node';
 

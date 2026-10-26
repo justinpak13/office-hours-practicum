@@ -6,7 +6,7 @@ import { InsightsModule } from 'insights/insights.module';
 import { AlertsModule } from 'alerts/alerts.module';
 import { BackfillModule } from 'backfill/backfill.module';
 import { CommandModule } from 'nestjs-command';
-import { RedisModule } from 'nestjs-redis';
+import { RedisModule } from './redis/redis.module';
 import * as typeormConfig from '../ormconfig';
 import { AdminModule } from './admin/admin.module';
 import { CourseModule } from './course/course.module';
@@ -46,7 +46,7 @@ import { ResourcesModule } from './resources/resources.module';
     BackfillModule,
     InsightsModule,
     // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
-    RedisModule.register([{ name: 'pub' }, { name: 'sub' }, { name: 'db' }]),
+    RedisModule,
     HealthcheckModule,
     AlertsModule,
     SemesterModule,

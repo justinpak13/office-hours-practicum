@@ -6,8 +6,7 @@ import {
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import async from 'async';
-import { RedisService } from 'nestjs-redis';
-import * as Redlock from 'redlock';
+import { RedisService } from '../../redis/redis.module';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { QuestionModel } from '../../question/question.entity';
@@ -21,28 +20,16 @@ import { AlertModel } from '../../alerts/alerts.entity';
 export class QueueCleanService {
   constructor(private readonly redisService: RedisService) {}
 
-  // Runs `work` behind a Redlock so the nightly jobs fire once even though
+  // Runs `work` behind a Redis lock so the nightly jobs fire once even though
   // pm2 runs multiple cluster instances that each schedule these crons.
   private async withClusterLock(
     resource: string,
     work: () => Promise<void>,
   ): Promise<void> {
-    const ttl = 120000;
-    const redisDB = this.redisService.getClient('db');
-    const redlock = new Redlock([redisDB]);
-    redlock.on('clientError', (err) =>
-      console.error('A redis error has occurred:', err),
-    );
     try {
-      await redlock.lock(resource, ttl).then(async (lock) => {
-        await work();
-        return lock
-          .unlock()
-          .catch((err) => console.error('Error unlocking Redlock:', err));
-      });
+      await this.redisService.withLock(resource, 120000, work);
     } catch (error) {
-      // Losing the lock race is expected on the other instance(s)
-      console.error('A problem locking Redlock has occurred:', error);
+      console.error('Error running locked job:', resource, error);
     }
   }
 
