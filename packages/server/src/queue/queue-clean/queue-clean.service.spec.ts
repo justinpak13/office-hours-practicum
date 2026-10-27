@@ -67,7 +67,7 @@ describe('QueueService', () => {
       expect(question.status).toEqual('Queued');
     });
     it('if no staff are present all questions with open status are marked as stale', async () => {
-      const queue = await QueueFactory.create({});
+      const queue = await QueueFactory.create();
       const question = await QuestionFactory.create({
         status: OpenQuestionStatus.Queued,
         queue: queue,

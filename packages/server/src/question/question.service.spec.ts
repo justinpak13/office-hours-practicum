@@ -13,6 +13,7 @@ import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
 import { QuestionGroupModel } from './question-group.entity';
 import { QuestionModel } from './question.entity';
 import { QuestionService } from './question.service';
+import { AdminModule } from '../admin/admin.module';
 
 describe('QuestionService', () => {
   let service: QuestionService;
@@ -21,7 +22,7 @@ describe('QuestionService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [TestTypeOrmModule, TestConfigModule, AdminModule],
       providers: [QuestionService, NotificationService],
     }).compile();
 

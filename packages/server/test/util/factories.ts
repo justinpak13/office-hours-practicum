@@ -141,9 +141,9 @@ export const QueueFactory = defineFactory(QueueModel, async (o) => {
     allowQuestions: false,
     isProfessorQueue: false,
     isDisabled: false,
+    staffList: [],
   };
   if (!o.course && !o.courseId) defaults.course = await CourseFactory.create();
-  if (!o.staffList) defaults.staffList = [await UserFactory.create()];
   return defaults;
 });
 
