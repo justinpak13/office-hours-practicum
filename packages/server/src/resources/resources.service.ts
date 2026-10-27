@@ -1,8 +1,5 @@
-import {
-  Injectable,
-  HttpService,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CourseModel } from '../course/course.entity';
 import * as fs from 'fs';

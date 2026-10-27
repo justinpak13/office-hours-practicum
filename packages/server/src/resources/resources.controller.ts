@@ -1,11 +1,6 @@
-import {
-  Controller,
-  Get,
-  HttpService,
-  HttpStatus,
-  Param,
-  Res,
-} from '@nestjs/common';
+import { Controller, Get, HttpStatus, Param, Res } from '@nestjs/common';
+
+import { HttpService } from '@nestjs/axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Response } from 'express';
