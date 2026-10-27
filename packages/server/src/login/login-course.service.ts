@@ -5,7 +5,7 @@ import {
   Role,
   Season,
 } from '@koh/common';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, ConsoleLogger } from '@nestjs/common';
 import { CourseModel } from 'course/course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -23,7 +23,7 @@ import {
 
 @Injectable()
 export class LoginCourseService {
-  private readonly logger = new Logger(LoginCourseService.name);
+  private readonly logger = new ConsoleLogger(LoginCourseService.name);
 
   constructor(private connection: Connection) {}
 

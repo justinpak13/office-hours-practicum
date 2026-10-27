@@ -1,5 +1,5 @@
 import { Role, SSEQueueResponse } from '@koh/common';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, ConsoleLogger } from '@nestjs/common';
 import { Response } from 'express';
 import { throttle } from 'lodash';
 import { SSEService } from 'sse/sse.service';
@@ -13,7 +13,7 @@ const idToRoom = (queueId: number) => `q-${queueId}`;
  */
 @Injectable()
 export class QueueSSEService {
-  private readonly logger = new Logger(QueueSSEService.name);
+  private readonly logger = new ConsoleLogger(QueueSSEService.name);
 
   constructor(
     private queueService: QueueService,

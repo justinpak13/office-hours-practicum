@@ -1,4 +1,11 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   CourseAdmin,
   QueueAdmin,
@@ -7,6 +14,7 @@ import {
   CourseSectionMappingAdmin,
   SemesterAdmin,
 } from './admin-entities';
+import { AdminResource } from './admin-resource';
 import { AdminGuard } from './admin-auth';
 
 @Controller('admin')

@@ -11,6 +11,7 @@ import * as checkDiskSpace from 'check-disk-space';
 import { Connection } from 'typeorm';
 import { RedisService } from '../redis/redis.module';
 import { ERROR_MESSAGES } from '@koh/common';
+import { firstValueFrom } from 'rxjs';
 
 /**
  * Manage resources
@@ -75,7 +76,7 @@ export class ResourcesService {
       );
     }
 
-    const request = await this.httpService.get(course.icalURL).toPromise();
+    const request = await firstValueFrom(this.httpService.get(course.icalURL));
     fs.writeFile(
       // not doing this synchronously so the request is faster
       path.join(process.env.UPLOAD_LOCATION, this.getCalFilename(course.id)),

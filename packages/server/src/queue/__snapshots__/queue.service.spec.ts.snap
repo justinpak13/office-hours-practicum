@@ -2,10 +2,10 @@
 
 exports[`QueueService personalizeQuestions hides details of other students 1`] = `
 ListQuestionsResponse {
-  "groups": Array [],
-  "priorityQueue": Array [],
-  "questionsGettingHelp": Array [],
-  "queue": Array [
+  "groups": [],
+  "priorityQueue": [],
+  "questionsGettingHelp": [],
+  "queue": [
     QuestionModel {
       "closedAt": null,
       "createdAt": 2020-11-02T12:00:00.000Z,
@@ -43,7 +43,7 @@ ListQuestionsResponse {
       "text": "help someone else",
     },
   ],
-  "unresolvedAlerts": Array [],
+  "unresolvedAlerts": [],
   "yourQuestion": QuestionModel {
     "closedAt": null,
     "createdAt": 2020-11-02T12:00:00.000Z,
@@ -52,10 +52,10 @@ ListQuestionsResponse {
       "desktopNotifsEnabled": false,
       "email": "user@neu.edu",
       "firstName": "User",
-      "hideInsights": Array [],
+      "hideInsights": [],
       "id": 1,
       "includeDefaultMessage": true,
-      "insights": Array [
+      "insights": [
         "TotalStudents",
         "TotalQuestionsAsked",
         "MedianWaitTime",

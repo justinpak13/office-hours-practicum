@@ -1,5 +1,5 @@
 import { Global, Injectable, Module, OnModuleDestroy } from '@nestjs/common';
-import * as Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import { randomBytes } from 'crypto';
 
 export type RedisClientName = 'pub' | 'sub' | 'db';
@@ -10,13 +10,13 @@ const RELEASE_LOCK =
 @Injectable()
 export class RedisService implements OnModuleDestroy {
   // lazyConnect: sockets open on first command, so constructing the service (e.g. in unit tests) opens no connections
-  private readonly clients: Record<RedisClientName, Redis.Redis> = {
+  private readonly clients: Record<RedisClientName, Redis> = {
     pub: new Redis({ lazyConnect: true }),
     sub: new Redis({ lazyConnect: true }),
     db: new Redis({ lazyConnect: true }),
   };
 
-  getClient(name: RedisClientName): Redis.Redis {
+  getClient(name: RedisClientName): Redis {
     return this.clients[name];
   }
 
