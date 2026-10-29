@@ -17,10 +17,10 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - run: echo "::add-matcher::.github/scripts/migration-problem-matcher.json"
       - name: install node v14
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v6
         with:
           node-version: 14
       - uses: bahmutov/npm-install@v1

@@ -2,16 +2,16 @@ name: Lint
 
 on:
   pull_request:
-    branches: [master, hybrid-queues, updated-login]
+    branches: [main, dev]
 
 jobs:
   lint:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: install node v14
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v6
         with:
           node-version: 14
       - uses: bahmutov/npm-install@v1
@@ -20,9 +20,9 @@ jobs:
     name: typescript
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: install node v14
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v6
         with:
           node-version: 14
       - uses: bahmutov/npm-install@v1

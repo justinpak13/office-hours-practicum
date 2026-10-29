@@ -2,9 +2,9 @@ name: Cypress
 
 on:
   push:
-    branches: master
+    branches: [main, dev]
   pull_request:
-    branches: [master, hybrid-queues, updated-login]
+    branches: [main, dev]
 
 jobs:
   cypress-tests:
@@ -27,33 +27,34 @@ jobs:
           - 6379:6379
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v6
+      - name: install node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 14
       - uses: bahmutov/npm-install@v1
       - run: yarn build
       - name: Cypress run
-        uses: cypress-io/github-action@v2
+        uses: cypress-io/github-action@v7
         with:
-          record: ${{ github.event_name == 'pull_request' }}
+          record: false
           start: yarn ci:start
           wait-on: "http://localhost:3000"
           browser: chrome
-          command-prefix: "yarn run percy exec"
         env:
           CYPRESS_USE_LIVE_API: true
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-          PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # after the test run completes
       # store videos and any screenshots
       # NOTE: screenshots will be generated only if E2E test failed
       # thus we store screenshots only on failures
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: cypress-screenshots
           path: cypress/screenshots
       # Test run video was always captured, so this action uses "always()" condition
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: cypress-videos
