@@ -23,7 +23,7 @@ import { ResourcesModule } from './resources/resources.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({ ...ormconfig, keepConnectionAlive: true }),
+    TypeOrmModule.forRoot(ormconfig),
     ScheduleModule.forRoot(),
     LoginModule,
     ProfileModule,

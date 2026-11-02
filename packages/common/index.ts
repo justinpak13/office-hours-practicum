@@ -14,7 +14,7 @@ import {
   ValidateIf,
 } from "class-validator";
 import "reflect-metadata";
-import { Cache } from "cache-manager";
+import { Cache } from "@nestjs/cache-manager";
 
 export const PROD_URL = "https://officehours.khoury.northeastern.edu";
 export const STAGING_URL = "https://staging.khouryofficehours.com";

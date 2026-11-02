@@ -83,7 +83,7 @@ export function setupIntegrationTest(
   };
 }
 
-const notifMock = jest.mocked({ notifyUser: jest.fn() }, true);
+const notifMock = jest.mocked({ notifyUser: jest.fn() });
 /**
  * Module Modifier tests can pass to setupIntegrationTest to mock the notifService and to expect things
  * ex:

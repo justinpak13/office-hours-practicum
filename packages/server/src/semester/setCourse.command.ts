@@ -10,7 +10,6 @@ export class SetSemesterCommand {
   @Command({
     command: 'semester:toggleActiveSemester  <mode> <semester> <year>',
     describe: '(disable or enable) all the classes in a given semester',
-    autoExit: true,
   })
   async create(
     @Positional({

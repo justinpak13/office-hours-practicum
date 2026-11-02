@@ -1,4 +1,5 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DataSource } from 'typeorm';
 import { Filter, INSIGHTS_MAP } from './insight-objects';
 import {
@@ -7,7 +8,7 @@ import {
   ListInsightsResponse,
 } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
-import { Cache } from 'cache-manager';
+import { Cache } from '@nestjs/cache-manager';
 
 type ComputeOutputParams = {
   insight: InsightObject;

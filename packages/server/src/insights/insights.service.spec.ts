@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CacheModule } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { DataSource } from 'typeorm';
 import { InsightsService } from './insights.service';

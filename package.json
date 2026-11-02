@@ -56,11 +56,40 @@
       "eslint --fix"
     ]
   },
-  "jest": {
-    "projects": [
-      "<rootDir>/packages/*"
+"jest": {
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
+  "rootDir": "src",
+  "testRegex": ".spec.ts$",
+  "transformIgnorePatterns": [
+    "node_modules/(?!(@nestjs/cache-manager|config|@babel/code-frame)/)"
+  ],
+  "transform": {
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        "tsconfig": "tsconfig.json"
+      }
+    ],
+    "^.+\\.js$": [
+      "babel-jest",
+      {
+        "rootMode": "upward"
+      }
     ]
   },
+  "coverageDirectory": "../coverage",
+  "testEnvironment": "node",
+  "moduleDirectories": [
+    "node_modules",
+    "<rootDir>/../node_modules",
+    "<rootDir>/../../../../node_modules",
+    "<rootDir>"
+  ]
+},
   "dependencies": {
     "lint-staged": "^11.2.6",
     "pm2": "^4.4.0",

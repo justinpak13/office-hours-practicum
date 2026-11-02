@@ -1,5 +1,5 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
-
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ClosedQuestionStatus, Heatmap, timeDiffInMins } from '@koh/common';
 import * as moment from 'moment';
@@ -23,11 +23,8 @@ export class HeatmapService {
 
   async getCachedHeatmapFor(courseId: number): Promise<Heatmap | false> {
     //One week
-    const cacheLengthInSeconds = 604800;
-    return this.cacheManager.wrap(
-      `heatmap/${courseId}`,
-      () => this._getHeatmapFor(courseId),
-      { ttl: cacheLengthInSeconds },
+    return this.cacheManager.wrap(`heatmap/${courseId}`, () =>
+      this._getHeatmapFor(courseId),
     );
   }
 
@@ -265,7 +262,6 @@ export class HeatmapService {
   @Command({
     command: 'heatmap:generate <courseId>',
     describe: 'generate heatmap for a course',
-    autoExit: true,
   })
   async create(
     @Positional({
