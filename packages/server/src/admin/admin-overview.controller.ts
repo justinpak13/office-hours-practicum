@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { Role } from '@koh/common';
 import { Response } from 'express';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { CourseModel } from '../course/course.entity';
 import { UserCourseModel } from '../profile/user-course.entity';
 
@@ -131,7 +131,7 @@ const ROLE_SECTIONS: { role: Role; heading: string }[] = [
 @Controller('admin')
 @UseGuards(AdminPageGuard)
 export class AdminOverviewController {
-  constructor(private connection: Connection) {}
+  constructor(private connection: DataSource) {}
 
   @Get('overview')
   async overview(@Res() res: Response): Promise<void> {
@@ -215,7 +215,7 @@ export class AdminOverviewController {
     res.set('Cache-Control', 'no-store');
     const course = await this.connection
       .getRepository(CourseModel)
-      .findOne(Number(id), { relations: ['semester'] });
+      .findOne({ where: { id: Number(id) }, relations: ['semester'] });
     if (!course) {
       throw new NotFoundException(`No course with id ${id}`);
     }

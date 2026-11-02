@@ -30,14 +30,14 @@ import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { UserModel } from 'profile/user.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { NonProductionGuard } from '../guards/non-production.guard';
 import { LoginCourseService } from './login-course.service';
 
 @Controller()
 export class LoginController {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private loginCourseService: LoginCourseService,
     private jwtService: JwtService,
     private configService: ConfigService,
@@ -128,7 +128,7 @@ export class LoginController {
     let payload: { userId: number; token_type?: string };
     try {
       payload = await this.jwtService.verifyAsync(token);
-    } catch (err) {
+    } catch {
       throw new UnauthorizedException();
     }
 

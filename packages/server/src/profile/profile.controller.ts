@@ -29,7 +29,7 @@ import * as fs from 'fs';
 import { pick } from 'lodash';
 import { memoryStorage } from 'multer';
 import * as path from 'path';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { NotificationService } from '../notification/notification.service';
 import { User } from '../decorators/user.decorator';
@@ -48,7 +48,7 @@ import {
 @UseGuards(JwtAuthGuard)
 export class ProfileController {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private notifService: NotificationService,
     private profileService: ProfileService,
   ) {}
@@ -167,7 +167,7 @@ export class ProfileController {
     const fileName = customPhotoFileName(user.id);
     try {
       await savePhotoBuffer(file.buffer, fileName);
-    } catch (err) {
+    } catch {
       throw new BadRequestException('The uploaded file is not a valid image');
     }
 

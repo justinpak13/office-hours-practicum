@@ -6,7 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from '../../src/redis/redis.module';
 import { NotificationService } from 'notification/notification.service';
 import * as supertest from 'supertest';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { addGlobalsToApp } from '../../src/bootstrap';
 import { LoginModule } from '../../src/login/login.module';
 
@@ -36,7 +36,7 @@ export function setupIntegrationTest(
 ): (u?: SupertestOptions) => supertest.SuperTest<supertest.Test> {
   let app: INestApplication;
   let jwtService: JwtService;
-  let conn: Connection;
+  let conn: DataSource;
 
   beforeAll(async () => {
     let testModuleBuilder = Test.createTestingModule({
@@ -57,13 +57,13 @@ export function setupIntegrationTest(
     app = testModule.createNestApplication();
     addGlobalsToApp(app);
     jwtService = testModule.get<JwtService>(JwtService);
-    conn = testModule.get<Connection>(Connection);
+    conn = testModule.get<DataSource>(DataSource);
     await app.init();
   });
 
   afterAll(async () => {
     await app.close();
-    await conn.close();
+    await conn.destroy();
   });
 
   beforeEach(async () => {

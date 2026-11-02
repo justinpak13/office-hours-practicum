@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CacheModule } from '@nestjs/common';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { InsightsService } from './insights.service';
 import {
   UserCourseFactory,
@@ -20,7 +20,7 @@ import { UserModel } from 'profile/user.entity';
 
 describe('InsightsService', () => {
   let service: InsightsService;
-  let conn: Connection;
+  let conn: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -29,11 +29,11 @@ describe('InsightsService', () => {
     }).compile();
 
     service = module.get<InsightsService>(InsightsService);
-    conn = module.get<Connection>(Connection);
+    conn = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await conn.destroy();
   });
 
   beforeEach(async () => {

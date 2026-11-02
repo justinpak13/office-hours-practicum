@@ -32,7 +32,7 @@ import {
 import async from 'async';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Roles } from '../decorators/roles.decorator';
 import { User, UserId } from '../decorators/user.decorator';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
@@ -50,7 +50,7 @@ import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 @UseInterceptors(ClassSerializerInterceptor)
 export class CourseController {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private queueCleanService: QueueCleanService,
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
@@ -152,7 +152,9 @@ export class CourseController {
     const course_response = { ...course, crns: null };
     try {
       const mappings = await CourseSectionMappingModel.find({
-        courseId: course.id,
+        where: {
+          courseId: course.id,
+        },
       });
       course_response.crns = mappings.map((mapping) => mapping.crn);
     } catch (err) {

@@ -1,7 +1,7 @@
 import { QuestionStatusKeys } from '@koh/common';
 import { TestingModule, Test } from '@nestjs/testing';
 import { NotificationService } from 'notification/notification.service';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   QueueFactory,
   QuestionGroupFactory,
@@ -18,7 +18,7 @@ import { AdminModule } from '../admin/admin.module';
 describe('QuestionService', () => {
   let service: QuestionService;
 
-  let conn: Connection;
+  let conn: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -27,11 +27,11 @@ describe('QuestionService', () => {
     }).compile();
 
     service = module.get<QuestionService>(QuestionService);
-    conn = module.get<Connection>(Connection);
+    conn = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await conn.destroy();
   });
 
   beforeEach(async () => {

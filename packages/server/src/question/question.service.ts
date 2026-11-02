@@ -18,13 +18,13 @@ import {
   NotifMsgs,
 } from 'notification/notification.service';
 import { UserModel } from 'profile/user.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { QuestionModel } from './question.entity';
 
 @Injectable()
 export class QuestionService {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private notifService: NotificationService,
   ) {}
 

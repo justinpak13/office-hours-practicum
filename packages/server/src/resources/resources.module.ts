@@ -7,11 +7,9 @@ import { ResourcesService } from './resources.service';
   controllers: [ResourcesController],
   providers: [ResourcesService],
   imports: [
-    HttpModule.registerAsync({
-      useFactory: () => ({
-        timeout: 5000,
-        maxRedirects: 5,
-      }),
+    HttpModule.register({
+      timeout: 5000,
+      maxRedirects: 5,
     }),
   ],
 })

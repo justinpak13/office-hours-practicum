@@ -604,7 +604,9 @@ describe('Login Integration', () => {
       });
 
       const fundiesRegular = await CourseModel.findOne({
-        name: 'CS 2500 Regular',
+        where: {
+          name: 'CS 2500 Regular',
+        },
       });
 
       expect(ta.courses).toHaveLength(1);

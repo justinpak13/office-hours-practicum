@@ -1,4 +1,4 @@
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { SemesterService } from './semester.service';
@@ -9,7 +9,7 @@ import { SemesterModel } from './semester.entity';
 
 describe('SemesterService', () => {
   let service: SemesterService;
-  let conn: Connection;
+  let conn: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -18,11 +18,11 @@ describe('SemesterService', () => {
     }).compile();
 
     service = module.get<SemesterService>(SemesterService);
-    conn = module.get<Connection>(Connection);
+    conn = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await conn.destroy();
   });
 
   beforeEach(async () => {
@@ -103,7 +103,9 @@ describe('SemesterService', () => {
       await service.toggleActiveSemester(target, false);
 
       const allCourses = await CourseModel.find({
-        semester: target,
+        where: {
+          semester: target,
+        },
       });
 
       expect(allCourses.length).toBeGreaterThan(0);
@@ -112,7 +114,9 @@ describe('SemesterService', () => {
       await service.toggleActiveSemester(target, true);
 
       const allCourses2 = await CourseModel.find({
-        semester: target,
+        where: {
+          semester: target,
+        },
       });
       expect(allCourses.length).toBeGreaterThan(0);
 

@@ -4,7 +4,7 @@ import { HttpService } from '@nestjs/axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Response } from 'express';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { ResourcesService } from './resources.service';
 import { CourseModel } from '../course/course.entity';
 import { ERROR_MESSAGES } from '@koh/common';
@@ -16,7 +16,7 @@ import { ERROR_MESSAGES } from '@koh/common';
 @Controller('resources')
 export class ResourcesController {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private httpService: HttpService,
     private resourcesService: ResourcesService,
   ) {}

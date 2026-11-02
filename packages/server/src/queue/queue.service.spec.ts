@@ -2,7 +2,7 @@ import { ListQuestionsResponse, QuestionStatusKeys, Role } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { mapValues, zip } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   QuestionFactory,
   QuestionGroupFactory,
@@ -17,7 +17,7 @@ import { AlertsService } from '../alerts/alerts.service';
 describe('QueueService', () => {
   let service: QueueService;
 
-  let conn: Connection;
+  let conn: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -26,11 +26,11 @@ describe('QueueService', () => {
     }).compile();
 
     service = module.get<QueueService>(QueueService);
-    conn = module.get<Connection>(Connection);
+    conn = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await conn.destroy();
   });
 
   beforeEach(async () => {

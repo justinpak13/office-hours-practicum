@@ -1,23 +1,23 @@
 import { ClosedQuestionStatus, OpenQuestionStatus } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { QuestionFactory, QueueFactory } from '../../test/util/factories';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { QueueModel } from './queue.entity';
 
 describe('queue entity', () => {
-  let conn: Connection;
+  let conn: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [TestTypeOrmModule],
     }).compile();
 
-    conn = module.get<Connection>(Connection);
+    conn = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await conn.destroy();
   });
 
   beforeEach(async () => {

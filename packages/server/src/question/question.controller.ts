@@ -62,7 +62,7 @@ export class QuestionController {
     @Param('questionId') questionId: number,
   ): Promise<GetQuestionResponse> {
     const question = await QuestionModel.findOne({
-      where: { questionId },
+      where: { id: questionId },
       relations: ['creator', 'taHelped'],
     });
 

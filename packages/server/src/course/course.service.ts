@@ -16,7 +16,7 @@ import {
 import { partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
-import { Between, Brackets, Connection, In } from 'typeorm';
+import { Between, Brackets, DataSource, In } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
@@ -30,7 +30,7 @@ import { UserModel } from 'profile/user.entity';
 @Injectable()
 export class CourseService {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private loginCourseService: LoginCourseService,
     private profileService: ProfileService,
   ) {}
@@ -142,7 +142,9 @@ export class CourseService {
       );
     }
 
-    let courseCrnMaps = await CourseSectionMappingModel.find({ courseId });
+    let courseCrnMaps = await CourseSectionMappingModel.find({
+      where: { courseId },
+    });
     for (const courseCrnMap of courseCrnMaps) {
       if (!coursePatch.crns.includes(courseCrnMap.crn)) {
         try {
@@ -162,7 +164,9 @@ export class CourseService {
 
     for (const crn of new Set(coursePatch.crns)) {
       courseCrnMaps = await CourseSectionMappingModel.find({
-        crn: crn,
+        where: {
+          crn: crn,
+        },
       });
 
       let courseCrnMapExists = false;

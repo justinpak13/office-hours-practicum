@@ -2,7 +2,7 @@ import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 
 import { Cache } from 'cache-manager';
 import { ClosedQuestionStatus, Heatmap, timeDiffInMins } from '@koh/common';
-import moment = require('moment');
+import * as moment from 'moment';
 import { CourseModel } from './course.entity';
 import { MoreThan } from 'typeorm';
 import { QuestionModel } from '../question/question.entity';
@@ -38,7 +38,7 @@ export class HeatmapService {
     // Number of samples to gather per bucket
     const SAMPLES_PER_BUCKET = 3;
     console.time('heatmap');
-    const recent = moment().subtract(8, 'weeks').toISOString();
+    const recent = moment().subtract(8, 'weeks').toDate();
     const questions = await QuestionModel.createQueryBuilder('question')
       .leftJoinAndSelect('question.queue', 'queue')
       .where('queue.courseId = :courseId', { courseId })
@@ -61,7 +61,8 @@ export class HeatmapService {
       return false;
     }
 
-    const tz = (await CourseModel.findOne({ id: courseId })).timezone;
+    const tz = (await CourseModel.findOne({ where: { id: courseId } }))
+      .timezone;
 
     function extractTimestamps(taEvents: EventModel[]) {
       const hours = [];

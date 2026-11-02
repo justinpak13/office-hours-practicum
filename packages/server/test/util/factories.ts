@@ -14,32 +14,27 @@ import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
 
 import { BaseEntity, DeepPartial } from 'typeorm';
 
-type EntityClass<T extends BaseEntity> = { new (): T } & typeof BaseEntity;
-
-export function defineFactory<T extends BaseEntity>(
-  Model: EntityClass<T>,
-  defaults: (
-    overrides: DeepPartial<T>,
-  ) => Promise<DeepPartial<T>> | DeepPartial<T>,
-) {
-  return {
-    async create(overrides: DeepPartial<T> = {}): Promise<T> {
-      const base = await defaults(overrides);
-      const entity = (Model as any).create({ ...base, ...overrides }) as T;
+export function defineFactory<T extends BaseEntity>(Model: new () => T) {
+  return (
+    defaults: (
+      overrides: DeepPartial<T>,
+    ) => Promise<DeepPartial<T>> | DeepPartial<T>,
+  ) => ({
+    async create(overrides?: DeepPartial<T>): Promise<T> {
+      const o = overrides ?? ({} as DeepPartial<T>);
+      const base = await defaults(o);
+      const entity = (Model as any).create({ ...base, ...o }) as T;
       return entity.save();
     },
-    async createList(
-      count: number,
-      overrides: DeepPartial<T> = {},
-    ): Promise<T[]> {
+    async createList(count: number, overrides?: DeepPartial<T>): Promise<T[]> {
       const out: T[] = [];
       for (let i = 0; i < count; i++) out.push(await this.create(overrides));
       return out;
     },
-  };
+  });
 }
 
-export const UserFactory = defineFactory(UserModel, () => {
+export const UserFactory = defineFactory(UserModel)(() => {
   const defaults: DeepPartial<UserModel> = {
     email: 'user@neu.edu',
     firstName: 'User',
@@ -49,21 +44,21 @@ export const UserFactory = defineFactory(UserModel, () => {
   return defaults;
 });
 
-export const StudentCourseFactory = defineFactory(UserCourseModel, () => {
+export const StudentCourseFactory = defineFactory(UserCourseModel)(() => {
   const defaults: DeepPartial<UserCourseModel> = {
     role: Role.STUDENT,
   };
   return defaults;
 });
 
-export const TACourseFactory = defineFactory(UserCourseModel, () => {
+export const TACourseFactory = defineFactory(UserCourseModel)(() => {
   const defaults: DeepPartial<UserCourseModel> = {
     role: Role.TA,
   };
   return defaults;
 });
 
-export const SemesterFactory = defineFactory(SemesterModel, () => {
+export const SemesterFactory = defineFactory(SemesterModel)(() => {
   const defaults: DeepPartial<SemesterModel> = {
     season: 'Fall',
     year: 2020,
@@ -71,18 +66,7 @@ export const SemesterFactory = defineFactory(SemesterModel, () => {
   return defaults;
 });
 
-//export const CourseFactory = new Factory(CourseModel)
-//  .attr('name', 'CS 2500')
-//  // calendar is owned by sandboxneu@gmail.com
-//  .attr(
-//    'icalURL',
-//    'https://calendar.google.com/calendar/ical/t6lu2pic7u9otrbpkuk26sl34g%40group.calendar.google.com/public/basic.ics',
-//  )
-//  .attr('sectionGroupName', 'CS 2500')
-//  .attr('enabled', true)
-//  .assocOne('semester', SemesterFactory);
-
-export const CourseFactory = defineFactory(CourseModel, async (o) => {
+export const CourseFactory = defineFactory(CourseModel)(async (o) => {
   const defaults: DeepPartial<CourseModel> = {
     name: 'CS 2500', // copy each value from the existing factory
     icalURL:
@@ -95,12 +79,7 @@ export const CourseFactory = defineFactory(CourseModel, async (o) => {
   return defaults;
 });
 
-// export const CourseSectionFactory = new Factory(CourseSectionMappingModel)
-//   .attr('crn', 12345)
-//   .assocOne('course', CourseFactory);
-
-export const CourseSectionFactory = defineFactory(
-  CourseSectionMappingModel,
+export const CourseSectionFactory = defineFactory(CourseSectionMappingModel)(
   async (o) => {
     const defaults: DeepPartial<CourseSectionMappingModel> = {
       crn: 12345,
@@ -111,13 +90,7 @@ export const CourseSectionFactory = defineFactory(
   },
 );
 
-//export const UserCourseFactory = new Factory(UserCourseModel)
-//  .assocOne('user', UserFactory)
-//  .assocOne('course', CourseFactory)
-//  .attr('role', Role.STUDENT)
-//  .attr('override', false);
-
-export const UserCourseFactory = defineFactory(UserCourseModel, async (o) => {
+export const UserCourseFactory = defineFactory(UserCourseModel)(async (o) => {
   const defaults: DeepPartial<UserCourseModel> = {
     role: Role.STUDENT,
     override: false,
@@ -127,15 +100,7 @@ export const UserCourseFactory = defineFactory(UserCourseModel, async (o) => {
   return defaults;
 });
 
-//export const QueueFactory = new Factory(QueueModel)
-//  .attr('room', 'Online')
-//  .attr('allowQuestions', false)
-//  .attr('isProfessorQueue', false)
-//  .attr('isDisabled', false)
-//  .assocOne('course', CourseFactory)
-//  .assocMany('staffList', UserFactory, 0);
-
-export const QueueFactory = defineFactory(QueueModel, async (o) => {
+export const QueueFactory = defineFactory(QueueModel)(async (o) => {
   const defaults: DeepPartial<QueueModel> = {
     room: 'online',
     allowQuestions: false,
@@ -147,18 +112,9 @@ export const QueueFactory = defineFactory(QueueModel, async (o) => {
   return defaults;
 });
 
-// export const QuestionFactory = new Factory(QuestionModel)
-//   .attr('text', 'question description')
-//   .attr('status', 'Queued')
-//   .attr('questionType', QuestionType.Other)
-//   .attr('groupable', true)
-//   .assocOne('queue', QueueFactory)
-//   .assocOne('creator', UserFactory)
-//   .attr('createdAt', new Date());
-
 // WARNING: DO NOT USE CREATORID. AS YOU SEE HERE, WE ONLY ACCEPT CREATOR
 //TODO: make it accept creatorId as well
-export const QuestionFactory = defineFactory(QuestionModel, async (o) => {
+export const QuestionFactory = defineFactory(QuestionModel)(async (o) => {
   const defaults: DeepPartial<QuestionModel> = {
     text: 'question description', // copy each value from the existing factory
     status: OpenQuestionStatus.Queued,
@@ -171,12 +127,7 @@ export const QuestionFactory = defineFactory(QuestionModel, async (o) => {
   return defaults;
 });
 
-//export const QuestionGroupFactory = new Factory(QuestionGroupModel)
-//  .assocOne('creator', UserCourseFactory)
-//  .assocOne('queue', QueueFactory);
-
-export const QuestionGroupFactory = defineFactory(
-  QuestionGroupModel,
+export const QuestionGroupFactory = defineFactory(QuestionGroupModel)(
   async (o) => {
     const defaults: DeepPartial<QuestionGroupModel> = {};
     if (!o.creator && !o.creatorId)
@@ -187,13 +138,7 @@ export const QuestionGroupFactory = defineFactory(
   },
 );
 
-//export const EventFactory = new Factory(EventModel)
-//  .attr('time', new Date())
-//  .attr('eventType', EventType.TA_CHECKED_IN)
-//  .assocOne('user', UserFactory)
-//  .assocOne('course', CourseFactory);
-
-export const EventFactory = defineFactory(EventModel, async (o) => {
+export const EventFactory = defineFactory(EventModel)(async (o) => {
   const defaults: DeepPartial<EventModel> = {
     time: new Date(),
     eventType: EventType.TA_CHECKED_IN,
@@ -203,12 +148,7 @@ export const EventFactory = defineFactory(EventModel, async (o) => {
   return defaults;
 });
 
-//export const LastRegistrationFactory = new Factory(LastRegistrationModel)
-//  .attr('lastRegisteredSemester', '202110') // Fall 2020
-//  .assocOne('prof', UserFactory);
-
-export const LastRegistrationFactory = defineFactory(
-  LastRegistrationModel,
+export const LastRegistrationFactory = defineFactory(LastRegistrationModel)(
   async (o) => {
     const defaults: DeepPartial<LastRegistrationModel> = {
       lastRegisteredSemester: '202110',
@@ -218,12 +158,7 @@ export const LastRegistrationFactory = defineFactory(
   },
 );
 
-//export const ProfSectionGroupsFactory = new Factory(ProfSectionGroupsModel)
-//  .assocOne('prof', UserFactory)
-//  .attr('sectionGroups', []);
-
-export const ProfSectionGroupsFactory = defineFactory(
-  ProfSectionGroupsModel,
+export const ProfSectionGroupsFactory = defineFactory(ProfSectionGroupsModel)(
   async (o) => {
     const defaults: DeepPartial<ProfSectionGroupsModel> = {
       sectionGroups: [],
@@ -233,14 +168,7 @@ export const ProfSectionGroupsFactory = defineFactory(
   },
 );
 
-// export const AlertFactory = new Factory(AlertModel)
-//   .attr('alertType', AlertType.REPHRASE_QUESTION)
-//   .attr('sent', new Date(Date.now() - 86400000))
-//   .assocOne('user', UserFactory)
-//   .assocOne('course', CourseFactory)
-//   .attr('payload', {});
-
-export const AlertFactory = defineFactory(AlertModel, async (o) => {
+export const AlertFactory = defineFactory(AlertModel)(async (o) => {
   const defaults: DeepPartial<AlertModel> = {
     alertType: AlertType.REPHRASE_QUESTION,
     sent: new Date(Date.now() - 86400000),

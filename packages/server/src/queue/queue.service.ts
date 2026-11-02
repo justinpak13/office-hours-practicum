@@ -12,7 +12,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { classToClass } from 'class-transformer';
 import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
-import { Connection, In } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { QueueModel } from './queue.entity';
 import { AlertsService } from '../alerts/alerts.service';
 
@@ -23,7 +23,7 @@ import { AlertsService } from '../alerts/alerts.service';
 @Injectable()
 export class QueueService {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private alertsService: AlertsService,
   ) {}
 

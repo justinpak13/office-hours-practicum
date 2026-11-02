@@ -5,7 +5,7 @@ import { CourseModel } from '../course/course.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as checkDiskSpace from 'check-disk-space';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { RedisService } from '../redis/redis.module';
 import { ERROR_MESSAGES } from '@koh/common';
 import { firstValueFrom } from 'rxjs';
@@ -16,7 +16,7 @@ import { firstValueFrom } from 'rxjs';
 @Injectable()
 export class ResourcesService {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private httpService: HttpService,
     private readonly redisService: RedisService,
   ) {}

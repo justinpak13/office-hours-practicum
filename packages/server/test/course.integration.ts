@@ -869,7 +869,9 @@ describe('Course Integration', () => {
         .send(editCourseTomato)
         .expect(200);
 
-      const updatedCourse = await CourseModel.findOne({ id: course.id });
+      const updatedCourse = await CourseModel.findOne({
+        where: { id: course.id },
+      });
 
       expect(updatedCourse.name).toEqual('Tomato');
       expect(updatedCourse.coordinator_email).toEqual('tomato@gmail.com');
@@ -1070,10 +1072,14 @@ describe('Course Integration', () => {
 
       // verify courses are created as expected
       const ubw = await CourseModel.findOne({
-        sectionGroupName: 'Underwater Basket-Weaving',
+        where: {
+          sectionGroupName: 'Underwater Basket-Weaving',
+        },
       });
       const ubw2 = await CourseModel.findOne({
-        sectionGroupName: 'Underwater Basket-Weaving 2',
+        where: {
+          sectionGroupName: 'Underwater Basket-Weaving 2',
+        },
       });
       expect(ubw).toBeDefined();
       expect(ubw2).toBeDefined();
@@ -1245,11 +1251,15 @@ describe('Course Integration', () => {
 
       // verify course is created as expected before error
       const ubw2 = await CourseModel.findOne({
-        sectionGroupName: 'Underwater Basket-Weaving 2',
+        where: {
+          sectionGroupName: 'Underwater Basket-Weaving 2',
+        },
       });
       // verify existing course still exists
       const life = await CourseModel.findOne({
-        sectionGroupName: 'Life is Not a Highway',
+        where: {
+          sectionGroupName: 'Life is Not a Highway',
+        },
       });
       expect(ubw2).toBeDefined();
       expect(life).toBeDefined();

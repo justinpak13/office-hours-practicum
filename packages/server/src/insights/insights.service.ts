@@ -1,5 +1,5 @@
 import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Filter, INSIGHTS_MAP } from './insight-objects';
 import {
   PossibleOutputTypes,
@@ -22,7 +22,7 @@ type GenerateAllInsightParams = {
 @Injectable()
 export class InsightsService {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 

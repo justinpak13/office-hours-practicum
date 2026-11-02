@@ -1,6 +1,6 @@
 import { OpenQuestionStatus, LimboQuestionStatus } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   AlertFactory,
   QuestionFactory,
@@ -16,7 +16,7 @@ import { RedisService } from '../../redis/redis.module';
 
 describe('QueueService', () => {
   let service: QueueCleanService;
-  let conn: Connection;
+  let conn: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -40,11 +40,11 @@ describe('QueueService', () => {
       ],
     }).compile();
     service = module.get<QueueCleanService>(QueueCleanService);
-    conn = module.get<Connection>(Connection);
+    conn = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await conn.destroy();
   });
 
   beforeEach(async () => {

@@ -1,14 +1,14 @@
 import { CacheModule } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { QuestionModel } from 'question/question.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { HeatmapService } from './heatmap.service';
 import { ClosedQuestionStatus, Heatmap } from '@koh/common';
 
 describe('HeatmapService', () => {
   let _service: HeatmapService;
-  let _conn: Connection;
+  let _conn: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -17,11 +17,11 @@ describe('HeatmapService', () => {
     }).compile();
 
     _service = module.get<HeatmapService>(HeatmapService);
-    _conn = module.get<Connection>(Connection);
+    _conn = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await _conn.close();
+    await _conn.destroy();
   });
   it('_', () => {
     expect(3).toEqual(2 + 1);
