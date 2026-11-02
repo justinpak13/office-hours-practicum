@@ -7,7 +7,7 @@ import { AlertsModule } from 'alerts/alerts.module';
 import { BackfillModule } from 'backfill/backfill.module';
 import { CommandModule } from 'nestjs-command';
 import { RedisModule } from './redis/redis.module';
-import * as typeormConfig from '../ormconfig';
+import { ormconfig } from '../ormconfig';
 import { AdminModule } from './admin/admin.module';
 import { CourseModule } from './course/course.module';
 import { HealthcheckModule } from './healthcheck/healthcheck.module';
@@ -23,7 +23,7 @@ import { ResourcesModule } from './resources/resources.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot(typeormConfig),
+    TypeOrmModule.forRoot({ ...ormconfig, keepConnectionAlive: true }),
     ScheduleModule.forRoot(),
     LoginModule,
     ProfileModule,

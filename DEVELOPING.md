@@ -24,6 +24,10 @@
    EMAIL=mailto:you@example.com
    ADMIN_SESSION_SECRET=dev-only-not-a-secret
    ```
+NOTE: if there is an issue with database from prior run, might have to use the following commands 
+yarn migration:generate -n Name → yarn migration:generate migration/Name
+yarn typeorm migration:run → yarn migration:run
+
 
 3. Create the uploads folder: `mkdir packages/server/uploads`.
 4. Run `yarn dev:db:up` to start Postgres and Redis in Docker. `yarn dev:db:down` stops them. The Postgres container creates the `dev` and `test` databases on first start.
