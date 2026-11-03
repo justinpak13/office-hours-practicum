@@ -48,7 +48,6 @@
     "dotenv": "^8.2.0",
     "express-session": "^1.17.1",
     "ioredis": "^5.11.1",
-    "jimp": "^0.16.13",
     "keyv": "^5",
     "lodash": "^4.17.21",
     "moment": "^2.29.2",
@@ -63,6 +62,7 @@
     "reflect-metadata": "^0.2.0",
     "rimraf": "^3.0.2",
     "rxjs": "^7.0.0",
+    "sharp": "^0.35.5",
     "source-map-support": "^0.5.19",
     "typeorm": "^0.3.0",
     "web-push": "^3.4.4"
