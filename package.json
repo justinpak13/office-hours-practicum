@@ -24,7 +24,8 @@
   "workspaces": {
     "packages": [
       "packages/*"
-    ]
+    ],
+    "nohoist": ["@koh/server/@nestjs/cache-manager"]
   },
   "devDependencies": {
     "@babel/cli": "^7.12.1",
