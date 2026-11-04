@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CacheModule } from '@nestjs/cache-manager';
+import { CACHE_MANAGER, CacheModule } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { DataSource } from 'typeorm';
 import { InsightsService } from './insights.service';
@@ -21,6 +22,7 @@ import { UserModel } from 'profile/user.entity';
 describe('InsightsService', () => {
   let service: InsightsService;
   let conn: DataSource;
+  let cache: Cache;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -30,6 +32,7 @@ describe('InsightsService', () => {
 
     service = module.get<InsightsService>(InsightsService);
     conn = module.get<DataSource>(DataSource);
+    cache = module.get<Cache>(CACHE_MANAGER);
   });
 
   afterAll(async () => {
@@ -300,6 +303,31 @@ describe('InsightsService', () => {
         questionsAsked: '8',
       },
     ]);
+  });
+
+  it('caches mostActiveStudents for one hour', async () => {
+    await cache.clear();
+    const spy = jest.spyOn(cache, 'wrap');
+    try {
+      const course = await CourseFactory.create();
+      await service.computeOutput({
+        insight: INSIGHTS_MAP.MostActiveStudents,
+        filters: [
+          {
+            type: 'courseId',
+            courseId: course.id,
+          },
+        ],
+      });
+      expect(spy).toHaveBeenCalledWith(
+        `questions/${course.id}/:`,
+        expect.any(Function),
+        3600000,
+      );
+    } finally {
+      spy.mockRestore();
+      await cache.clear();
+    }
   });
 
   describe('toggleInsightOn', () => {
