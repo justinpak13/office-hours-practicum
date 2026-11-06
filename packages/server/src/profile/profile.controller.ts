@@ -23,13 +23,13 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import * as checkDiskSpace from 'check-disk-space';
+import checkDiskSpace from 'check-disk-space';
 import { Response } from 'express';
 import * as fs from 'fs';
 import { pick } from 'lodash';
 import { memoryStorage } from 'multer';
 import * as path from 'path';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { NotificationService } from '../notification/notification.service';
 import { User } from '../decorators/user.decorator';
@@ -48,7 +48,7 @@ import {
 @UseGuards(JwtAuthGuard)
 export class ProfileController {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private notifService: NotificationService,
     private profileService: ProfileService,
   ) {}
@@ -58,7 +58,7 @@ export class ProfileController {
     @User(['courses', 'courses.course', 'phoneNotif', 'desktopNotifs'])
     user: UserModel,
   ): Promise<GetProfileResponse> {
-    if (user === null || user === undefined) {
+    if (user === null) {
       console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
       throw new HttpException(
         ERROR_MESSAGES.profileController.accountNotAvailable,
@@ -101,7 +101,7 @@ export class ProfileController {
       'insights',
     ]);
 
-    if (userResponse === null || userResponse === undefined) {
+    if (userResponse === null) {
       console.error(ERROR_MESSAGES.profileController.userResponseNotFound);
       throw new HttpException(
         ERROR_MESSAGES.profileController.userResponseNotFound,
@@ -110,7 +110,8 @@ export class ProfileController {
     }
 
     const pendingCourses = await this.profileService.getPendingCourses(user.id);
-    const hasUnregisteredCourses = await this.profileService.hasUnregisteredCourses(user.id);
+    const hasUnregisteredCourses =
+      await this.profileService.hasUnregisteredCourses(user.id);
 
     return {
       ...userResponse,
@@ -133,9 +134,12 @@ export class ProfileController {
     @User(['courses', 'courses.course', 'phoneNotif', 'desktopNotifs'])
     user: UserModel,
   ): Promise<GetProfileResponse> {
-    user = Object.assign(user, userPatch);
-
-    await user.save();
+    // update() writes only the patched columns, without re-checking the
+    // relations loaded above (which save() would do in parallel queries).
+    if (Object.keys(userPatch).length > 0) {
+      await UserModel.update({ id: user.id }, userPatch);
+      Object.assign(user, userPatch);
+    }
 
     return this.get(user);
   }
@@ -166,7 +170,7 @@ export class ProfileController {
     const fileName = customPhotoFileName(user.id);
     try {
       await savePhotoBuffer(file.buffer, fileName);
-    } catch (err) {
+    } catch {
       throw new BadRequestException('The uploaded file is not a valid image');
     }
 

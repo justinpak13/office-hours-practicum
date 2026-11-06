@@ -9,10 +9,10 @@ import {
   StatusSentToCreator,
 } from '@koh/common';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { classToClass } from 'class-transformer';
+import { instanceToInstance } from 'class-transformer';
 import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
-import { Connection, In } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { QueueModel } from './queue.entity';
 import { AlertsService } from '../alerts/alerts.service';
 
@@ -23,12 +23,13 @@ import { AlertsService } from '../alerts/alerts.service';
 @Injectable()
 export class QueueService {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private alertsService: AlertsService,
   ) {}
 
   async getQueue(queueId: number): Promise<QueueModel> {
-    const queue = await QueueModel.findOne(queueId, {
+    const queue = await QueueModel.findOne({
+      where: { id: queueId },
       relations: ['staffList'],
     });
     if (!queue) {
@@ -119,8 +120,8 @@ export class QueueService {
           question.creator.id === userId
             ? question.creator
             : pick(question.creator, ['id']);
-        // classToClass transformer will apply the @Excludes
-        return classToClass<Question>(
+        // instanceToInstance transformer will apply the @Excludes
+        return instanceToInstance<Question>(
           QuestionModel.create({ ...question, creator }),
         );
       });
@@ -131,8 +132,8 @@ export class QueueService {
             question.creator.id === userId
               ? question.creator
               : pick(question.creator, ['id']);
-          // classToClass transformer will apply the @Excludes
-          return classToClass<Question>(
+          // instanceToInstance transformer will apply the @Excludes
+          return instanceToInstance<Question>(
             QuestionModel.create({ ...question, creator }),
           );
         },

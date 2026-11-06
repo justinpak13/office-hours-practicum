@@ -1,6 +1,6 @@
 import { OpenQuestionStatus, LimboQuestionStatus } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   AlertFactory,
   QuestionFactory,
@@ -12,22 +12,41 @@ import { QuestionModel } from '../../question/question.entity';
 import { QueueCleanService } from './queue-clean.service';
 import { QueueModel } from '../queue.entity';
 import { EventModel } from '../../profile/event-model.entity';
+import { RedisService } from '../../redis/redis.module';
 
 describe('QueueService', () => {
   let service: QueueCleanService;
-  let conn: Connection;
+  let conn: DataSource;
+
+  let module: TestingModule;
 
   beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [TestTypeOrmModule],
-      providers: [QueueCleanService],
+
+      providers: [
+        QueueCleanService,
+        {
+          provide: RedisService,
+          useValue: {
+            withLock: async (
+              _key: string,
+              _ttl: number,
+              work: () => Promise<void>,
+            ) => {
+              await work();
+              return true;
+            },
+          },
+        },
+      ],
     }).compile();
     service = module.get<QueueCleanService>(QueueCleanService);
-    conn = module.get<Connection>(Connection);
+    conn = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await module?.close();
   });
 
   beforeEach(async () => {
@@ -46,11 +65,11 @@ describe('QueueService', () => {
 
       await service.cleanQueue(queue.id);
 
-      const question = await QuestionModel.findOne({});
+      const question = await QuestionModel.findOne({ where: {} });
       expect(question.status).toEqual('Queued');
     });
     it('if no staff are present all questions with open status are marked as stale', async () => {
-      const queue = await QueueFactory.create({});
+      const queue = await QueueFactory.create();
       const question = await QuestionFactory.create({
         status: OpenQuestionStatus.Queued,
         queue: queue,
@@ -150,13 +169,18 @@ describe('QueueService', () => {
 
       await service.checkoutAllStaff();
 
-      const updatedQueue1 = await QueueModel.findOne(queue.id, {
+      const updatedQueue1 = await QueueModel.findOne({
+        where: { id: queue.id },
         relations: ['staffList'],
       });
-      const updatedQueue2 = await QueueModel.findOne(queue2.id, {
+
+      const updatedQueue2 = await QueueModel.findOne({
+        where: { id: queue2.id },
         relations: ['staffList'],
       });
-      const updatedQueue3 = await QueueModel.findOne(queue3.id, {
+
+      const updatedQueue3 = await QueueModel.findOne({
+        where: { id: queue3.id },
         relations: ['staffList'],
       });
       const checkoutEvents = await EventModel.createQueryBuilder().getMany();

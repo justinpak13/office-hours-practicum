@@ -1,5 +1,5 @@
 import {
-  Connection,
+  DataSource,
   EntitySubscriberInterface,
   EventSubscriber,
   InsertEvent,
@@ -12,7 +12,7 @@ export class DesktopNotifSubscriber
   implements EntitySubscriberInterface<DesktopNotifModel>
 {
   notifService: NotificationService;
-  constructor(connection: Connection, notifService: NotificationService) {
+  constructor(connection: DataSource, notifService: NotificationService) {
     this.notifService = notifService;
     connection.subscribers.push(this);
   }
