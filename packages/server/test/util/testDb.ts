@@ -15,6 +15,6 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
 });
 
 export const TestConfigModule = ConfigModule.forRoot({
-  envFilePath: ['.env.development'],
+  envFilePath: [path.join(__dirname, '../../.env.test')],
   isGlobal: true,
 });

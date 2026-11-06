@@ -21,14 +21,10 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
       - name: install node v20
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: bahmutov/npm-install@v1
+      - uses: bahmutov/npm-install@v4
       - run: yarn test
-        env:
-          EMAIL: mailto:test@example.com
-          PUBLICKEY: ${{ secrets.TEST_VAPID_PUBLIC_KEY }}
-          PRIVATEKEY: ${{ secrets.TEST_VAPID_PRIVATE_KEY }}
