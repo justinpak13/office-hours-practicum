@@ -1,4 +1,4 @@
-import { CreateQuestionParams, Role } from '@koh/common';
+import { Role } from '@koh/common';
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AlertModel } from 'alerts/alerts.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
@@ -11,7 +11,7 @@ import { UserCourseModel } from 'profile/user-course.entity';
 import { UserModel } from 'profile/user.entity';
 import { QuestionGroupModel } from 'question/question-group.entity';
 import { SemesterModel } from 'semester/semester.entity';
-import { Connection } from 'typeorm';
+import { DataSource, DeepPartial } from 'typeorm';
 import {
   CourseFactory,
   EventFactory,
@@ -31,7 +31,7 @@ import { SeedService } from './seed.service';
 @UseGuards(NonProductionGuard)
 export class SeedController {
   constructor(
-    private connection: Connection,
+    private dataSource: DataSource,
     private seedService: SeedService,
   ) {}
 
@@ -51,7 +51,7 @@ export class SeedController {
     await this.seedService.deleteAll(CourseSectionMappingModel);
     await this.seedService.deleteAll(CourseModel);
     await this.seedService.deleteAll(SemesterModel);
-    await this.connection.query(
+    await this.dataSource.query(
       'ALTER SEQUENCE user_model_id_seq RESTART WITH 1;',
     );
 
@@ -166,7 +166,7 @@ export class SeedController {
     }
 
     const queue = await QueueFactory.create({
-      room: 'Online',
+      room: 'online',
       course: course,
       allowQuestions: true,
     });
@@ -299,10 +299,10 @@ export class SeedController {
   async createQuestion(
     @Body()
     body: {
-      queueId: number;
-      studentId: number;
-      data: CreateQuestionParams;
-    },
+      queueId?: number;
+      studentId?: number;
+      data?: DeepPartial<QuestionModel>;
+    } = {},
   ): Promise<QuestionModel> {
     const options = {};
     if (body.queueId) {

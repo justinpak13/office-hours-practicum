@@ -269,8 +269,7 @@ describe('Course Integration', () => {
 
       expect(response.body).toMatchSnapshot();
 
-      const events = await EventModel.find({ take: 1 })[0];
-      expect(events.length).toBe(1);
+      const events = await EventModel.find();
       expect(events[0].eventType).toBe(EventType.TA_CHECKED_IN);
       expect(events[0].queueId).toBe(queue.id);
     });
@@ -287,7 +286,7 @@ describe('Course Integration', () => {
         .post(`/courses/${queue.course.id}/ta_location/${queue.room}`)
         .expect(401);
 
-      const events = await EventModel.find({ take: 1 })[0];
+      const events = await EventModel.find();
       expect(events.length).toBe(0);
     });
 
@@ -406,8 +405,7 @@ describe('Course Integration', () => {
         staffList: [],
       });
 
-      const events = await EventModel.find({ take: 1 })[0];
-      expect(events.length).toBe(1);
+      const events = await EventModel.find();
       expect(events[0].eventType).toBe(EventType.TA_CHECKED_OUT);
       expect(events[0].queueId).toBe(queue.id);
     });
@@ -445,9 +443,7 @@ describe('Course Integration', () => {
         staffList: [],
       });
 
-      const events = await EventModel.find({
-        where: { userId: ta.id },
-      });
+      const events = await EventModel.find();
 
       expect(events.length).toBe(0);
     });
@@ -634,7 +630,7 @@ describe('Course Integration', () => {
           userId: user.id,
         },
       });
-      expect(ucm).toBeUndefined();
+      expect(ucm).toBeNull();
     });
   });
 
@@ -834,9 +830,9 @@ describe('Course Integration', () => {
       const userCourse = await UserCourseModel.findOne({
         where: { courseId: course.id, userId: professor.id },
       });
-      expect(testSPresent).toBeUndefined();
-      expect(testTPresent).toBeUndefined();
-      expect(testPPresent).toBeUndefined();
+      expect(testSPresent).toBeNull();
+      expect(testTPresent).toBeNull();
+      expect(testPPresent).toBeNull();
       expect(userCourse).toBeDefined();
     });
   });
@@ -886,7 +882,7 @@ describe('Course Integration', () => {
       const crnCourseMapDeleted = await CourseSectionMappingModel.findOne({
         where: { crn: 30303, courseId: course.id },
       });
-      expect(crnCourseMapDeleted).toBeUndefined();
+      expect(crnCourseMapDeleted).toBeNull();
     });
 
     it('test crn mapped to another course for a different semester', async () => {
@@ -1110,7 +1106,7 @@ describe('Course Integration', () => {
       expect(crn1ToUbwMapping).toBeDefined();
       expect(crn2ToUbwMapping).toBeDefined();
       expect(crn3ToUbwMapping).toBeDefined();
-      expect(crn4ToUbwMapping).toBeUndefined();
+      expect(crn4ToUbwMapping).toBeNull();
       const crn4ToUbw2Mapping = await CourseSectionMappingModel.findOne({
         where: { crn: CRN4, courseId: ubw2.id },
       });

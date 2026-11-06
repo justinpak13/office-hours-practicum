@@ -36,7 +36,7 @@ export class AlertsController {
     const alerts = await AlertModel.find({
       where: {
         courseId,
-        user,
+        user: { id: user.id },
         resolved: IsNull(),
       },
     });

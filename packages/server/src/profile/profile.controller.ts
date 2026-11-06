@@ -134,9 +134,12 @@ export class ProfileController {
     @User(['courses', 'courses.course', 'phoneNotif', 'desktopNotifs'])
     user: UserModel,
   ): Promise<GetProfileResponse> {
-    user = Object.assign(user, userPatch);
-
-    await user.save();
+    // update() writes only the patched columns, without re-checking the
+    // relations loaded above (which save() would do in parallel queries).
+    if (Object.keys(userPatch).length > 0) {
+      await UserModel.update({ id: user.id }, userPatch);
+      Object.assign(user, userPatch);
+    }
 
     return this.get(user);
   }

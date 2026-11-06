@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm';
 import { addGlobalsToApp } from '../../src/app-globals';
 import { LoginModule } from '../../src/login/login.module';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testDb';
+import { QueueSSEService } from '../../src/queue/queue-sse.service';
 
 export interface SupertestOptions {
   userId?: number;
@@ -21,6 +22,7 @@ export function setupIntegrationTest(
   let app: INestApplication;
   let jwtService: JwtService;
   let conn: DataSource;
+  let queueSSE: QueueSSEService | undefined;
 
   beforeAll(async () => {
     let testModuleBuilder = Test.createTestingModule({
@@ -42,11 +44,21 @@ export function setupIntegrationTest(
     addGlobalsToApp(app);
     jwtService = testModule.get<JwtService>(JwtService);
     conn = testModule.get<DataSource>(DataSource);
+    try {
+      queueSSE = testModule.get(QueueSSEService, { strict: false });
+    } catch {
+      queueSSE = undefined; // this test module doesn't include the queue module
+    }
     await app.init();
   });
 
   afterAll(async () => {
     await app?.close();
+  });
+
+  afterEach(async () => {
+    // Let throttled SSE updates finish while the tables still exist
+    await queueSSE?.flushPendingUpdates();
   });
 
   beforeEach(async () => {
@@ -66,7 +78,7 @@ export function setupIntegrationTest(
   };
 }
 
-const notifMock = jest.mocked({ notifyUser: jest.fn() });
+const notifMock = jest.mocked({ notifyUser: jest.fn(() => Promise.resolve()) });
 /**
  * Module Modifier tests can pass to setupIntegrationTest to mock the notifService and to expect things
  * ex:

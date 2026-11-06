@@ -318,7 +318,12 @@ export class CourseService {
       }).save();
     }
 
-    if (await this.profileService.hasUnregisteredCourses(userId)) {
+    // Skipping registration (submitting no courses) still marks this semester
+    // as handled. A partial registration keeps the prompt open.
+    if (
+      body.length > 0 &&
+      (await this.profileService.hasUnregisteredCourses(userId))
+    ) {
       return;
     }
 
