@@ -26,5 +26,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: bahmutov/npm-install@v4
+          cache: yarn
+      - run: yarn install --frozen-lockfile
       - run: yarn test
