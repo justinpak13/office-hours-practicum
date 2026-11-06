@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CacheModule } from '@nestjs/common';
+import { CACHE_MANAGER, CacheModule } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { InsightsService } from './insights.service';
 import {
   UserCourseFactory,
@@ -20,7 +21,8 @@ import { UserModel } from 'profile/user.entity';
 
 describe('InsightsService', () => {
   let service: InsightsService;
-  let conn: Connection;
+  let conn: DataSource;
+  let cache: Cache;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -29,11 +31,12 @@ describe('InsightsService', () => {
     }).compile();
 
     service = module.get<InsightsService>(InsightsService);
-    conn = module.get<Connection>(Connection);
+    conn = module.get<DataSource>(DataSource);
+    cache = module.get<Cache>(CACHE_MANAGER);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await conn.destroy();
   });
 
   beforeEach(async () => {
@@ -302,10 +305,35 @@ describe('InsightsService', () => {
     ]);
   });
 
+  it('caches mostActiveStudents for one hour', async () => {
+    await cache.clear();
+    const spy = jest.spyOn(cache, 'wrap');
+    try {
+      const course = await CourseFactory.create();
+      await service.computeOutput({
+        insight: INSIGHTS_MAP.MostActiveStudents,
+        filters: [
+          {
+            type: 'courseId',
+            courseId: course.id,
+          },
+        ],
+      });
+      expect(spy).toHaveBeenCalledWith(
+        `questions/${course.id}/:`,
+        expect.any(Function),
+        3600000,
+      );
+    } finally {
+      spy.mockRestore();
+      await cache.clear();
+    }
+  });
+
   describe('toggleInsightOn', () => {
     it('works correctly', async () => {
       const userFactory = await UserFactory.create();
-      const user = await UserModel.findOne(userFactory.id);
+      const user = await UserModel.findOne({ where: { id: userFactory.id } });
       expect(user.hideInsights).toStrictEqual([]);
       await service.toggleInsightOff(user, 'questionTypeBreakdown');
       await user.reload();
@@ -318,7 +346,7 @@ describe('InsightsService', () => {
       const userFactory = await UserFactory.create({
         hideInsights: ['questionTypeBreakdown'],
       });
-      const user = await UserModel.findOne(userFactory.id);
+      const user = await UserModel.findOne({ where: { id: userFactory.id } });
       expect(user.hideInsights).toStrictEqual(['questionTypeBreakdown']);
       await service.toggleInsightOn(user, 'questionTypeBreakdown');
       await user.reload();

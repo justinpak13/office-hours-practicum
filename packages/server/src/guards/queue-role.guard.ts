@@ -10,12 +10,15 @@ export class QueueRolesGuard extends RolesGuard {
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     request: any,
   ): Promise<{ courseId: number; user: UserModel }> {
-    const queue = await QueueModel.findOne(request.params.queueId);
+    const queue = await QueueModel.findOne({
+      where: { id: request.params.queueId },
+    });
     if (!queue) {
       throw new NotFoundException(ERROR_MESSAGES.queueRoleGuard.queueNotFound);
     }
     const courseId = queue.courseId;
-    const user = await UserModel.findOne(request.user.userId, {
+    const user = await UserModel.findOne({
+      where: { id: request.user.userId },
       relations: ['courses'],
     });
 

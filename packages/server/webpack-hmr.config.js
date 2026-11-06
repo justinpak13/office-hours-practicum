@@ -5,7 +5,7 @@
 const path = require('path');
 const webpack = require('webpack');
 const nodeExternals = require('webpack-node-externals');
-const StartServerPlugin = require('razzle-start-server-webpack-plugin');
+const { RunScriptWebpackPlugin } = require('run-script-webpack-plugin');
 
 module.exports = function (options) {
   return {
@@ -43,7 +43,10 @@ module.exports = function (options) {
       ...options.plugins,
       new webpack.HotModuleReplacementPlugin(),
       new webpack.WatchIgnorePlugin({ paths: [/\.js$/, /\.d\.ts$/] }),
-      new StartServerPlugin(),
+      new RunScriptWebpackPlugin({
+        name: options.output.filename,
+        autoRestart: false,
+      }),
     ],
   };
 };
