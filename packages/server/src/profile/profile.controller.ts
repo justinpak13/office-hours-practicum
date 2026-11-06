@@ -23,7 +23,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import * as checkDiskSpace from 'check-disk-space';
+import checkDiskSpace from 'check-disk-space';
 import { Response } from 'express';
 import * as fs from 'fs';
 import { pick } from 'lodash';

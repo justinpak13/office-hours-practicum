@@ -1,6 +1,6 @@
 import Redis from 'ioredis';
 import * as session from 'express-session';
-import * as connectRedis from 'connect-redis';
+import { RedisStore } from 'connect-redis';
 
 const secret = process.env.ADMIN_SESSION_SECRET;
 if (!secret && process.env.NODE_ENV !== 'test') {
@@ -14,8 +14,6 @@ const redisClient = new Redis({
 redisClient.on('error', (err) =>
   console.error('Admin session Redis error:', err),
 );
-
-const RedisStore = connectRedis(session);
 
 export const adminSession = session({
   store: new RedisStore({ client: redisClient }),
