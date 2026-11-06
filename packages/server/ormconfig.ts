@@ -15,7 +15,7 @@ import { AlertModel } from './src/alerts/alerts.entity';
 import { LastRegistrationModel } from './src/login/last-registration-model.entity';
 import { ProfSectionGroupsModel } from './src/login/prof-section-groups.entity';
 import { DataSourceOptions } from 'typeorm';
-config();
+config({ quiet: true });
 
 // Options only used whe run via CLI
 const inCLI = {

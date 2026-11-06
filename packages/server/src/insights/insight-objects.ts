@@ -162,10 +162,11 @@ const getCachedActiveStudents = async (
         'end'
       ].getFullYear()}`
     : '';
-  //One hour
+  const cacheLengthInMs = 60 * 60 * 1000; // One hour
   return cacheManager.wrap(
     `questions/${courseId}/${getStartString}:${getEndString}`,
     () => getActiveStudents(filters),
+    cacheLengthInMs,
   );
 };
 

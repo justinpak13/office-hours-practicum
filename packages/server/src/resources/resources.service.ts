@@ -4,7 +4,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { CourseModel } from '../course/course.entity';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as checkDiskSpace from 'check-disk-space';
+import checkDiskSpace from 'check-disk-space';
 import { DataSource } from 'typeorm';
 import { RedisService } from '../redis/redis.module';
 import { ERROR_MESSAGES } from '@koh/common';

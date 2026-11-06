@@ -22,9 +22,12 @@ export class HeatmapService {
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   async getCachedHeatmapFor(courseId: number): Promise<Heatmap | false> {
-    //One week
-    return this.cacheManager.wrap(`heatmap/${courseId}`, () =>
-      this._getHeatmapFor(courseId),
+    // One week
+    const cacheLengthInMs = 7 * 24 * 60 * 60 * 1000;
+    return this.cacheManager.wrap(
+      `heatmap/${courseId}`,
+      () => this._getHeatmapFor(courseId),
+      cacheLengthInMs,
     );
   }
 
