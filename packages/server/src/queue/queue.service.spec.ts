@@ -18,9 +18,10 @@ describe('QueueService', () => {
   let service: QueueService;
 
   let conn: DataSource;
+  let module: TestingModule;
 
   beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [TestTypeOrmModule, TestConfigModule],
       providers: [QueueService, AlertsService],
     }).compile();
@@ -48,7 +49,9 @@ describe('QueueService', () => {
     for (const [status, question] of zip(allStatuses, questions)) {
       question.status = status;
     }
-    await QuestionModel.save(questions);
+    for (const question of questions) {
+      await question.save();
+    }
     return questions;
   }
 

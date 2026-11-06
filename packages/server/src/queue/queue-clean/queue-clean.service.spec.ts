@@ -18,8 +18,10 @@ describe('QueueService', () => {
   let service: QueueCleanService;
   let conn: DataSource;
 
+  let module: TestingModule;
+
   beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [TestTypeOrmModule],
 
       providers: [
@@ -44,7 +46,7 @@ describe('QueueService', () => {
   });
 
   afterAll(async () => {
-    await conn.destroy();
+    await module?.close();
   });
 
   beforeEach(async () => {

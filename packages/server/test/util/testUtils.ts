@@ -1,34 +1,18 @@
 import { INestApplication, Type } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModuleBuilder } from '@nestjs/testing';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from '../../src/redis/redis.module';
 import { NotificationService } from 'notification/notification.service';
 import * as supertest from 'supertest';
 import { DataSource } from 'typeorm';
-import { addGlobalsToApp } from '../../src/bootstrap';
+import { addGlobalsToApp } from '../../src/app-globals';
 import { LoginModule } from '../../src/login/login.module';
+import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testDb';
 
 export interface SupertestOptions {
   userId?: number;
 }
 export type ModuleModifier = (t: TestingModuleBuilder) => TestingModuleBuilder;
-export const TestTypeOrmModule = TypeOrmModule.forRoot({
-  type: 'postgres',
-  host: 'localhost',
-  port: 5432,
-  username: 'postgres',
-  password: '',
-  database: 'test',
-  entities: ['./**/*.entity.ts'],
-  synchronize: true,
-});
-
-export const TestConfigModule = ConfigModule.forRoot({
-  envFilePath: ['.env.development'],
-  isGlobal: true,
-});
 
 export function setupIntegrationTest(
   module: Type<any>,
@@ -62,8 +46,7 @@ export function setupIntegrationTest(
   });
 
   afterAll(async () => {
-    await app.close();
-    await conn.destroy();
+    await app?.close();
   });
 
   beforeEach(async () => {
@@ -94,3 +77,4 @@ export const modifyMockNotifs: ModuleModifier = (t) =>
   t.overrideProvider(NotificationService).useValue(notifMock);
 export const expectUserNotified = (userId: number): void =>
   expect(notifMock.notifyUser).toHaveBeenCalledWith(userId, expect.any(String));
+export * from './testDb';

@@ -9,9 +9,10 @@ describe('NotificationService', () => {
   let service: NotificationService;
 
   let conn: DataSource;
+  let module: TestingModule;
 
   beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [TestTypeOrmModule, TestConfigModule],
       providers: [NotificationService],
     }).compile();
@@ -21,7 +22,7 @@ describe('NotificationService', () => {
   });
 
   afterAll(async () => {
-    await conn.destroy();
+    await module?.close();
   });
 
   beforeEach(async () => {

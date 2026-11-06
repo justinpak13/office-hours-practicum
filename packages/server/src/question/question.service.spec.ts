@@ -19,9 +19,10 @@ describe('QuestionService', () => {
   let service: QuestionService;
 
   let conn: DataSource;
+  let module: TestingModule;
 
   beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [TestTypeOrmModule, TestConfigModule, AdminModule],
       providers: [QuestionService, NotificationService],
     }).compile();
@@ -31,7 +32,7 @@ describe('QuestionService', () => {
   });
 
   afterAll(async () => {
-    await conn.destroy();
+    await module?.close();
   });
 
   beforeEach(async () => {
