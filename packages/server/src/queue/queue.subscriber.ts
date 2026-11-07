@@ -1,6 +1,6 @@
 import { QueueSSEService } from '../queue/queue-sse.service';
 import {
-  DataSource,
+  Connection,
   EntitySubscriberInterface,
   EventSubscriber,
   UpdateEvent,
@@ -10,7 +10,7 @@ import { QueueModel } from './queue.entity';
 @EventSubscriber()
 export class QueueSubscriber implements EntitySubscriberInterface<QueueModel> {
   private queueSSEService: QueueSSEService;
-  constructor(connection: DataSource, queueSSEService: QueueSSEService) {
+  constructor(connection: Connection, queueSSEService: QueueSSEService) {
     this.queueSSEService = queueSSEService;
     connection.subscribers.push(this);
   }

@@ -1,10 +1,15 @@
-import { Controller, Get, HttpStatus, Param, Res } from '@nestjs/common';
-
-import { HttpService } from '@nestjs/axios';
+import {
+  Controller,
+  Get,
+  HttpService,
+  HttpStatus,
+  Param,
+  Res,
+} from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Response } from 'express';
-import { DataSource } from 'typeorm';
+import { Connection } from 'typeorm';
 import { ResourcesService } from './resources.service';
 import { CourseModel } from '../course/course.entity';
 import { ERROR_MESSAGES } from '@koh/common';
@@ -16,7 +21,7 @@ import { ERROR_MESSAGES } from '@koh/common';
 @Controller('resources')
 export class ResourcesController {
   constructor(
-    private connection: DataSource,
+    private connection: Connection,
     private httpService: HttpService,
     private resourcesService: ResourcesService,
   ) {}
@@ -34,8 +39,8 @@ export class ResourcesController {
         if (stats && !refresh) {
           res.sendFile(filename, { root: process.env.UPLOAD_LOCATION });
         } else {
-          const course = await CourseModel.findOne({ where: { id: courseId } });
-          if (course === null || !course.enabled) {
+          const course = await CourseModel.findOne(courseId);
+          if (course === null || course === undefined || !course.enabled) {
             console.error(
               ERROR_MESSAGES.courseController.courseNotFound +
                 ' Course ID: ' +

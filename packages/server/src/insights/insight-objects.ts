@@ -10,7 +10,7 @@ import {
 import { UserCourseModel } from '../profile/user-course.entity';
 import { UserModel } from '../profile/user.entity';
 import { QuestionModel } from '../question/question.entity';
-import { SelectQueryBuilder } from 'typeorm';
+import { createQueryBuilder, SelectQueryBuilder } from 'typeorm';
 import { Cache } from 'cache-manager';
 
 export type Filter = {
@@ -78,10 +78,7 @@ export const TotalStudents: InsightObject = {
   size: 'small' as const,
   async compute(filters): Promise<SimpleDisplayOutputType> {
     return await addFilters({
-      query:
-        UserCourseModel.createQueryBuilder('UserCourseModel').where(
-          "role = 'student'",
-        ),
+      query: createQueryBuilder(UserCourseModel).where("role = 'student'"),
       modelName: UserCourseModel.name,
       allowedFilters: ['courseId', 'role'],
       filters,
@@ -97,7 +94,7 @@ export const TotalQuestionsAsked: InsightObject = {
   size: 'small' as const,
   async compute(filters): Promise<SimpleDisplayOutputType> {
     return await addFilters({
-      query: QuestionModel.createQueryBuilder('QuestionModel').select(),
+      query: createQueryBuilder(QuestionModel).select(),
       modelName: QuestionModel.name,
       allowedFilters: ['courseId', 'timeframe'],
       filters,
@@ -115,10 +112,7 @@ export const MostActiveStudents: InsightObject = {
   async compute(filters, cacheManager: Cache): Promise<SimpleTableOutputType> {
     const dataSource = await getCachedActiveStudents(cacheManager, filters);
     const totalStudents: number = await addFilters({
-      query:
-        UserCourseModel.createQueryBuilder('UserCourseModel').where(
-          "role = 'student'",
-        ),
+      query: createQueryBuilder(UserCourseModel).where("role = 'student'"),
       modelName: UserCourseModel.name,
       allowedFilters: ['courseId', 'role'],
       filters,
@@ -158,51 +152,45 @@ const getCachedActiveStudents = async (
       ].getMonth()}-${timeframe['start'].getFullYear()}`
     : '';
   const getEndString = timeframe
-    ? `${timeframe['end'].getDay()}-${timeframe['end'].getMonth()}-${timeframe[
+    ? `${timeframe['end'].getDay()}-${timeframe[
         'end'
-      ].getFullYear()}`
+      ].getMonth()}-${timeframe['end'].getFullYear()}`
     : '';
-  const cacheLengthInMs = 60 * 60 * 1000; // One hour
+  //One hour
+  const cacheLengthInSeconds = 3600;
   return cacheManager.wrap(
     `questions/${courseId}/${getStartString}:${getEndString}`,
     () => getActiveStudents(filters),
-    cacheLengthInMs,
+    { ttl: cacheLengthInSeconds },
   );
 };
 
 const getActiveStudents = async (filters: Filter[]): Promise<any[]> => {
-  const query = QuestionModel.createQueryBuilder('QuestionModel')
-    .select('"QuestionModel"."creatorId"', 'studentId')
-    .addSelect(
-      'concat("UserModel"."firstName", \' \',"UserModel"."lastName")',
-      'name',
-    )
-    .addSelect('"UserModel"."email"', 'email')
-    .addSelect('COUNT(*)', 'questionsAsked')
-
+  const activeStudents = await addFilters({
+    query: createQueryBuilder()
+      .select('"QuestionModel"."creatorId"', 'studentId')
+      .addSelect(
+        'concat("UserModel"."firstName", \' \',"UserModel"."lastName")',
+        'name',
+      )
+      .addSelect('"UserModel"."email"', 'email')
+      .addSelect('COUNT(*)', 'questionsAsked')
+      .from(QuestionModel, 'QuestionModel')
+      .where('"QuestionModel"."questionType" IS NOT NULL'),
+    modelName: QuestionModel.name,
+    allowedFilters: ['courseId', 'timeframe'],
+    filters,
+  })
     .innerJoin(
       UserModel,
       'UserModel',
       '"UserModel".id = "QuestionModel"."creatorId"',
     )
-    .where('"QuestionModel"."questionType" IS NOT NULL')
     .groupBy('"QuestionModel"."creatorId"')
-    .addGroupBy('"UserModel"."firstName"')
-    .addGroupBy('"UserModel"."lastName"')
-    .addGroupBy('"UserModel"."email"');
-
-  const filteredQuery = addFilters({
-    query,
-    modelName: QuestionModel.name,
-    allowedFilters: ['courseId', 'timeframe'],
-    filters,
-  });
-
-  // 3. Apply sorting and execute
-  const activeStudents = await filteredQuery
-    .orderBy('"questionsAsked"', 'DESC') // Order by the explicit alias string
+    .addGroupBy('name')
+    .addGroupBy('"UserModel".email')
+    .orderBy('4', 'DESC')
     .getRawMany();
-
   return activeStudents;
 };
 
@@ -214,27 +202,23 @@ export const QuestionTypeBreakdown: InsightObject = {
   component: InsightComponent.BarChart,
   size: 'default' as const,
   async compute(filters): Promise<BarChartOutputType> {
-    // 1. Properly initialize the query builder with the entity repository
-    const query = QuestionModel.getRepository()
-      .createQueryBuilder('QuestionModel') // This registers the 'QuestionModel' alias!
-      .select('"QuestionModel"."questionType"', 'questionType')
-      .addSelect('COUNT(*)', 'totalQuestions')
-      .where('"QuestionModel"."questionType" IS NOT NULL')
-      .groupBy('"QuestionModel"."questionType"');
-
-    // 2. Pass the valid query builder to your filter utility
     const info = await addFilters({
-      query,
+      query: createQueryBuilder(QuestionModel)
+        .select('"QuestionModel"."questionType"', 'questionType')
+        .addSelect('COUNT(*)', 'totalQuestions')
+        .andWhere('"QuestionModel"."questionType" IS NOT NULL'),
       modelName: QuestionModel.name,
       allowedFilters: ['courseId', 'timeframe'],
       filters,
-    }).getRawMany(); // Removed redundant .having()
+    })
+      .groupBy('"QuestionModel"."questionType"')
+      .having('"QuestionModel"."questionType" IS NOT NULL')
+      .getRawMany();
 
-    // 3. Process the results safely
     const typesFromInfo = info.map((obj) => obj['questionType']);
 
     info.forEach((pair) => {
-      pair['totalQuestions'] = Number.parseInt(pair['totalQuestions'], 10);
+      pair['totalQuestions'] = Number.parseInt(pair['totalQuestions']);
     });
 
     Object.values(QuestionType).forEach((v) => {
@@ -270,7 +254,7 @@ export const MedianWaitTime: InsightObject = {
   size: 'small' as const,
   async compute(filters): Promise<SimpleDisplayOutputType> {
     const questions = await addFilters({
-      query: QuestionModel.createQueryBuilder('QuestionModel')
+      query: createQueryBuilder(QuestionModel)
         .select()
         .where('QuestionModel.firstHelpedAt IS NOT NULL'),
       modelName: QuestionModel.name,
@@ -304,7 +288,7 @@ export const MedianHelpingTime: InsightObject = {
 
   async compute(filters): Promise<SimpleDisplayOutputType> {
     const questions = await addFilters({
-      query: QuestionModel.createQueryBuilder('QuestionModel')
+      query: createQueryBuilder(QuestionModel)
         .select()
         .where(
           'QuestionModel.helpedAt IS NOT NULL AND QuestionModel.closedAt IS NOT NULL',

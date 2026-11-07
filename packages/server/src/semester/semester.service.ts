@@ -1,20 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { Connection } from 'typeorm';
 import { SemesterModel } from './semester.entity';
 import { CourseModel } from '../course/course.entity';
 
 @Injectable()
 export class SemesterService {
-  constructor(private connection: DataSource) {}
+  constructor(private connection: Connection) {}
 
   async toggleActiveSemester(
     semester: SemesterModel,
     enable: boolean,
   ): Promise<void> {
     const enableList = await CourseModel.find({
-      where: {
-        semester: semester,
-      },
+      semester: semester,
     });
 
     enableList.map((course) => {

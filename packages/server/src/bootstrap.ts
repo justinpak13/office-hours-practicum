@@ -1,13 +1,14 @@
 import { getEnv, isProd } from '@koh/common';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { RewriteFrames } from '@sentry/integrations';
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
+import * as cookieParser from 'cookie-parser';
 import { json, urlencoded } from 'express';
 import * as morgan from 'morgan';
 import { AppModule } from './app.module';
-import { addGlobalsToApp } from './app-globals';
+import { StripUndefinedPipe } from './stripUndefined.pipe';
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function bootstrap(hot: any): Promise<void> {
@@ -67,4 +68,17 @@ function setupAPM(app: INestApplication): void {
   });
   app.use(Sentry.Handlers.requestHandler());
   app.use(Sentry.Handlers.tracingHandler());
+}
+
+// Global settings that should be true in prod and in integration tests
+export function addGlobalsToApp(app: INestApplication): void {
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+  app.useGlobalPipes(new StripUndefinedPipe());
+  app.use(cookieParser());
 }

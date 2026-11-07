@@ -8,6 +8,7 @@ export class AdminCommand {
   @Command({
     command: 'create:admin <username>',
     describe: 'create an admin user',
+    autoExit: true,
   })
   async create(
     @Positional({
@@ -17,7 +18,7 @@ export class AdminCommand {
     })
     username: string,
   ): Promise<void> {
-    let user = await AdminUserModel.findOne({ where: { username } });
+    let user = await AdminUserModel.findOne({ username });
     if (user) {
       const changePassword = keyInYN(
         `User ${username} already exists. Do you want to change their password?`,

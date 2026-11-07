@@ -4,10 +4,7 @@ import { UserModel } from '../profile/user.entity';
 export const User = createParamDecorator<string[]>(
   async (relations: string[], ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
-    return await UserModel.findOne({
-      where: { id: request.user.userId },
-      relations,
-    });
+    return await UserModel.findOne(request.user.userId, { relations });
   },
 );
 

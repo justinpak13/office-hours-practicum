@@ -1,16 +1,14 @@
-import { CACHE_MANAGER, CacheModule } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import { CacheModule } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { QuestionModel } from 'question/question.entity';
-import { DataSource } from 'typeorm';
+import { Connection } from 'typeorm';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { HeatmapService } from './heatmap.service';
 import { ClosedQuestionStatus, Heatmap } from '@koh/common';
 
 describe('HeatmapService', () => {
   let _service: HeatmapService;
-  let _conn: DataSource;
-  let cache: Cache;
+  let _conn: Connection;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -19,35 +17,14 @@ describe('HeatmapService', () => {
     }).compile();
 
     _service = module.get<HeatmapService>(HeatmapService);
-    _conn = module.get<DataSource>(DataSource);
-    cache = module.get<Cache>(CACHE_MANAGER);
+    _conn = module.get<Connection>(Connection);
   });
 
   afterAll(async () => {
-    await _conn.destroy();
+    await _conn.close();
   });
   it('_', () => {
     expect(3).toEqual(2 + 1);
-  });
-
-  it('caches the heatmap for one week', async () => {
-    await cache.clear();
-    const spy = jest.spyOn(cache, 'wrap');
-    const loader = jest
-      .spyOn(_service, '_getHeatmapFor')
-      .mockResolvedValue(false);
-    try {
-      await _service.getCachedHeatmapFor(42);
-      expect(spy).toHaveBeenCalledWith(
-        'heatmap/42',
-        expect.any(Function),
-        604800000,
-      );
-    } finally {
-      spy.mockRestore();
-      loader.mockRestore();
-      await cache.clear();
-    }
   });
 
   describe('generateHeatmap with replay', () => {

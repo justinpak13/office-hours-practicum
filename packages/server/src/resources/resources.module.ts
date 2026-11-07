@@ -1,5 +1,4 @@
-import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { Module, HttpModule } from '@nestjs/common';
 import { ResourcesController } from './resources.controller';
 import { ResourcesService } from './resources.service';
 
@@ -7,9 +6,11 @@ import { ResourcesService } from './resources.service';
   controllers: [ResourcesController],
   providers: [ResourcesService],
   imports: [
-    HttpModule.register({
-      timeout: 5000,
-      maxRedirects: 5,
+    HttpModule.registerAsync({
+      useFactory: () => ({
+        timeout: 5000,
+        maxRedirects: 5,
+      }),
     }),
   ],
 })

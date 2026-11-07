@@ -63,7 +63,7 @@ describe('Seed Integration', () => {
       courseId: 1,
       id: 1,
       notes: null,
-      room: 'online',
+      room: 'Online',
     });
   });
 
@@ -92,7 +92,7 @@ describe('Seed Integration', () => {
       courseId: 1,
       id: 1,
       notes: null,
-      room: 'online',
+      room: 'Online',
     });
   });
 });

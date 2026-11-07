@@ -32,7 +32,7 @@ import {
 import async from 'async';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
-import { DataSource } from 'typeorm';
+import { Connection } from 'typeorm';
 import { Roles } from '../decorators/roles.decorator';
 import { User, UserId } from '../decorators/user.decorator';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
@@ -50,7 +50,7 @@ import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 @UseInterceptors(ClassSerializerInterceptor)
 export class CourseController {
   constructor(
-    private connection: DataSource,
+    private connection: Connection,
     private queueCleanService: QueueCleanService,
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
@@ -65,12 +65,11 @@ export class CourseController {
     @User() user: UserModel,
   ): Promise<GetCourseResponse> {
     // TODO: for all course endpoint, check if they're a student or a TA
-    const course = await CourseModel.findOne({
-      where: { id: id },
+    const course = await CourseModel.findOne(id, {
       relations: ['queues', 'queues.staffList'],
     });
 
-    if (course === null) {
+    if (course === null || course === undefined) {
       console.error(
         ERROR_MESSAGES.courseController.courseNotFound + 'Course ID: ' + id,
       );
@@ -100,7 +99,7 @@ export class CourseController {
 
     const userCourseModel = await UserCourseModel.findOne({
       where: {
-        userId: user.id,
+        user,
         courseId: id,
       },
     });
@@ -152,9 +151,7 @@ export class CourseController {
     const course_response = { ...course, crns: null };
     try {
       const mappings = await CourseSectionMappingModel.find({
-        where: {
-          courseId: course.id,
-        },
+        courseId: course.id,
       });
       course_response.crns = mappings.map((mapping) => mapping.crn);
     } catch (err) {
@@ -208,18 +205,18 @@ export class CourseController {
       );
     }
 
-    const queue = await QueueModel.findOne({
-      where: {
+    const queue = await QueueModel.findOne(
+      {
         room,
         courseId,
         isDisabled: false,
       },
-      relations: ['staffList'],
-    });
+      { relations: ['staffList'] },
+    );
 
     const userCourseModel = await UserCourseModel.findOne({
       where: {
-        userId: user.id,
+        user,
         courseId,
       },
     });
@@ -314,7 +311,7 @@ export class CourseController {
   ): Promise<QueueModel> {
     const userCourseModel = await UserCourseModel.findOne({
       where: {
-        userId: user.id,
+        user,
         courseId,
       },
     });
@@ -327,11 +324,9 @@ export class CourseController {
     }
 
     const queue = await QueueModel.findOne({
-      where: {
-        room,
-        courseId,
-        isDisabled: false,
-      },
+      room,
+      courseId,
+      isDisabled: false,
     });
 
     if (queue) {
@@ -377,14 +372,14 @@ export class CourseController {
     @Param('room') room: string,
     @User() user: UserModel,
   ): Promise<TACheckoutResponse> {
-    const queue = await QueueModel.findOne({
-      where: {
+    const queue = await QueueModel.findOne(
+      {
         room,
         courseId,
         isDisabled: false,
       },
-      relations: ['staffList'],
-    });
+      { relations: ['staffList'] },
+    );
 
     if (queue === undefined || queue === null) {
       throw new HttpException(
@@ -494,7 +489,7 @@ export class CourseController {
       );
     const userId = user.id;
     let userCourse = await UserCourseModel.findOne({
-      where: { courseId, userId: user.id },
+      where: { courseId, userId },
     });
     if (!userCourse) {
       try {
@@ -598,7 +593,7 @@ export class CourseController {
     }
   }
 
-  @Get(':id/get_user_info/:page{/:role}')
+  @Get(':id/get_user_info/:page/:role?')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async getUserInfo(
@@ -625,7 +620,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async toggleSelfEnroll(@Param('id') courseId: number): Promise<void> {
-    const course = await CourseModel.findOne({ where: { id: courseId } });
+    const course = await CourseModel.findOne(courseId);
     course.selfEnroll = !course.selfEnroll;
     await course.save();
   }

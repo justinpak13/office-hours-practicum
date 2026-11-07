@@ -1,23 +1,23 @@
 import { ClosedQuestionStatus, OpenQuestionStatus } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource } from 'typeorm';
+import { Connection } from 'typeorm';
 import { QuestionFactory, QueueFactory } from '../../test/util/factories';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { QueueModel } from './queue.entity';
 
 describe('queue entity', () => {
-  let conn: DataSource;
+  let conn: Connection;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [TestTypeOrmModule],
     }).compile();
 
-    conn = module.get<DataSource>(DataSource);
+    conn = module.get<Connection>(Connection);
   });
 
   afterAll(async () => {
-    await conn.destroy();
+    await conn.close();
   });
 
   beforeEach(async () => {
@@ -52,7 +52,7 @@ describe('queue entity', () => {
       });
     }
 
-    const queue = await QueueModel.findOne({ where: { id: queueFactory.id } });
+    const queue = await QueueModel.findOne(queueFactory.id);
     await queue.addQueueSize();
 
     expect(queue.queueSize).toBe(2);
