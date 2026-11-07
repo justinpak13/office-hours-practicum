@@ -1,6 +1,6 @@
 import { Command, Positional } from 'nestjs-command';
 import { Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { Connection } from 'typeorm';
 import { InsightsService } from './insights.service';
 import { INSIGHTS_MAP } from './insight-objects';
 
@@ -13,13 +13,14 @@ import { INSIGHTS_MAP } from './insight-objects';
 @Injectable()
 export class InsightsCommand {
   constructor(
-    private connection: DataSource,
+    private connection: Connection,
     private insightsService: InsightsService,
   ) {}
 
   @Command({
     command: 'semester_insights:generate <courseId>',
     describe: 'aggregates semesterly analytics for a course',
+    autoExit: true,
   })
   private async generateSemesterInsights(
     @Positional({

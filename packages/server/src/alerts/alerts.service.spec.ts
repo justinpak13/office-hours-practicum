@@ -1,6 +1,6 @@
 import { AlertType } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource } from 'typeorm';
+import { Connection } from 'typeorm';
 import {
   AlertFactory,
   CourseFactory,
@@ -16,7 +16,7 @@ import { QueueModel } from '../queue/queue.entity';
 
 describe('Alerts service', () => {
   let service: AlertsService;
-  let conn: DataSource;
+  let conn: Connection;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -25,11 +25,11 @@ describe('Alerts service', () => {
     }).compile();
 
     service = module.get<AlertsService>(AlertsService);
-    conn = module.get<DataSource>(DataSource);
+    conn = module.get<Connection>(Connection);
   });
 
   afterAll(async () => {
-    await conn.destroy();
+    await conn.close();
   });
 
   beforeEach(async () => {

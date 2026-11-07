@@ -16,7 +16,7 @@ import {
 import { partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
-import { Between, Brackets, DataSource, In } from 'typeorm';
+import { Between, Brackets, Connection, getRepository, In } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
@@ -30,7 +30,7 @@ import { UserModel } from 'profile/user.entity';
 @Injectable()
 export class CourseService {
   constructor(
-    private connection: DataSource,
+    private connection: Connection,
     private loginCourseService: LoginCourseService,
     private profileService: ProfileService,
   ) {}
@@ -128,8 +128,8 @@ export class CourseService {
     courseId: number,
     coursePatch: EditCourseInfoParams,
   ): Promise<void> {
-    const course = await CourseModel.findOne({ where: { id: courseId } });
-    if (course === null) {
+    const course = await CourseModel.findOne(courseId);
+    if (course === null || course === undefined) {
       throw new HttpException(
         ERROR_MESSAGES.courseController.courseNotFound,
         HttpStatus.NOT_FOUND,
@@ -142,9 +142,7 @@ export class CourseService {
       );
     }
 
-    let courseCrnMaps = await CourseSectionMappingModel.find({
-      where: { courseId },
-    });
+    let courseCrnMaps = await CourseSectionMappingModel.find({ courseId });
     for (const courseCrnMap of courseCrnMaps) {
       if (!coursePatch.crns.includes(courseCrnMap.crn)) {
         try {
@@ -164,17 +162,13 @@ export class CourseService {
 
     for (const crn of new Set(coursePatch.crns)) {
       courseCrnMaps = await CourseSectionMappingModel.find({
-        where: {
-          crn: crn,
-        },
+        crn: crn,
       });
 
       let courseCrnMapExists = false;
 
       for (const courseCrnMap of courseCrnMaps) {
-        const conflictCourse = await CourseModel.findOne({
-          where: { id: courseCrnMap.courseId },
-        });
+        const conflictCourse = await CourseModel.findOne(courseCrnMap.courseId);
         if (conflictCourse && conflictCourse.semesterId === course.semesterId) {
           if (courseCrnMap.courseId !== courseId) {
             throw new BadRequestException(
@@ -318,12 +312,7 @@ export class CourseService {
       }).save();
     }
 
-    // Skipping registration (submitting no courses) still marks this semester
-    // as handled. A partial registration keeps the prompt open.
-    if (
-      body.length > 0 &&
-      (await this.profileService.hasUnregisteredCourses(userId))
-    ) {
+    if (await this.profileService.hasUnregisteredCourses(userId)) {
       return;
     }
 
@@ -362,7 +351,8 @@ export class CourseService {
     search?: string,
     role?: Role,
   ): Promise<GetCourseUserInfoResponse> {
-    const query = UserModel.createQueryBuilder('UserModel')
+    const query = await getRepository(UserModel)
+      .createQueryBuilder()
       .leftJoin(
         UserCourseModel,
         'UserCourseModel',

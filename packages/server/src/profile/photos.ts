@@ -2,10 +2,9 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 import * as path from 'path';
-// sharp's types declare a default export, but its CJS build exports the
-// function itself, and this tsconfig has no esModuleInterop.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const sharp: typeof import('sharp').default = require('sharp');
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Jimp = require('jimp');
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const MAX_PHOTO_WIDTH = 512;
@@ -49,19 +48,19 @@ export function deletePhotoFile(fileName: string): void {
 }
 
 /**
- * Decode, apply EXIF orientation, downscale to <=512px wide, and re-encode
- * as JPEG (which also strips EXIF metadata from uploads). Throws if the
- * buffer is not a decodable image, e.g. an error page from the photo service.
+ * Decode, downscale to <=512px wide, and re-encode as JPEG (which also
+ * strips EXIF metadata from uploads). Throws if the buffer is not a
+ * decodable image, e.g. an error page from the photo service.
  */
 export async function savePhotoBuffer(
   buffer: Buffer,
   fileName: string,
 ): Promise<void> {
-  await sharp(buffer)
-    .rotate() // apply EXIF orientation; output JPEG drops metadata
-    .resize({ width: MAX_PHOTO_WIDTH, withoutEnlargement: true })
-    .jpeg({ quality: 85 })
-    .toFile(path.join(uploadDir(), fileName));
+  const image = await Jimp.read(buffer);
+  if (image.getWidth() > MAX_PHOTO_WIDTH) {
+    image.resize(MAX_PHOTO_WIDTH, Jimp.AUTO);
+  }
+  await image.quality(85).writeAsync(path.join(uploadDir(), fileName));
 }
 
 /**

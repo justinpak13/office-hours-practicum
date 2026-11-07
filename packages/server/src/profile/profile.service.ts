@@ -6,12 +6,12 @@ import {
 } from 'login/last-registration-model.entity';
 import { LoginCourseService } from 'login/login-course.service';
 import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
-import { DataSource } from 'typeorm';
+import { Connection } from 'typeorm';
 
 @Injectable()
 export class ProfileService {
   constructor(
-    private connection: DataSource,
+    private connection: Connection,
     private loginCourseService: LoginCourseService,
   ) {}
 

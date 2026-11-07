@@ -14,6 +14,7 @@ import {
   ValidateIf,
 } from "class-validator";
 import "reflect-metadata";
+import { Cache } from "cache-manager";
 
 export const PROD_URL = "https://officehours.khoury.northeastern.edu";
 export const STAGING_URL = "https://staging.khouryofficehours.com";
@@ -759,11 +760,6 @@ export type InsightDisplayInfo = {
   size: "small" | "default";
 };
 
-// Minimal cache contract so common needs no Nest/cache runtime dependency
-export interface InsightCache {
-  wrap<T>(key: string, loader: () => Promise<T>): Promise<T>;
-}
-
 export interface InsightObject {
   displayName: string;
   description: string;
@@ -772,7 +768,7 @@ export interface InsightObject {
   size: "default" | "small";
   compute: (
     insightFilters: any,
-    cacheManager?: InsightCache
+    cacheManager?: Cache
   ) => Promise<PossibleOutputTypes>;
 }
 

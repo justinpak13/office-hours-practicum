@@ -1,6 +1,6 @@
 import { TestingModule, Test } from '@nestjs/testing';
 import { LoginCourseService } from '../login/login-course.service';
-import { DataSource } from 'typeorm';
+import { Connection } from 'typeorm';
 import {
   UserFactory,
   CourseFactory,
@@ -15,7 +15,7 @@ import { UserModel } from './user.entity';
 describe('ProfileService', () => {
   let service: ProfileService;
 
-  let conn: DataSource;
+  let conn: Connection;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -24,11 +24,11 @@ describe('ProfileService', () => {
     }).compile();
 
     service = module.get<ProfileService>(ProfileService);
-    conn = module.get<DataSource>(DataSource);
+    conn = module.get<Connection>(Connection);
   });
 
   afterAll(async () => {
-    await conn.destroy();
+    await conn.close();
   });
 
   beforeEach(async () => {

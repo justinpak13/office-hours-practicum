@@ -1,6 +1,6 @@
 import { ClosedQuestionStatus } from '@koh/common';
 import {
-  DataSource,
+  Connection,
   EntitySubscriberInterface,
   EventSubscriber,
   InsertEvent,
@@ -22,7 +22,7 @@ export class QuestionSubscriber
   private notifService: NotificationService;
   private queueSSEService: QueueSSEService;
   constructor(
-    connection: DataSource,
+    connection: Connection,
     notifService: NotificationService,
     queueSSEService: QueueSSEService,
   ) {
@@ -75,8 +75,7 @@ export class QuestionSubscriber
 
     if (numberOfQuestions === 0) {
       const staff = (
-        await QueueModel.findOne({
-          where: { id: event.entity.queueId },
+        await QueueModel.findOne(event.entity.queueId, {
           relations: ['staffList'],
         })
       ).staffList;

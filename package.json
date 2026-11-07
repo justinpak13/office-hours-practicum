@@ -24,8 +24,7 @@
   "workspaces": {
     "packages": [
       "packages/*"
-    ],
-    "nohoist": ["@koh/server/@nestjs/cache-manager"]
+    ]
   },
   "devDependencies": {
     "@babel/cli": "^7.12.1",
@@ -34,13 +33,12 @@
     "@babel/plugin-proposal-decorators": "^7.12.1",
     "@babel/preset-env": "^7.12.1",
     "@babel/preset-typescript": "^7.12.1",
-    "@percy/cli": "^1.32.12",
-    "@percy/cypress": "^3.1.9",
-    "@typescript-eslint/eslint-plugin": "8.0.0",
-    "@typescript-eslint/parser": "8.0.0",
+    "@percy/cypress": "^2.3.2",
+    "@typescript-eslint/eslint-plugin": "4.0.1",
+    "@typescript-eslint/parser": "4.0.1",
     "concurrently": "^5.2.0",
     "cypress": "8.7.0",
-    "eslint": "^8.57.0",
+    "eslint": "^7.20.0",
     "eslint-config-prettier": "^6.10.0",
     "eslint-plugin-import": "^2.20.1",
     "eslint-plugin-no-only-tests": "^2.4.0",
@@ -57,40 +55,11 @@
       "eslint --fix"
     ]
   },
-"jest": {
-  "moduleFileExtensions": [
-    "js",
-    "json",
-    "ts"
-  ],
-  "rootDir": "src",
-  "testRegex": ".spec.ts$",
-  "transformIgnorePatterns": [
-    "node_modules/(?!(@nestjs/cache-manager|config|@babel/code-frame)/)"
-  ],
-  "transform": {
-    "^.+\\.ts$": [
-      "ts-jest",
-      {
-        "tsconfig": "tsconfig.json"
-      }
-    ],
-    "^.+\\.js$": [
-      "babel-jest",
-      {
-        "rootMode": "upward"
-      }
+  "jest": {
+    "projects": [
+      "<rootDir>/packages/*"
     ]
   },
-  "coverageDirectory": "../coverage",
-  "testEnvironment": "node",
-  "moduleDirectories": [
-    "node_modules",
-    "<rootDir>/../node_modules",
-    "<rootDir>/../../../../node_modules",
-    "<rootDir>"
-  ]
-},
   "dependencies": {
     "lint-staged": "^11.2.6",
     "pm2": "^4.4.0",

@@ -45,7 +45,7 @@ describe('Queue Integration', () => {
         id: 2,
         notes: null,
         queueSize: 1,
-        room: 'online',
+        room: 'Online',
         staffList: expect.any(Array),
         isOpen: true,
       });
@@ -328,7 +328,7 @@ describe('Queue Integration', () => {
         .delete(`/queues/${queue.id}`)
         .expect(200);
 
-      const postQueue = await QueueModel.findOne({ where: { id: queue.id } });
+      const postQueue = await QueueModel.findOne({ id: queue.id });
       expect(postQueue.isDisabled).toBeTruthy();
     });
 
@@ -348,7 +348,7 @@ describe('Queue Integration', () => {
         .delete(`/queues/${queue.id}`)
         .expect(401);
 
-      const postQueue = await QueueModel.findOne({ where: { id: queue.id } });
+      const postQueue = await QueueModel.findOne({ id: queue.id });
       expect(postQueue.isDisabled).toBeFalsy();
     });
 
@@ -386,7 +386,7 @@ describe('Queue Integration', () => {
         .delete(`/queues/${queue.id}`)
         .expect(200);
 
-      const postQueue = await QueueModel.findOne({ where: { id: queue.id } });
+      const postQueue = await QueueModel.findOne({ id: queue.id });
       expect(postQueue.isDisabled).toBeTruthy();
     });
     it('returns 404 on nonexistent queues', async () => {

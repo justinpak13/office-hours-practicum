@@ -1,7 +1,4 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { AdminResource } from './admin-resource';
+import { AdminEntity } from 'nestjs-admin';
 import { Brackets } from 'typeorm';
 import { Role } from '@koh/common';
 import { CourseModel } from '../course/course.entity';
@@ -11,17 +8,12 @@ import { CourseSectionMappingModel } from '../login/course-section-mapping.entit
 import { UserCourseModel } from 'profile/user-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
 
-@Injectable()
-export class CourseAdmin extends AdminResource<CourseModel> {
-  alias = 'course';
+export class CourseAdmin extends AdminEntity {
+  entity = CourseModel;
   listDisplay = ['id', 'name', 'semesterId', 'enabled'];
   searchFields = ['name'];
   resultsPerPage = 50;
   fields = ['id', 'name', 'icalURL', 'semesterId', 'enabled', 'timezone'];
-
-  constructor(@InjectRepository(CourseModel) repo: Repository<CourseModel>) {
-    super(repo);
-  }
 
   // Search matches course name, semester season, or semester year
   async getEntityList(
@@ -57,28 +49,20 @@ export class CourseAdmin extends AdminResource<CourseModel> {
     const [entities, count] = await query.getManyAndCount();
     for (const course of entities as CourseModel[]) {
       if (course.semester) {
-        (
-          course as any
-        ).semesterId = `${course.semester.season} ${course.semester.year} (#${course.semester.id})`;
+        (course as any).semesterId = `${course.semester.season} ${course.semester.year} (#${course.semester.id})`;
       }
     }
     return { entities, count };
   }
 }
 
-@Injectable()
-export class QueueAdmin extends AdminResource<QueueModel> {
-  alias = 'queue';
+export class QueueAdmin extends AdminEntity {
+  entity = QueueModel;
   listDisplay = ['id', 'room', 'courseId'];
-
-  constructor(@InjectRepository(QueueModel) repo: Repository<QueueModel>) {
-    super(repo);
-  }
 }
 
-@Injectable()
-export class UserAdmin extends AdminResource<UserModel> {
-  alias = 'user';
+export class UserAdmin extends AdminEntity {
+  entity = UserModel;
   listDisplay = ['id', 'email', 'firstName', 'lastName'];
   searchFields = ['email', 'firstName', 'lastName'];
   fields = [
@@ -90,27 +74,18 @@ export class UserAdmin extends AdminResource<UserModel> {
     'phoneNotifsEnabled',
     'queues',
   ];
-
-  constructor(@InjectRepository(UserModel) repo: Repository<UserModel>) {
-    super(repo);
-  }
 }
 
-@Injectable()
-export class UserCourseAdmin extends AdminResource<UserCourseModel> {
-  alias = 'user-course';
+export class UserCourseAdmin extends AdminEntity {
+  entity = UserCourseModel;
   listDisplay = ['id', 'userId', 'courseId', 'role'];
   // Enables the search box; the actual search logic lives in getEntityList
   searchFields = ['role'];
   resultsPerPage = 50;
 
-  constructor(
-    @InjectRepository(UserCourseModel) repo: Repository<UserCourseModel>,
-  ) {
-    super(repo);
-  }
-
-  // Search matches course name, semester season, or semester year
+  // Search: a number matches the course id, student/ta/professor matches the
+  // role, anything else matches user name/email or course name. Terms are
+  // ANDed, so "367 ta" lists the TAs of course 367.
   async getEntityList(
     page: number,
     searchString: string,
@@ -156,44 +131,25 @@ export class UserCourseAdmin extends AdminResource<UserCourseModel> {
     const [entities, count] = await query.getManyAndCount();
     for (const uc of entities as UserCourseModel[]) {
       if (uc.user) {
-        (
-          uc as any
-        ).userId = `${uc.user.firstName} ${uc.user.lastName} <${uc.user.email}> (#${uc.user.id})`;
+        (uc as any).userId = `${uc.user.firstName} ${uc.user.lastName} <${uc.user.email}> (#${uc.user.id})`;
       }
       if (uc.course) {
         const semester = uc.course.semester
           ? ` — ${uc.course.semester.season} ${uc.course.semester.year}`
           : '';
-        (
-          uc as any
-        ).courseId = `${uc.course.name}${semester} (#${uc.course.id})`;
+        (uc as any).courseId = `${uc.course.name}${semester} (#${uc.course.id})`;
       }
     }
     return { entities, count };
   }
 }
 
-@Injectable()
-export class CourseSectionMappingAdmin extends AdminResource<CourseSectionMappingModel> {
-  alias = 'course-section-mapping';
-  listDisplay = ['id', 'room', 'courseId'];
-
-  constructor(
-    @InjectRepository(CourseSectionMappingModel)
-    repo: Repository<CourseSectionMappingModel>,
-  ) {
-    super(repo);
-  }
+export class CourseSectionMappingAdmin extends AdminEntity {
+  entity = CourseSectionMappingModel;
+  listDisplay = ['id', 'crn', 'courseId'];
 }
 
-@Injectable()
-export class SemesterAdmin extends AdminResource<SemesterModel> {
-  alias = 'semester-model';
+export class SemesterAdmin extends AdminEntity {
+  entity = SemesterModel;
   listDisplay = ['id', 'season', 'year'];
-
-  constructor(
-    @InjectRepository(SemesterModel) repo: Repository<SemesterModel>,
-  ) {
-    super(repo);
-  }
 }

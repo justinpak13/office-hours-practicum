@@ -18,13 +18,13 @@ import {
   NotifMsgs,
 } from 'notification/notification.service';
 import { UserModel } from 'profile/user.entity';
-import { DataSource } from 'typeorm';
+import { Connection } from 'typeorm';
 import { QuestionModel } from './question.entity';
 
 @Injectable()
 export class QuestionService {
   constructor(
-    private connection: DataSource,
+    private connection: Connection,
     private notifService: NotificationService,
   ) {}
 
@@ -65,7 +65,7 @@ export class QuestionService {
       oldStatus !== OpenQuestionStatus.Helping &&
       newStatus === OpenQuestionStatus.Helping
     ) {
-      question.taHelped = await UserModel.findOne({ where: { id: userId } });
+      question.taHelped = await UserModel.findOne(userId);
       question.helpedAt = new Date();
 
       // Set firstHelpedAt if it hasn't already

@@ -1,8 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+
 import { Cache } from 'cache-manager';
 import { ClosedQuestionStatus, Heatmap, timeDiffInMins } from '@koh/common';
-import * as moment from 'moment';
+import moment = require('moment');
 import { CourseModel } from './course.entity';
 import { MoreThan } from 'typeorm';
 import { QuestionModel } from '../question/question.entity';
@@ -22,12 +22,12 @@ export class HeatmapService {
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   async getCachedHeatmapFor(courseId: number): Promise<Heatmap | false> {
-    // One week
-    const cacheLengthInMs = 7 * 24 * 60 * 60 * 1000;
+    //One week
+    const cacheLengthInSeconds = 604800;
     return this.cacheManager.wrap(
       `heatmap/${courseId}`,
       () => this._getHeatmapFor(courseId),
-      cacheLengthInMs,
+      { ttl: cacheLengthInSeconds },
     );
   }
 
@@ -38,7 +38,7 @@ export class HeatmapService {
     // Number of samples to gather per bucket
     const SAMPLES_PER_BUCKET = 3;
     console.time('heatmap');
-    const recent = moment().subtract(8, 'weeks').toDate();
+    const recent = moment().subtract(8, 'weeks').toISOString();
     const questions = await QuestionModel.createQueryBuilder('question')
       .leftJoinAndSelect('question.queue', 'queue')
       .where('queue.courseId = :courseId', { courseId })
@@ -61,8 +61,7 @@ export class HeatmapService {
       return false;
     }
 
-    const tz = (await CourseModel.findOne({ where: { id: courseId } }))
-      .timezone;
+    const tz = (await CourseModel.findOne({ id: courseId })).timezone;
 
     function extractTimestamps(taEvents: EventModel[]) {
       const hours = [];
@@ -265,6 +264,7 @@ export class HeatmapService {
   @Command({
     command: 'heatmap:generate <courseId>',
     describe: 'generate heatmap for a course',
+    autoExit: true,
   })
   async create(
     @Positional({

@@ -19,9 +19,7 @@ export class QuestionRolesGuard extends RolesGuard {
     let queueId;
 
     if (request.params.questionId) {
-      const question = await QuestionModel.findOne({
-        where: { id: request.params.questionId },
-      });
+      const question = await QuestionModel.findOne(request.params.questionId);
       if (!question) {
         throw new NotFoundException(
           ERROR_MESSAGES.questionRoleGuard.questionNotFound,
@@ -37,7 +35,7 @@ export class QuestionRolesGuard extends RolesGuard {
       );
     }
 
-    const queue = await QueueModel.findOne({ where: { id: queueId } });
+    const queue = await QueueModel.findOne(queueId);
 
     // You cannot interact with a question in a nonexistent queue
     if (!queue) {
@@ -46,8 +44,7 @@ export class QuestionRolesGuard extends RolesGuard {
       );
     }
     const courseId = queue.courseId;
-    const user = await UserModel.findOne({
-      where: { id: request.user.userId },
+    const user = await UserModel.findOne(request.user.userId, {
       relations: ['courses'],
     });
 

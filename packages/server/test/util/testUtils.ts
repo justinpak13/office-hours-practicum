@@ -1,19 +1,35 @@
 import { INestApplication, Type } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModuleBuilder } from '@nestjs/testing';
-import { RedisModule } from '../../src/redis/redis.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from 'nestjs-redis';
 import { NotificationService } from 'notification/notification.service';
 import * as supertest from 'supertest';
-import { DataSource } from 'typeorm';
-import { addGlobalsToApp } from '../../src/app-globals';
+import { mocked } from 'ts-jest/utils';
+import { Connection } from 'typeorm';
+import { addGlobalsToApp } from '../../src/bootstrap';
 import { LoginModule } from '../../src/login/login.module';
-import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testDb';
-import { QueueSSEService } from '../../src/queue/queue-sse.service';
 
 export interface SupertestOptions {
   userId?: number;
 }
 export type ModuleModifier = (t: TestingModuleBuilder) => TestingModuleBuilder;
+export const TestTypeOrmModule = TypeOrmModule.forRoot({
+  type: 'postgres',
+  host: 'localhost',
+  port: 5432,
+  username: 'postgres',
+  password: '',
+  database: 'test',
+  entities: ['./**/*.entity.ts'],
+  synchronize: true,
+});
+
+export const TestConfigModule = ConfigModule.forRoot({
+  envFilePath: ['.env.development'],
+  isGlobal: true,
+});
 
 export function setupIntegrationTest(
   module: Type<any>,
@@ -21,8 +37,7 @@ export function setupIntegrationTest(
 ): (u?: SupertestOptions) => supertest.SuperTest<supertest.Test> {
   let app: INestApplication;
   let jwtService: JwtService;
-  let conn: DataSource;
-  let queueSSE: QueueSSEService | undefined;
+  let conn: Connection;
 
   beforeAll(async () => {
     let testModuleBuilder = Test.createTestingModule({
@@ -31,7 +46,11 @@ export function setupIntegrationTest(
         LoginModule,
         TestTypeOrmModule,
         TestConfigModule,
-        RedisModule,
+        RedisModule.register([
+          { name: 'pub' },
+          { name: 'sub' },
+          { name: 'db' },
+        ]),
       ],
     });
 
@@ -43,22 +62,13 @@ export function setupIntegrationTest(
     app = testModule.createNestApplication();
     addGlobalsToApp(app);
     jwtService = testModule.get<JwtService>(JwtService);
-    conn = testModule.get<DataSource>(DataSource);
-    try {
-      queueSSE = testModule.get(QueueSSEService, { strict: false });
-    } catch {
-      queueSSE = undefined; // this test module doesn't include the queue module
-    }
+    conn = testModule.get<Connection>(Connection);
     await app.init();
   });
 
   afterAll(async () => {
-    await app?.close();
-  });
-
-  afterEach(async () => {
-    // Let throttled SSE updates finish while the tables still exist
-    await queueSSE?.flushPendingUpdates();
+    await app.close();
+    await conn.close();
   });
 
   beforeEach(async () => {
@@ -78,7 +88,7 @@ export function setupIntegrationTest(
   };
 }
 
-const notifMock = jest.mocked({ notifyUser: jest.fn(() => Promise.resolve()) });
+const notifMock = mocked({ notifyUser: jest.fn() }, true);
 /**
  * Module Modifier tests can pass to setupIntegrationTest to mock the notifService and to expect things
  * ex:
@@ -89,4 +99,3 @@ export const modifyMockNotifs: ModuleModifier = (t) =>
   t.overrideProvider(NotificationService).useValue(notifMock);
 export const expectUserNotified = (userId: number): void =>
   expect(notifMock.notifyUser).toHaveBeenCalledWith(userId, expect.any(String));
-export * from './testDb';

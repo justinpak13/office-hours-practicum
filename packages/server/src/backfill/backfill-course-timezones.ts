@@ -7,6 +7,7 @@ export class BackfillCourseTimezones {
   @Command({
     command: 'backfill:course-timezones',
     describe: 'set all course timezones from null to "America/New_York"',
+    autoExit: true,
   })
   async copy(): Promise<void> {
     await CourseModel.createQueryBuilder()

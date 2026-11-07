@@ -1,5 +1,4 @@
-import { Module } from '@nestjs/common';
-import { CacheModule } from '@nestjs/cache-manager';
+import { Module, CacheModule } from '@nestjs/common';
 import { InsightsCommand } from './insights.command';
 import { InsightsService } from './insights.service';
 import { InsightsController } from './insights.controller';

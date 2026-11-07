@@ -39,7 +39,7 @@ describe('Notif Integration', () => {
         id: 1,
       });
 
-      const notifModels = await DesktopNotifModel.find({ where: {} });
+      const notifModels = await DesktopNotifModel.find();
       expect(notifModels).toEqual([
         {
           auth: 'some_key_as_well',

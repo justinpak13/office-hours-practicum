@@ -1,10 +1,10 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Profile Integration GET /profile returns the logged-in user profile 1`] = `
-{
-  "courses": [
-    {
-      "course": {
+Object {
+  "courses": Array [
+    Object {
+      "course": Object {
         "id": 1,
         "name": "CS 2500",
       },
@@ -12,14 +12,13 @@ exports[`Profile Integration GET /profile returns the logged-in user profile 1`]
     },
   ],
   "defaultMessage": null,
-  "desktopNotifs": [],
+  "desktopNotifs": Array [],
   "desktopNotifsEnabled": false,
   "email": "user@neu.edu",
   "firstName": "User",
-  "hasUnregisteredCourses": false,
   "id": 1,
   "includeDefaultMessage": true,
-  "insights": [
+  "insights": Array [
     "TotalStudents",
     "TotalQuestionsAsked",
     "MedianWaitTime",

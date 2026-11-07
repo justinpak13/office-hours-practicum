@@ -21,11 +21,10 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      - uses: actions/checkout@v4
-      - name: install node v20
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v1
+      - name: install node v14
+        uses: actions/setup-node@v1
         with:
-          node-version: 20
-          cache: yarn
-      - run: yarn install --frozen-lockfile
+          node-version: 14
+      - uses: bahmutov/npm-install@v1
       - run: yarn test

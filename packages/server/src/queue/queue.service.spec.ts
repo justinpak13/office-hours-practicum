@@ -2,7 +2,7 @@ import { ListQuestionsResponse, QuestionStatusKeys, Role } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { mapValues, zip } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
-import { DataSource } from 'typeorm';
+import { Connection } from 'typeorm';
 import {
   QuestionFactory,
   QuestionGroupFactory,
@@ -17,21 +17,20 @@ import { AlertsService } from '../alerts/alerts.service';
 describe('QueueService', () => {
   let service: QueueService;
 
-  let conn: DataSource;
-  let module: TestingModule;
+  let conn: Connection;
 
   beforeAll(async () => {
-    module = await Test.createTestingModule({
+    const module: TestingModule = await Test.createTestingModule({
       imports: [TestTypeOrmModule, TestConfigModule],
       providers: [QueueService, AlertsService],
     }).compile();
 
     service = module.get<QueueService>(QueueService);
-    conn = module.get<DataSource>(DataSource);
+    conn = module.get<Connection>(Connection);
   });
 
   afterAll(async () => {
-    await conn.destroy();
+    await conn.close();
   });
 
   beforeEach(async () => {
@@ -49,9 +48,7 @@ describe('QueueService', () => {
     for (const [status, question] of zip(allStatuses, questions)) {
       question.status = status;
     }
-    for (const question of questions) {
-      await question.save();
-    }
+    await QuestionModel.save(questions);
     return questions;
   }
 
@@ -186,7 +183,7 @@ describe('QueueService', () => {
         groups: [],
       };
       let lqr = await personalize(blank, user.id, Role.STUDENT);
-      expect(lqr.yourQuestion).toBeFalsy();
+      expect(lqr.yourQuestion).toEqual(undefined);
 
       // Create a question in this queue
       const question = await QuestionFactory.create({

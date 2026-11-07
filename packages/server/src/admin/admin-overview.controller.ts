@@ -11,11 +11,11 @@ import {
 } from '@nestjs/common';
 import { Role } from '@koh/common';
 import { Response } from 'express';
-import { DataSource } from 'typeorm';
+import { Connection } from 'typeorm';
 import { CourseModel } from '../course/course.entity';
 import { UserCourseModel } from '../profile/user-course.entity';
 
-// Same session check as nstjs-admin's AdminGuard, but redirects to the admin
+// Same session check as nestjs-admin's AdminGuard, but redirects to the admin
 // login page instead of returning a bare 401
 @Injectable()
 export class AdminPageGuard implements CanActivate {
@@ -131,7 +131,7 @@ const ROLE_SECTIONS: { role: Role; heading: string }[] = [
 @Controller('admin')
 @UseGuards(AdminPageGuard)
 export class AdminOverviewController {
-  constructor(private connection: DataSource) {}
+  constructor(private connection: Connection) {}
 
   @Get('overview')
   async overview(@Res() res: Response): Promise<void> {
@@ -141,13 +141,10 @@ export class AdminOverviewController {
       .createQueryBuilder('course')
       .leftJoinAndSelect('course.semester', 'semester')
       .getMany();
-    const counts: {
-      courseId: number;
-      role: Role;
-      count: string;
-    }[] = await this.connection.query(
-      'SELECT "courseId", role, COUNT(*) AS count FROM user_course_model GROUP BY "courseId", role',
-    );
+    const counts: { courseId: number; role: Role; count: string }[] =
+      await this.connection.query(
+        'SELECT "courseId", role, COUNT(*) AS count FROM user_course_model GROUP BY "courseId", role',
+      );
     const countsByCourse = new Map<number, Partial<Record<Role, number>>>();
     for (const row of counts) {
       const byRole = countsByCourse.get(row.courseId) ?? {};
@@ -176,9 +173,7 @@ export class AdminOverviewController {
           (byRole[Role.TA] ?? 0) +
           (byRole[Role.STUDENT] ?? 0);
         return `<tr>
-          <td><a href="/admin/overview/course/${course.id}">${escapeHtml(
-          course.name,
-        )}</a></td>
+          <td><a href="/admin/overview/course/${course.id}">${escapeHtml(course.name)}</a></td>
           <td>${escapeHtml(semester)}</td>
           <td>${course.enabled ? 'yes' : 'no'}</td>
           <td>${byRole[Role.PROFESSOR] ?? 0}</td>
@@ -186,9 +181,7 @@ export class AdminOverviewController {
           <td>${byRole[Role.STUDENT] ?? 0}</td>
           <td>${total}</td>
           <td>${course.id}</td>
-          <td><a href="/admin/course/coursemodel/${
-            course.id
-          }/change">edit</a></td>
+          <td><a href="/admin/course/coursemodel/${course.id}/change">edit</a></td>
         </tr>`;
       })
       .join('\n');
@@ -215,7 +208,7 @@ export class AdminOverviewController {
     res.set('Cache-Control', 'no-store');
     const course = await this.connection
       .getRepository(CourseModel)
-      .findOne({ where: { id: Number(id) }, relations: ['semester'] });
+      .findOne(Number(id), { relations: ['semester'] });
     if (!course) {
       throw new NotFoundException(`No course with id ${id}`);
     }
@@ -234,33 +227,13 @@ export class AdminOverviewController {
       const rows = members
         .map(
           (uc) => `<tr>
-            <td>${escapeHtml(
-              uc.user
-                ? `${uc.user.firstName} ${uc.user.lastName}`
-                : `(deleted user #${uc.userId})`,
-            )}</td>
+            <td>${escapeHtml(uc.user ? `${uc.user.firstName} ${uc.user.lastName}` : `(deleted user #${uc.userId})`)}</td>
             <td>${escapeHtml(uc.user?.email)}</td>
-            <td>${
-              uc.user
-                ? `<a href="/admin/user/usermodel/${uc.user.id}/change">#${uc.user.id}</a>`
-                : '—'
-            }</td>
-            <td><a href="/admin/usercourse/usercoursemodel/${uc.id}/change">#${
-            uc.id
-          }</a></td>
+            <td>${uc.user ? `<a href="/admin/user/usermodel/${uc.user.id}/change">#${uc.user.id}</a>` : '—'}</td>
+            <td><a href="/admin/usercourse/usercoursemodel/${uc.id}/change">#${uc.id}</a></td>
             <td>
-              <form class="inline" method="POST" action="/admin/usercourse/usercoursemodel/${
-                uc.id
-              }/delete"
-                    onsubmit="return confirm(${escapeHtml(
-                      JSON.stringify(
-                        `Remove ${
-                          uc.user
-                            ? `${uc.user.firstName} ${uc.user.lastName}`
-                            : 'this enrollment'
-                        } from ${course.name}?`,
-                      ),
-                    )})">
+              <form class="inline" method="POST" action="/admin/usercourse/usercoursemodel/${uc.id}/delete"
+                    onsubmit="return confirm(${escapeHtml(JSON.stringify(`Remove ${uc.user ? `${uc.user.firstName} ${uc.user.lastName}` : 'this enrollment'} from ${course.name}?`))})">
                 <button class="btn btn-outline-danger btn-sm" type="submit">Remove</button>
               </form>
             </td>
@@ -280,20 +253,12 @@ export class AdminOverviewController {
       ? `${course.semester.season} ${course.semester.year}`
       : 'no semester';
     const body = `
-<div class="crumbs"><a href="/admin">Admin</a> / <a href="/admin/overview">Courses overview</a> / ${escapeHtml(
-      course.name,
-    )}</div>
-<h1>${escapeHtml(course.name)} <span class="count-badge">(#${
-      course.id
-    })</span></h1>
-<p class="meta">${escapeHtml(semester)} · ${
-      course.enabled ? 'enabled' : 'disabled'
-    } · ${enrollments.length} people</p>
+<div class="crumbs"><a href="/admin">Admin</a> / <a href="/admin/overview">Courses overview</a> / ${escapeHtml(course.name)}</div>
+<h1>${escapeHtml(course.name)} <span class="count-badge">(#${course.id})</span></h1>
+<p class="meta">${escapeHtml(semester)} · ${course.enabled ? 'enabled' : 'disabled'} · ${enrollments.length} people</p>
 <div class="actions">
   <a class="btn btn-outline-secondary btn-sm" href="/admin/usercourse/usercoursemodel/add">Add someone to a course</a>
-  <a class="btn btn-outline-secondary btn-sm" href="/admin/course/coursemodel/${
-    course.id
-  }/change">Edit course</a>
+  <a class="btn btn-outline-secondary btn-sm" href="/admin/course/coursemodel/${course.id}/change">Edit course</a>
 </div>
 ${sections}`;
     res.send(renderPage(`${course.name} roster`, body));
