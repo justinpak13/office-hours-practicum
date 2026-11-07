@@ -7,10 +7,9 @@ export class BackfillHuskyEmailsAsNortheastern {
   @Command({
     command: 'backfill:husky-emails-to-northeastern',
     describe: 'Converts @husky.neu.edu emails to @northeastern.edu emails',
-    autoExit: true,
   })
   async fix(): Promise<void> {
-    const users = await UserModel.find();
+    const users = await UserModel.find({ take: 1 })[0];
 
     const usersToBeUpdated = users.filter((user) =>
       user.email.includes('@husky.neu.edu'),

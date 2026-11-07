@@ -5,13 +5,13 @@ import {
   Role,
   Season,
 } from '@koh/common';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, ConsoleLogger } from '@nestjs/common';
 import { CourseModel } from 'course/course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { UserModel } from 'profile/user.entity';
 import { SemesterModel } from 'semester/semester.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { ProfSectionGroupsModel } from './prof-section-groups.entity';
 import { khourySemesterCodes } from './last-registration-model.entity';
 import {
@@ -23,9 +23,9 @@ import {
 
 @Injectable()
 export class LoginCourseService {
-  private readonly logger = new Logger(LoginCourseService.name);
+  private readonly logger = new ConsoleLogger(LoginCourseService.name);
 
-  constructor(private connection: Connection) {}
+  constructor(private connection: DataSource) {}
 
   public async addUserFromKhoury(info: KhouryDataParams): Promise<UserModel> {
     let user: UserModel;
@@ -191,7 +191,9 @@ export class LoginCourseService {
         year,
         courses: [],
       }).save();
-      this.logger.log(`New semester created: ${season} ${year} (id=${semModel.id})`);
+      this.logger.log(
+        `New semester created: ${season} ${year} (id=${semModel.id})`,
+      );
     }
     return semModel;
   }
@@ -225,7 +227,7 @@ export class LoginCourseService {
     if (!photoUrl) {
       return;
     }
-    const user = await UserModel.findOne(userId);
+    const user = await UserModel.findOne({ where: { id: userId } });
     if (!user || (user.photoURL && isCustomPhoto(user.photoURL))) {
       return;
     }

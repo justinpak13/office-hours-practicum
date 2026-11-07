@@ -26,7 +26,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { UserId } from 'decorators/user.decorator';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { QueueCleanService } from './queue-clean/queue-clean.service';
@@ -42,7 +42,7 @@ import { QuestionModel } from '../question/question.entity';
 @UseInterceptors(ClassSerializerInterceptor)
 export class QueueController {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private queueSSEService: QueueSSEService,
     private queueCleanService: QueueCleanService,
     private queueService: QueueService,
@@ -92,7 +92,7 @@ export class QueueController {
     @Body() body: UpdateQueueParams,
   ): Promise<QueueModel> {
     const queue = await this.queueService.getQueue(queueId);
-    if (queue === undefined) {
+    if (queue === null) {
       throw new NotFoundException();
     }
     queue.notes = body.notes;

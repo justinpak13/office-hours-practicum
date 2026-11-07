@@ -1,4 +1,4 @@
-import { CreateQuestionParams, Role } from '@koh/common';
+import { Role } from '@koh/common';
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AlertModel } from 'alerts/alerts.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
@@ -11,7 +11,7 @@ import { UserCourseModel } from 'profile/user-course.entity';
 import { UserModel } from 'profile/user.entity';
 import { QuestionGroupModel } from 'question/question-group.entity';
 import { SemesterModel } from 'semester/semester.entity';
-import { Connection, getManager } from 'typeorm';
+import { DataSource, DeepPartial } from 'typeorm';
 import {
   CourseFactory,
   EventFactory,
@@ -31,7 +31,7 @@ import { SeedService } from './seed.service';
 @UseGuards(NonProductionGuard)
 export class SeedController {
   constructor(
-    private connection: Connection,
+    private dataSource: DataSource,
     private seedService: SeedService,
   ) {}
 
@@ -51,8 +51,9 @@ export class SeedController {
     await this.seedService.deleteAll(CourseSectionMappingModel);
     await this.seedService.deleteAll(CourseModel);
     await this.seedService.deleteAll(SemesterModel);
-    const manager = getManager();
-    manager.query('ALTER SEQUENCE user_model_id_seq RESTART WITH 1;');
+    await this.dataSource.query(
+      'ALTER SEQUENCE user_model_id_seq RESTART WITH 1;',
+    );
 
     return 'Data successfully reset';
   }
@@ -95,7 +96,7 @@ export class SeedController {
       where: { name: 'CS 2500' },
     });
 
-    const userExists = await UserModel.findOne();
+    const userExists = await UserModel.find({ take: 1 })[0];
     if (!userExists) {
       // Student 1
       const user1 = await UserFactory.create({
@@ -165,7 +166,7 @@ export class SeedController {
     }
 
     const queue = await QueueFactory.create({
-      room: 'Online',
+      room: 'online',
       course: course,
       allowQuestions: true,
     });
@@ -237,7 +238,7 @@ export class SeedController {
 
   @Get('fill_queue')
   async fillQueue(): Promise<string> {
-    const queue = await QueueModel.findOne();
+    const queue = await QueueModel.find({ take: 1 })[0];
 
     await QuestionFactory.create({
       queue: queue,
@@ -261,7 +262,9 @@ export class SeedController {
   ): Promise<UserCourseModel> {
     let ta: UserCourseModel;
     if (body.courseId) {
-      const course = await CourseModel.findOneOrFail(body.courseId);
+      const course = await CourseModel.findOneOrFail({
+        where: { id: body.courseId },
+      });
       ta = await UserCourseFactory.create({ role: body.role, course: course });
     } else {
       ta = await UserCourseFactory.create({ role: body.role });
@@ -283,7 +286,9 @@ export class SeedController {
       allowQuestions: body.allowQuestions ?? false,
     };
     if (body.courseId) {
-      const course = await CourseModel.findOneOrFail(body.courseId);
+      const course = await CourseModel.findOneOrFail({
+        where: { id: body.courseId },
+      });
       options['course'] = course;
     }
     const queue: QueueModel = await QueueFactory.create(options);
@@ -294,18 +299,22 @@ export class SeedController {
   async createQuestion(
     @Body()
     body: {
-      queueId: number;
-      studentId: number;
-      data: CreateQuestionParams;
-    },
+      queueId?: number;
+      studentId?: number;
+      data?: DeepPartial<QuestionModel>;
+    } = {},
   ): Promise<QuestionModel> {
     const options = {};
     if (body.queueId) {
-      const queue = await QueueModel.findOneOrFail(body.queueId);
+      const queue = await QueueModel.findOneOrFail({
+        where: { id: body.queueId },
+      });
       options['queue'] = queue;
     }
     if (body.studentId) {
-      const student = await UserModel.findOneOrFail(body.studentId);
+      const student = await UserModel.findOneOrFail({
+        where: { id: body.studentId },
+      });
       options['creator'] = student;
     }
     const question: QuestionModel = await QuestionFactory.create({
@@ -329,7 +338,9 @@ export class SeedController {
       officeHours: [],
     };
     if (body.courseId) {
-      const course = await CourseModel.findOneOrFail(body.courseId);
+      const course = await CourseModel.findOneOrFail({
+        where: { id: body.courseId },
+      });
       options['course'] = course;
     }
     return await QueueFactory.create(options);

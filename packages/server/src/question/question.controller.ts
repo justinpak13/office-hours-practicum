@@ -28,7 +28,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { Connection, In } from 'typeorm';
+import { In } from 'typeorm';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import {
   NotificationService,
@@ -52,7 +52,6 @@ import { QuestionService } from './question.service';
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionController {
   constructor(
-    private connection: Connection,
     private notifService: NotificationService,
     private questionService: QuestionService,
   ) {}
@@ -62,11 +61,12 @@ export class QuestionController {
   async getQuestion(
     @Param('questionId') questionId: number,
   ): Promise<GetQuestionResponse> {
-    const question = await QuestionModel.findOne(questionId, {
+    const question = await QuestionModel.findOne({
+      where: { id: questionId },
       relations: ['creator', 'taHelped'],
     });
 
-    if (question === undefined) {
+    if (question === null) {
       throw new NotFoundException();
     }
     return question;
@@ -157,7 +157,7 @@ export class QuestionController {
       where: { id: questionId },
       relations: ['creator', 'queue', 'taHelped'],
     });
-    if (question === undefined) {
+    if (question === null) {
       throw new NotFoundException();
     }
 
@@ -219,11 +219,12 @@ export class QuestionController {
   @Post(':questionId/notify')
   @Roles(Role.TA, Role.PROFESSOR)
   async notify(@Param('questionId') questionId: number): Promise<void> {
-    const question = await QuestionModel.findOne(questionId, {
+    const question = await QuestionModel.findOne({
+      where: { id: questionId },
       relations: ['queue'],
     });
 
-    if (question === undefined || question === null) {
+    if (question === null) {
       throw new HttpException(
         ERROR_MESSAGES.questionController.notFound,
         HttpStatus.NOT_FOUND,

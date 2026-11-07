@@ -13,7 +13,7 @@ import {
   Patch,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   GetInsightOutputResponse,
   ERROR_MESSAGES,
@@ -33,7 +33,7 @@ import { Filter } from './insight-objects';
 @UseInterceptors(ClassSerializerInterceptor)
 export class InsightsController {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private insightsService: InsightsService,
   ) {}
 

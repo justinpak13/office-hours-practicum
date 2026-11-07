@@ -30,14 +30,14 @@ import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { UserModel } from 'profile/user.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { NonProductionGuard } from '../guards/non-production.guard';
 import { LoginCourseService } from './login-course.service';
 
 @Controller()
 export class LoginController {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     private loginCourseService: LoginCourseService,
     private jwtService: JwtService,
     private configService: ConfigService,
@@ -102,7 +102,7 @@ export class LoginController {
       { expiresIn: 60 },
     );
 
-    if (token === null || token === undefined) {
+    if (token === null) {
       console.error('Temporary JWT is invalid');
       throw new HttpException(
         ERROR_MESSAGES.loginController.invalidTempJWTToken,
@@ -128,7 +128,7 @@ export class LoginController {
     let payload: { userId: number; token_type?: string };
     try {
       payload = await this.jwtService.verifyAsync(token);
-    } catch (err) {
+    } catch {
       throw new UnauthorizedException();
     }
 
@@ -158,7 +158,7 @@ export class LoginController {
       { expiresIn: 60 * 60 * 24 * 30 },
     );
 
-    if (authToken === null || authToken === undefined) {
+    if (authToken === null) {
       console.error('Authroziation JWT is invalid');
       throw new HttpException(
         ERROR_MESSAGES.loginController.invalidTempJWTToken,
@@ -195,7 +195,7 @@ export class LoginController {
 
   @Get('self_enroll_courses')
   async selfEnrollEnabledAnywhere(): Promise<GetSelfEnrollResponse> {
-    const courses = await CourseModel.find();
+    const courses = await CourseModel.find({ take: 1 })[0];
     return { courses: courses.filter((course) => course.selfEnroll) };
   }
 
@@ -205,7 +205,7 @@ export class LoginController {
     @Param('id') courseId: number,
     @User() user: UserModel,
   ): Promise<void> {
-    const course = await CourseModel.findOne(courseId);
+    const course = await CourseModel.findOne({ where: { id: courseId } });
 
     if (!course || !course.selfEnroll) {
       throw new UnauthorizedException(
