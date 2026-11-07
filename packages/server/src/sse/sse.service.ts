@@ -2,7 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { each } from 'async';
 import { serialize } from 'class-transformer';
 import { Response } from 'express';
-import { RedisService } from 'nestjs-redis';
+import { RedisService } from '../redis/redis.module';
 import { ERROR_MESSAGES } from '@koh/common';
 import * as Sentry from '@sentry/node';
 
@@ -203,7 +203,7 @@ export class SSEService<T> implements OnModuleDestroy {
           Sentry.captureException(err);
         });
         // Don't publish a malformed "undefined" frame when payload gen failed
-        if (payloadData === undefined) {
+        if (payloadData === null) {
           return;
         }
         const toSend = serialize(payloadData);

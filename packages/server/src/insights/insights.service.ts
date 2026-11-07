@@ -1,5 +1,6 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
-import { Connection } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { DataSource } from 'typeorm';
 import { Filter, INSIGHTS_MAP } from './insight-objects';
 import {
   PossibleOutputTypes,
@@ -7,7 +8,7 @@ import {
   ListInsightsResponse,
 } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
-import { Cache } from 'cache-manager';
+import { Cache } from '@nestjs/cache-manager';
 
 type ComputeOutputParams = {
   insight: InsightObject;
@@ -22,7 +23,7 @@ type GenerateAllInsightParams = {
 @Injectable()
 export class InsightsService {
   constructor(
-    private connection: Connection,
+    private connection: DataSource,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 

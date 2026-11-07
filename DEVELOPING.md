@@ -4,7 +4,7 @@
 
 | Tool | Version |
 |---|---|
-| [Node](https://nodejs.org/en/download/) | 14.x ([nvm](https://github.com/nvm-sh/nvm) can install it) |
+| [Node](https://nodejs.org/en/download/) | 20.x, matching CI ([nvm](https://github.com/nvm-sh/nvm) can install it) |
 | [Yarn](https://classic.yarnpkg.com/en/docs/install) | 1.x. Yarn 2+ does not work with this repo |
 | [Docker](https://docs.docker.com/get-docker/) | Runs Postgres 11.5 and Redis for development |
 
@@ -24,6 +24,12 @@
    EMAIL=mailto:you@example.com
    ADMIN_SESSION_SECRET=dev-only-not-a-secret
    ```
+
+   This file is not committed. Use your own VAPID keypair here, not the test keypair in `.env.test` (see [Testing](#testing)).
+
+   > **Note:** If the database has problems from a prior run, you may need the newer migration commands:
+   > `yarn migration:generate migration/Name` (instead of `yarn migration:generate -n Name`) and
+   > `yarn migration:run` (instead of `yarn typeorm migration:run`).
 
 3. Create the uploads folder: `mkdir packages/server/uploads`.
 4. Run `yarn dev:db:up` to start Postgres and Redis in Docker. `yarn dev:db:down` stops them. The Postgres container creates the `dev` and `test` databases on first start.
@@ -55,7 +61,7 @@ These are hardcoded.
 
 ### Server environment variables
 
-The server loads `packages/server/.env`, then `packages/server/.env.development` when `NODE_ENV` isn't `production`.
+The server loads `packages/server/.env`, then `packages/server/.env.development` when `NODE_ENV` isn't `production`. Tests do not read either file; they use `packages/server/.env.test` (see [Testing](#testing)).
 
 | Variable | Used for |
 |---|---|
@@ -68,6 +74,8 @@ The server loads `packages/server/.env`, then `packages/server/.env.development`
 | `ADMIN_SESSION_SECRET` | Signs admin panel sessions |
 | `KHOURY_HMAC_KEY` | Verifies the `X-Signature` header on `POST /api/v1/khoury_login` (production only) |
 | `SENTRY_APM_DSN`, `SERVICE_VERSION` | Optional Sentry setup |
+
+**When you add a required variable**, add it to your `.env.development`, to this table, and to `packages/server/.env.test` with a test-only value. Otherwise tests will pass on machines that have the variable and fail in CI.
 
 ## Technologies
 
@@ -92,7 +100,7 @@ The server loads `packages/server/.env`, then `packages/server/.env.development`
 
 Source code is in the `packages` folder.
 
-`app` is a the next.js app (frontend). Routing is done using the file system. For example, the page `/app/pages/xyz.tsx` would be served at `domain.com/xyz`. Pages are rendered server-side and hydrated client side. Data fetching can happen on the server or client. [Learn more](https://nextjs.org/docs/basic-features/data-fetching)
+`app` is the next.js app (frontend). Routing is done using the file system. For example, the page `/app/pages/xyz.tsx` would be served at `domain.com/xyz`. Pages are rendered server-side and hydrated client side. Data fetching can happen on the server or client. [Learn more](https://nextjs.org/docs/basic-features/data-fetching)
 
 `server` is the server (backend) that runs the REST API and the Server-Sent Events stream for live queue updates. Each API route is controlled by a module, with a controller and its modules. [Learn more](https://nestjs.com/)
 
@@ -130,6 +138,34 @@ Each page should have the `Navbar` up top -- refer to other pages for each page.
 ### Testing
 
 Server unit tests (`*.spec.ts`) are colocated with the file they test. Server integration tests are in `packages/server/test/` (`*.integration.ts`). Both use the `test` database on `localhost:5432` and reset its schema on each run. The frontend has no unit tests.
+
+#### Test configuration
+
+Tests read their environment from **`packages/server/.env.test`**, which is committed to the repo. It holds test-only values (including a throwaway VAPID keypair) so tests run the same way on every machine and in CI, without needing `.env.development` or repository secrets.
+
+- Never put real or production secrets in `.env.test`, and never reuse its keys or secrets in `.env.development` or production.
+- Keep the file named `.env.test`. The server only loads `.env` and `.env.development`, so these values can never reach a running server.
+- The test database connection is hard-coded in `TestTypeOrmModule` (`packages/server/test/util/`), so `DB_URL` is not needed in `.env.test`.
+
+#### Writing server tests
+
+- **Close what you open.** Every spec that creates a Nest testing module should close it in `afterAll` with `await module?.close()` (or `await app?.close()` for integration tests). This closes the database connections; a spec that skips it can leave Jest hanging with "Jest did not exit one second after the test run has completed."
+- **Mock services you aren't testing.** `NotificationService` configures web push in its constructor. In specs that only depend on it (for example `question.service.spec.ts`), override it with `.overrideProvider(NotificationService).useValue({ notifyUser: jest.fn() })`. Integration tests can use `modifyMockNotifs` from `test/util/testUtils.ts`.
+- **Don't import app-level files into tests.** Importing `src/bootstrap.ts` or `AppModule` pulls in the real TypeORM config and registers a second data source. Shared app setup that tests need, like `addGlobalsToApp`, lives in `src/app-globals.ts`.
+- **New entities** must be registered in `TestTypeOrmModule`'s `entities` list, or tests that touch them fail with a "No metadata" error.
+- **Avoid parallel queries on one connection.** Inside a transaction, run queries one after another instead of with `Promise.all`. Saving many entities in a single `save([...])` call can also trigger a `pg` deprecation warning ("Calling client.query() when the client is already executing a query"); in test helpers, saving them one at a time avoids it.
+
+#### Debugging test failures
+
+- If you see "You are trying to `import` a file after the Jest environment has been torn down", look further up the output for the first real error. It usually means test setup failed (missing config, database unreachable) while TypeORM was still initializing.
+- `npx jest --runInBand` runs test files one at a time so warnings and errors appear under the file that caused them. Add `NODE_OPTIONS=--trace-deprecation` to get stack traces for deprecation warnings.
+- `npx jest --detectOpenHandles` shows what is keeping Jest from exiting.
+
+#### Continuous integration
+
+`.github/workflows/test.yml` runs `yarn test` on every pull request with Node 20, using Postgres 11.5 and Redis as service containers. It needs no repository secrets, because test configuration comes from `.env.test`, so pull requests from forks work too. If tests start failing only in CI, check first for a variable that exists in your `.env.development` but is missing from `.env.test`.
+
+#### End to end tests
 
 End to end (E2E) tests are in the `cypress` folder and run against http://localhost:3000, so `yarn dev` has to be running. They use the `/api/v1/seeds/*` and `/api/v1/login/dev` endpoints.
 To run them headlessly, do `yarn cypress:run`. To watch them run interactively, use `yarn cypress:open`.

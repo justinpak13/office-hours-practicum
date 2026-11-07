@@ -9,9 +9,12 @@ import { QueueModel } from '../queue/queue.entity';
 export const QueueRole = createParamDecorator(
   async (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
-    const queue = await QueueModel.findOne(request.params.queueId);
+    const queue = await QueueModel.findOne({
+      where: { id: request.params.queueId },
+    });
     const courseId = queue?.courseId;
-    const user = await UserModel.findOne(request.user.userId, {
+    const user = await UserModel.findOne({
+      where: { id: request.user.userId },
       relations: ['courses'],
     });
 
