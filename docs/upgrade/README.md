@@ -23,7 +23,7 @@ Merge into `dev` in this order, one at a time. Start your ticket only when the o
 | 9 | [OH-11](tickets/OH-11.md) visx 4 | Frontend | D | I | #8 merged | 1 |
 | 10 | [OH-12](tickets/OH-12.md) Next 15.5 | Frontend | K | D | #9 merged | 2–4 |
 | 11 | [OH-14](tickets/OH-14.md) Sign-off | QA | J | All | #10 merged | 3–5 |
-| 12 | [OH-15](tickets/OH-15.md) Bring upgrade-backend-justin up to date with dev | Backend | Owner of that branch | Another teammate | #10 merged (can run alongside OH-14) | 2–4 |
+| 12 | [OH-15](tickets/OH-15.md) Fix and update upgrade-backend-justin | Backend | Owner of that branch | Another teammate | Part A now; Part B after #10 merged | 3–5 |
 
 OH-10 and OH-13 from the first plan were dropped: FullCalendar moved into OH-06, and the service-worker ticket wasn't needed.
 
