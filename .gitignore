@@ -60,3 +60,6 @@ github.pub
 .oldnext/
 packages/*/dist/
 
+
+# local design docs (not committed)
+docs/superpowers/
