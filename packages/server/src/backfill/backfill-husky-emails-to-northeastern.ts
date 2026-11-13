@@ -9,7 +9,7 @@ export class BackfillHuskyEmailsAsNortheastern {
     describe: 'Converts @husky.neu.edu emails to @northeastern.edu emails',
   })
   async fix(): Promise<void> {
-    const users = await UserModel.find({ take: 1 })[0];
+    const users = await UserModel.find();
 
     const usersToBeUpdated = users.filter((user) =>
       user.email.includes('@husky.neu.edu'),

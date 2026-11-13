@@ -195,7 +195,7 @@ export class LoginController {
 
   @Get('self_enroll_courses')
   async selfEnrollEnabledAnywhere(): Promise<GetSelfEnrollResponse> {
-    const courses = await CourseModel.find({ take: 1 })[0];
+    const courses = await CourseModel.find();
     return { courses: courses.filter((course) => course.selfEnroll) };
   }
 
