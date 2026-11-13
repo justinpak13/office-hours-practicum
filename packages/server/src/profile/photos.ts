@@ -4,7 +4,7 @@ import * as https from 'https';
 import * as path from 'path';
 // sharp's types declare a default export, but its CJS build exports the
 // function itself, and this tsconfig has no esModuleInterop.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
 const sharp: typeof import('sharp').default = require('sharp');
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;

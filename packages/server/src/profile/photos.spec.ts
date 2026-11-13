@@ -5,7 +5,7 @@ import { savePhotoBuffer } from './photos';
 
 // sharp's types declare a default export, but its CJS build exports the
 // function itself, and this tsconfig has no esModuleInterop.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
 const sharp: typeof import('sharp').default = require('sharp');
 
 describe('savePhotoBuffer', () => {
