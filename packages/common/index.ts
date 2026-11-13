@@ -378,6 +378,22 @@ export class KhouryProfCourse {
   // Section group name
   @IsString()
   name!: string;
+
+  // Khoury Admin's stable section group id
+  @IsOptional()
+  @IsString()
+  id?: string;
+}
+
+export type RefreshRosterStatus =
+  | "updated"
+  | "unchanged"
+  | "skipped"
+  | "failed";
+
+export class RefreshRosterResponse {
+  status!: RefreshRosterStatus;
+  message!: string;
 }
 
 export function isKhouryCourse(
