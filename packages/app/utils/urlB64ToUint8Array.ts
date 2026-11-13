@@ -10,5 +10,5 @@ export const urlB64ToUint8Array = (base64String: string): ArrayBuffer => {
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i);
   }
-  return outputArray;
+  return outputArray.buffer;
 };

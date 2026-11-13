@@ -11,7 +11,12 @@ module.exports = {
     "prettier",
     "prettier/@typescript-eslint",
   ],
-  ignorePatterns: [".eslintrc.js"],
+  ignorePatterns: [
+    ".eslintrc.js",
+    "packages/server/dist",
+    "packages/app/.next",
+    "packages/app/next-env.d.ts",
+  ],
   root: true,
   env: {
     node: true,
