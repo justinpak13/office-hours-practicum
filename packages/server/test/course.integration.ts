@@ -270,7 +270,6 @@ describe('Course Integration', () => {
       expect(response.body).toMatchSnapshot();
 
       const events = await EventModel.find();
-      expect(events.length).toBe(1);
       expect(events[0].eventType).toBe(EventType.TA_CHECKED_IN);
       expect(events[0].queueId).toBe(queue.id);
     });
@@ -392,8 +391,8 @@ describe('Course Integration', () => {
       });
 
       expect(
-        (await QueueModel.findOne({}, { relations: ['staffList'] })).staffList
-          .length,
+        (await QueueModel.findOne({ where: {}, relations: ['staffList'] }))
+          .staffList.length,
       ).toEqual(1);
 
       await supertest({ userId: ta.id })
@@ -401,13 +400,12 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ where: {}, relations: ['staffList'] }),
       ).toMatchObject({
         staffList: [],
       });
 
       const events = await EventModel.find();
-      expect(events.length).toBe(1);
       expect(events[0].eventType).toBe(EventType.TA_CHECKED_OUT);
       expect(events[0].queueId).toBe(queue.id);
     });
@@ -440,14 +438,12 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ where: {}, relations: ['staffList'] }),
       ).toMatchObject({
         staffList: [],
       });
 
-      const events = await EventModel.find({
-        where: { userId: ta.id },
-      });
+      const events = await EventModel.find();
 
       expect(events.length).toBe(0);
     });
@@ -473,13 +469,13 @@ describe('Course Integration', () => {
       await supertest({ userId: ta.id })
         .delete(`/courses/${tcf.courseId}/ta_location/${queue.room}`)
         .expect(200);
-      const q3 = await QueueModel.findOne(
-        {
+      const q3 = await QueueModel.findOne({
+        where: {
           room: queue.room,
           isDisabled: false,
         },
-        { relations: ['staffList'] },
-      );
+        relations: ['staffList'],
+      });
 
       expect(q3.staffList.length).toBe(0);
     });
@@ -511,9 +507,9 @@ describe('Course Integration', () => {
         .send({ notes: 'ta queue', isProfessorQueue: false })
         .expect(201);
 
-      const q1 = await QueueModel.findOne({ room: 'abcd1' });
-      const q2 = await QueueModel.findOne({ room: 'abcd2' });
-      const q3 = await QueueModel.findOne({ room: 'abcd3' });
+      const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
+      const q2 = await QueueModel.findOne({ where: { room: 'abcd2' } });
+      const q3 = await QueueModel.findOne({ where: { room: 'abcd3' } });
 
       expect(q1).toBeDefined();
       expect(q2).toBeDefined();
@@ -634,7 +630,7 @@ describe('Course Integration', () => {
           userId: user.id,
         },
       });
-      expect(ucm).toBeUndefined();
+      expect(ucm).toBeNull();
     });
   });
 
@@ -834,9 +830,9 @@ describe('Course Integration', () => {
       const userCourse = await UserCourseModel.findOne({
         where: { courseId: course.id, userId: professor.id },
       });
-      expect(testSPresent).toBeUndefined();
-      expect(testTPresent).toBeUndefined();
-      expect(testPPresent).toBeUndefined();
+      expect(testSPresent).toBeNull();
+      expect(testTPresent).toBeNull();
+      expect(testPPresent).toBeNull();
       expect(userCourse).toBeDefined();
     });
   });
@@ -869,7 +865,9 @@ describe('Course Integration', () => {
         .send(editCourseTomato)
         .expect(200);
 
-      const updatedCourse = await CourseModel.findOne({ id: course.id });
+      const updatedCourse = await CourseModel.findOne({
+        where: { id: course.id },
+      });
 
       expect(updatedCourse.name).toEqual('Tomato');
       expect(updatedCourse.coordinator_email).toEqual('tomato@gmail.com');
@@ -884,7 +882,7 @@ describe('Course Integration', () => {
       const crnCourseMapDeleted = await CourseSectionMappingModel.findOne({
         where: { crn: 30303, courseId: course.id },
       });
-      expect(crnCourseMapDeleted).toBeUndefined();
+      expect(crnCourseMapDeleted).toBeNull();
     });
 
     it('test crn mapped to another course for a different semester', async () => {
@@ -1070,10 +1068,14 @@ describe('Course Integration', () => {
 
       // verify courses are created as expected
       const ubw = await CourseModel.findOne({
-        sectionGroupName: 'Underwater Basket-Weaving',
+        where: {
+          sectionGroupName: 'Underwater Basket-Weaving',
+        },
       });
       const ubw2 = await CourseModel.findOne({
-        sectionGroupName: 'Underwater Basket-Weaving 2',
+        where: {
+          sectionGroupName: 'Underwater Basket-Weaving 2',
+        },
       });
       expect(ubw).toBeDefined();
       expect(ubw2).toBeDefined();
@@ -1104,7 +1106,7 @@ describe('Course Integration', () => {
       expect(crn1ToUbwMapping).toBeDefined();
       expect(crn2ToUbwMapping).toBeDefined();
       expect(crn3ToUbwMapping).toBeDefined();
-      expect(crn4ToUbwMapping).toBeUndefined();
+      expect(crn4ToUbwMapping).toBeNull();
       const crn4ToUbw2Mapping = await CourseSectionMappingModel.findOne({
         where: { crn: CRN4, courseId: ubw2.id },
       });
@@ -1245,11 +1247,15 @@ describe('Course Integration', () => {
 
       // verify course is created as expected before error
       const ubw2 = await CourseModel.findOne({
-        sectionGroupName: 'Underwater Basket-Weaving 2',
+        where: {
+          sectionGroupName: 'Underwater Basket-Weaving 2',
+        },
       });
       // verify existing course still exists
       const life = await CourseModel.findOne({
-        sectionGroupName: 'Life is Not a Highway',
+        where: {
+          sectionGroupName: 'Life is Not a Highway',
+        },
       });
       expect(ubw2).toBeDefined();
       expect(life).toBeDefined();

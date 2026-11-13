@@ -7,6 +7,7 @@ import { UserCourseModel } from 'profile/user-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import { LoginModule } from '../src/login/login.module';
 import { UserModel } from '../src/profile/user.entity';
+import { LoginCourseService } from '../src/login/login-course.service';
 import {
   CourseFactory,
   CourseSectionFactory,
@@ -35,6 +36,16 @@ describe('Login Integration', () => {
     (t: TestingModuleBuilder) =>
       t.overrideProvider(JwtService).useValue(mockJWT),
   );
+
+  beforeEach(() => {
+    jest
+      .spyOn(LoginCourseService.prototype, 'syncKhouryPhoto')
+      .mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   describe('POST /login/entry', () => {
     it('request to entry with correct jwt payload works', async () => {
@@ -79,14 +90,14 @@ describe('Login Integration', () => {
       const user = await UserModel.findOne({
         where: { email: 'stenzel.w@northeastern.edu' },
       });
-      expect(user).toBeUndefined();
+      expect(user).toBeNull();
 
       const res = await supertest().post('/khoury_login').send({
         email: 'stenzel.w@northeastern.edu',
         campus: 1,
         first_name: 'Will',
         last_name: 'Stenzel',
-        photo_url: 'sdf',
+        photo_url: 'https://www.sdf.com',
         courses: [],
       });
 
@@ -106,14 +117,14 @@ describe('Login Integration', () => {
       const user = await UserModel.findOne({
         where: { email: 'stenzel.w@northeastern.edu' },
       });
-      expect(user).toBeUndefined();
+      expect(user).toBeNull();
 
       await supertest().post('/khoury_login').send({
         email: 'stenzel.w@husky.neu.edu',
         campus: 1,
         first_name: 'Will',
         last_name: 'Stenzel',
-        photo_url: 'sdf',
+        photo_url: 'https://www.sdf.com',
         courses: [],
       });
 
@@ -126,7 +137,7 @@ describe('Login Integration', () => {
       const huskyUser = await UserModel.findOne({
         where: { email: 'stenzel.w@husky.neu.edu' },
       });
-      expect(huskyUser).toBeUndefined();
+      expect(huskyUser).toBeNull();
     });
 
     describe('with course mapping', () => {
@@ -176,7 +187,7 @@ describe('Login Integration', () => {
             campus: 1,
             first_name: 'Will',
             last_name: 'Stenzel',
-            photo_url: 'sdf',
+            photo_url: 'https://www.sdf.com',
             courses: [
               {
                 crn: 23456,
@@ -203,7 +214,7 @@ describe('Login Integration', () => {
             campus: 1,
             first_name: 'Will',
             last_name: 'Stenzel',
-            photo_url: 'sdf',
+            photo_url: 'https://www.sdf.com',
             courses: [
               {
                 crn: 23456,
@@ -253,7 +264,7 @@ describe('Login Integration', () => {
         });
 
         const fundiesUserCourse = await UserCourseModel.findOne({
-          where: { user, course },
+          where: { userId: user.id, courseId: course.id },
         });
         expect(fundiesUserCourse).toEqual({
           courseId: 1,
@@ -286,10 +297,10 @@ describe('Login Integration', () => {
           })
           .expect(201);
 
-        const noUserCourse = await UserCourseModel.findOne(
-          fundiesUserCourse.id,
-        );
-        expect(noUserCourse).toBeUndefined();
+        const noUserCourse = await UserCourseModel.findOne({
+          where: { id: fundiesUserCourse.id },
+        });
+        expect(noUserCourse).toBeNull();
 
         const totalUserCoursesUpdated = await UserCourseModel.count();
         expect(totalUserCoursesUpdated).toEqual(1);
@@ -350,9 +361,9 @@ describe('Login Integration', () => {
           })
           .expect(201);
 
-        const overrideStillExists = await UserCourseModel.findOne(
-          overrideCourse.id,
-        );
+        const overrideStillExists = await UserCourseModel.findOne({
+          where: { id: overrideCourse.id },
+        });
         expect(overrideStillExists).toBeDefined();
         expect(overrideStillExists).toEqual({
           courseId: overrideCourse.courseId,
@@ -381,7 +392,7 @@ describe('Login Integration', () => {
             await UserModel.findOne({
               where: { email: 'liu.i@northeastern.edu' },
             }),
-          ).toBeUndefined();
+          ).toBeNull();
 
           await supertest()
             .post('/khoury_login')
@@ -390,7 +401,7 @@ describe('Login Integration', () => {
               campus: 1,
               first_name: 'Iris',
               last_name: 'Liu',
-              photo_url: 'sdf',
+              photo_url: 'https://www.sdf.com',
               courses: fallSecGroups,
             })
             .expect(201);
@@ -425,7 +436,7 @@ describe('Login Integration', () => {
               campus: 1,
               first_name: 'Iris',
               last_name: 'Liu',
-              photo_url: 'sdf',
+              photo_url: 'https://www.sdf.com',
               courses: fallSecGroups,
             })
             .expect(201);
@@ -451,7 +462,7 @@ describe('Login Integration', () => {
           const sem = await SemesterModel.findOne({
             where: { season: 'Fall', year: 2022 },
           });
-          expect(sem).toBeUndefined();
+          expect(sem).toBeNull();
 
           await supertest()
             .post('/khoury_login')
@@ -460,7 +471,7 @@ describe('Login Integration', () => {
               campus: 1,
               first_name: 'Iris',
               last_name: 'Liu',
-              photo_url: 'sdf',
+              photo_url: 'https://www.sdf.com',
               courses: fallSecGroups,
             })
             .expect(201);
@@ -468,7 +479,7 @@ describe('Login Integration', () => {
           const newSem = await SemesterModel.findOne({
             where: { season: 'Fall', year: 2022 },
           });
-          expect(newSem).toBeDefined();
+          expect(newSem).not.toBeNull();
 
           const oldCourses: CourseModel[] = [
             course,
@@ -479,11 +490,11 @@ describe('Login Integration', () => {
           ];
           for (const c of oldCourses) {
             await c.reload();
-            expect(c.enabled).toBe(false);
+            expect(c.enabled).toBe(true);
           }
         });
 
-        it('does not disable concurrent semester courses', async () => {
+        it('does not change course enabled state across semester logins', async () => {
           const summer1 = await SemesterFactory.create({
             season: 'Summer_1',
             year: 2022,
@@ -497,7 +508,7 @@ describe('Login Integration', () => {
               campus: 1,
               first_name: 'Iris',
               last_name: 'Liu',
-              photo_url: 'sdf',
+              photo_url: 'https://www.sdf.com',
               courses: [
                 {
                   crns: [23456],
@@ -508,21 +519,19 @@ describe('Login Integration', () => {
             })
             .expect(201);
 
-          const oldCourses: CourseModel[] = [course, course2, course3];
-          for (const c of oldCourses) {
+          // Login no longer disables courses; that's done by SemesterService
+          // (yarn cli semester:toggleActiveSemester).
+          for (const c of [course, course2, course3, course4]) {
             await c.reload();
-            expect(c.enabled).toBe(false);
+            expect(c.enabled).toBe(true);
           }
-          await course4.reload();
-          expect(course4.enabled).toBe(true); // concurrent course stays active
 
-          const summer2 = await SemesterModel.findOne({
-            where: {
-              season: 'Summer_Full',
-              year: 2022,
-            },
+          const summerFull = await SemesterModel.findOne({
+            where: { season: 'Summer_Full', year: 2022 },
           });
-          const course5 = await CourseFactory.create({ semester: summer2 });
+          expect(summerFull).not.toBeNull();
+          const course5 = await CourseFactory.create({ semester: summerFull });
+
           await supertest()
             .post('/khoury_login')
             .send({
@@ -530,7 +539,7 @@ describe('Login Integration', () => {
               campus: 1,
               first_name: 'Iris',
               last_name: 'Liu',
-              photo_url: 'sdf',
+              photo_url: 'https://www.sdf.com',
               courses: [
                 {
                   crns: [23456],
@@ -541,10 +550,10 @@ describe('Login Integration', () => {
             })
             .expect(201);
 
-          await course4.reload();
-          expect(course4.enabled).toBe(false); // summer1 course now disabled
-          await course5.reload();
-          expect(course5.enabled).toBe(true); // summerFull course still active
+          for (const c of [course, course2, course3, course4, course5]) {
+            await c.reload();
+            expect(c.enabled).toBe(true);
+          }
         });
       });
     });
@@ -587,7 +596,7 @@ describe('Login Integration', () => {
           campus: 1,
           first_name: 'Will',
           last_name: 'Stenzel',
-          photo_url: 'sdf',
+          photo_url: 'https://www.sdf.com',
           courses: [
             {
               crn: 98765,
@@ -604,7 +613,9 @@ describe('Login Integration', () => {
       });
 
       const fundiesRegular = await CourseModel.findOne({
-        name: 'CS 2500 Regular',
+        where: {
+          name: 'CS 2500 Regular',
+        },
       });
 
       expect(ta.courses).toHaveLength(1);
@@ -628,7 +639,7 @@ describe('Login Integration', () => {
           campus: 1,
           first_name: 'Will',
           last_name: 'Stenzel',
-          photo_url: 'sdf',
+          photo_url: 'https://www.sdf.com',
           courses: [
             {
               crns: [13345, 98765],
@@ -645,7 +656,7 @@ describe('Login Integration', () => {
       });
 
       const ucms = await UserCourseModel.find({
-        where: { user: professor },
+        where: { userId: professor.id },
       });
 
       expect(professor.courses).toHaveLength(1);
@@ -653,10 +664,9 @@ describe('Login Integration', () => {
     });
   });
 
-  describe('GET /logout', () => {
+  describe('POST /logout', () => {
     it('makes sure logout endpoint is destroying cookies like a mob boss', async () => {
-      const res = await supertest().get(`/logout`).expect(302);
-      expect(res.header['location']).toBe('/login');
+      const res = await supertest().post(`/logout`).expect(200);
       expect(res.get('Set-Cookie')[0]).toContain('auth_token=;');
     });
   });

@@ -8,7 +8,9 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "skipLibCheck": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+		"allowJs": true,
+		"esModuleInterop": true
   },
   "exclude": ["**/node_modules", "dist"]
 }

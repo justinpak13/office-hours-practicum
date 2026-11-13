@@ -1,5 +1,5 @@
 import { TestingModule, Test } from '@nestjs/testing';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   UserFactory,
   UserCourseFactory,
@@ -11,24 +11,25 @@ import { UserModel } from 'profile/user.entity';
 import { CourseModel } from './course.entity';
 import { Role, UserPartial } from '@koh/common';
 import { LoginCourseService } from 'login/login-course.service';
+import { ProfileService } from '../profile/profile.service';
 
 describe('CourseService', () => {
   let service: CourseService;
 
-  let conn: Connection;
+  let conn: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [TestTypeOrmModule, TestConfigModule],
-      providers: [CourseService, LoginCourseService],
+      providers: [CourseService, LoginCourseService, ProfileService],
     }).compile();
 
     service = module.get<CourseService>(CourseService);
-    conn = module.get<Connection>(Connection);
+    conn = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await conn.destroy();
   });
 
   beforeEach(async () => {

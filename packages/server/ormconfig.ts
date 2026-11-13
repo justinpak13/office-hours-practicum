@@ -14,17 +14,15 @@ import { QueueModel } from './src/queue/queue.entity';
 import { AlertModel } from './src/alerts/alerts.entity';
 import { LastRegistrationModel } from './src/login/last-registration-model.entity';
 import { ProfSectionGroupsModel } from './src/login/prof-section-groups.entity';
-config();
+import { DataSourceOptions } from 'typeorm';
+config({ quiet: true });
 
 // Options only used whe run via CLI
 const inCLI = {
   migrations: ['migration/*.ts'],
-  cli: {
-    migrationsDir: 'migration',
-  },
 };
 
-const typeorm = {
+export const ormconfig: DataSourceOptions = {
   type: 'postgres',
   url: process.env.DB_URL || 'postgres://postgres@localhost:5432/dev',
   synchronize: process.env.NODE_ENV !== 'production',
@@ -45,7 +43,6 @@ const typeorm = {
     LastRegistrationModel,
     ProfSectionGroupsModel,
   ],
-  keepConnectionAlive: true,
   extra: {
     keepAlive: true,
     connectionTimeoutMillis: 10000,
@@ -55,7 +52,6 @@ const typeorm = {
   logging:
     process.env.NODE_ENV !== 'production'
       ? ['error']
-      : !!process.env.TYPEORM_LOGGING,
+      : process.env.TYPEORM_LOGGING === 'true',
   ...(!!process.env.TYPEORM_CLI ? inCLI : {}),
 };
-module.exports = typeorm;
