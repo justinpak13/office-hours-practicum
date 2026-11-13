@@ -1,0 +1,7 @@
+{
+  "semester": "202710",
+  "courses": [
+    { "section_group_id": "sg_1001", "role": "TA" },
+    { "section_group_id": "sg_1002", "role": "Student" }
+  ]
+}
