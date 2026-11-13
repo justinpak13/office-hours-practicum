@@ -24,7 +24,7 @@ import {
 import { AdminController } from './admin.controller';
 import { AdminOverviewController } from './admin-overview.controller';
 import { AdminCommand } from './admin.command';
-import { adminSession } from './admin-session';
+import { createAdminSession } from './admin-session';
 
 @Module({
   imports: [
@@ -56,7 +56,7 @@ export class AdminModule implements NestModule {
     // Scope the session to the admin controllers only, so the rest of the
     // app is unaffected and Redis is never touched outside /admin
     consumer
-      .apply(adminSession)
+      .apply(createAdminSession())
       .forRoutes(AdminAuthController, AdminOverviewController, AdminController);
   }
 }
