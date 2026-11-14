@@ -73,6 +73,16 @@ export class CourseModel extends BaseEntity {
   @Column('boolean', { nullable: true, default: false })
   selfEnroll: boolean;
 
+  // Stable section group id from Khoury Admin
+  @Column('text', { nullable: true, unique: true })
+  @Exclude()
+  khourySectionGroupId: string | null;
+
+  // generated_at of the last roster applied from Khoury Admin
+  @Column('timestamptz', { nullable: true })
+  @Exclude()
+  khouryRosterGeneratedAt: Date | null;
+
   // Used by the admin panel to label this course in lists and dropdowns
   toString(): string {
     return `${this.name} (#${this.id})`;
