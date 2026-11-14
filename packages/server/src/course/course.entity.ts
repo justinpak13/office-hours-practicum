@@ -75,10 +75,12 @@ export class CourseModel extends BaseEntity {
 
   // Stable section group id from Khoury Admin
   @Column('text', { nullable: true, unique: true })
+  @Exclude()
   khourySectionGroupId: string | null;
 
   // generated_at of the last roster applied from Khoury Admin
   @Column('timestamptz', { nullable: true })
+  @Exclude()
   khouryRosterGeneratedAt: Date | null;
 
   // Used by the admin panel to label this course in lists and dropdowns
