@@ -10,7 +10,7 @@ import {
 } from './khoury-admin.types';
 
 const isArr = Array.isArray;
-// Private on purpose; the exported normalizeEmail lives in the sync service (T12).
+// NOTE: mirrors normalizeEmail in khoury-admin-sync.service.ts; importing it here would create an import cycle.
 const norm = (e: string) =>
   e.toLowerCase().replace(/@husky\.neu\.edu$/, '@northeastern.edu');
 const isStr = (x: any) => typeof x === 'string';
@@ -31,7 +31,7 @@ export class KhouryAdminClient {
         norm(email),
       )}/section-groups?semester=${encodeURIComponent(semester)}`,
       (d) =>
-        isStr(d.semester) &&
+        d.semester === semester &&
         every(
           d.section_groups,
           (g) =>
@@ -49,7 +49,7 @@ export class KhouryAdminClient {
         norm(email),
       )}/courses?semester=${encodeURIComponent(semester)}`,
       (d) =>
-        isStr(d.semester) &&
+        d.semester === semester &&
         every(
           d.courses,
           (c) =>
@@ -62,13 +62,15 @@ export class KhouryAdminClient {
 
   /** null only on a 404 whose body is {error:'not found'} */
   getRoster(id: string): Promise<RosterResponse | null> {
-    if (!id || !id.trim()) {
-      return Promise.reject(new KhouryAdminError('getRoster needs a group id'));
+    if (!id || id !== id.trim()) {
+      return Promise.reject(
+        new KhouryAdminError('getRoster needs a clean group id'),
+      );
     }
     return this.get(
       `/api/v1/section-groups/${encodeURIComponent(id)}/roster`,
       (d) =>
-        isStr(d.id) &&
+        d.id === id &&
         isStr(d.name) &&
         isStr(d.semester) &&
         isStr(d.generated_at) &&
@@ -90,7 +92,8 @@ export class KhouryAdminClient {
     nullOn404 = false,
   ): Promise<any> {
     // read on every call, never cached
-    const url = this.config.get('KHOURY_ADMIN_URL') + path;
+    const url =
+      String(this.config.get('KHOURY_ADMIN_URL')).replace(/\/+$/, '') + path;
     let res;
     try {
       res = await firstValueFrom(
