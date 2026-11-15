@@ -195,8 +195,9 @@ export class LoginController {
 
   @Get('self_enroll_courses')
   async selfEnrollEnabledAnywhere(): Promise<GetSelfEnrollResponse> {
-    const courses = await CourseModel.find({ take: 1 })[0];
-    return { courses: courses.filter((course) => course.selfEnroll) };
+    const courses = await CourseModel.find({ where: { selfEnroll: true } });
+    // NOTE: public route, so return only the CoursePartial shape
+    return { courses: courses.map(({ id, name }) => ({ id, name })) };
   }
 
   @Post('create_self_enroll_override/:id')

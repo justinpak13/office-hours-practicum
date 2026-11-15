@@ -664,6 +664,23 @@ describe('Login Integration', () => {
     });
   });
 
+  describe('GET /self_enroll_courses', () => {
+    it('returns only self-enroll courses, as id and name only', async () => {
+      const course = await CourseFactory.create({
+        selfEnroll: true,
+        khourySectionGroupId: 'sg-1',
+        khouryRosterGeneratedAt: new Date(),
+        icalURL: 'https://example.com/cal.ics',
+      });
+      await CourseFactory.create({ selfEnroll: false });
+
+      const res = await supertest().get('/self_enroll_courses').expect(200);
+
+      expect(res.body.courses).toEqual([{ id: course.id, name: course.name }]);
+      expect(Object.keys(res.body.courses[0]).sort()).toEqual(['id', 'name']);
+    });
+  });
+
   describe('POST /logout', () => {
     it('makes sure logout endpoint is destroying cookies like a mob boss', async () => {
       const res = await supertest().post(`/logout`).expect(200);
