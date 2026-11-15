@@ -27,7 +27,12 @@ describe('KhouryAdminClient', () => {
     servers.push(s.server);
     process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${s.port}`;
   };
-  afterAll(() => servers.forEach((s) => s.close()));
+  afterAll(() =>
+    servers.forEach((s) => {
+      s.close();
+      s.closeAllConnections?.();
+    }),
+  );
 
   it('A returns section groups for prof.a', async () => {
     await point();
@@ -125,6 +130,51 @@ describe('KhouryAdminClient', () => {
       KhouryAdminError,
     );
   });
+
+  it('stub answers 400 for a malformed percent escape in the query', async () => {
+    const s = await listen();
+    servers.push(s.server);
+    const status = await new Promise<number>((resolve) =>
+      http.get(
+        {
+          host: '127.0.0.1',
+          port: s.port,
+          path: '/api/v1/users/doe.j@northeastern.edu/courses?semester=%E0%A4%A',
+        },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode as number);
+        },
+      ),
+    );
+    expect(status).toBe(400);
+  });
+
+  it('C does not follow a redirect to a not-found roster', async () => {
+    const s = await listen();
+    servers.push(s.server);
+    const redir = http.createServer((req, res) => {
+      res.writeHead(302, {
+        Location: `http://127.0.0.1:${s.port}/api/v1/section-groups/sg_9999/roster`,
+      });
+      res.end();
+    });
+    await new Promise<void>((r) => redir.listen(0, '127.0.0.1', r));
+    servers.push(redir);
+    process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${
+      (redir.address() as AddressInfo).port
+    }`;
+    await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
+      KhouryAdminError,
+    );
+  });
+
+  it('times out on a slow server with KhouryAdminError', async () => {
+    await point({ fail: 'slow' });
+    await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
+      KhouryAdminError,
+    );
+  }, 10000);
 
   it('C throws on a whitespace-only id', async () => {
     await expect(client.getRoster('  ')).rejects.toBeInstanceOf(

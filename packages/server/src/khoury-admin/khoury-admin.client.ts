@@ -94,7 +94,11 @@ export class KhouryAdminClient {
     let res;
     try {
       res = await firstValueFrom(
-        this.http.get(url, { timeout: 5000, validateStatus: () => true }),
+        this.http.get(url, {
+          timeout: 5000,
+          maxRedirects: 0,
+          validateStatus: () => true,
+        }),
       );
     } catch (e) {
       throw new KhouryAdminError(`Khoury Admin request failed: ${e.message}`);

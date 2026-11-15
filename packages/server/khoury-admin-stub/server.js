@@ -33,6 +33,13 @@ function createStubServer(dataDir, opts = {}) {
     let exact = false;
     try {
       url = new URL(req.url, 'http://stub');
+      // NOTE: URLSearchParams tolerates bad escapes, so validate the raw query too
+      req.url
+        .split('?')
+        .slice(1)
+        .join('?')
+        .split('&')
+        .forEach((q) => decodeURIComponent(q));
       const g = m.exec(req.url.split('?')[0]);
       if (g) {
         [kind, , leaf] = g.slice(1);
