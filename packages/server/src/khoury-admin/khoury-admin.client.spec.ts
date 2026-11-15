@@ -49,6 +49,89 @@ describe('KhouryAdminClient', () => {
     expect(await client.getRoster('sg_9999')).toBeNull();
   });
 
+  it('C throws on a 404 that is not the agreed not-found body', async () => {
+    const srv = http.createServer((req, res) => {
+      res.statusCode = 404;
+      res.end('<html>nope</html>');
+    });
+    await new Promise<void>((r) => srv.listen(0, '127.0.0.1', r));
+    servers.push(srv);
+    process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${
+      (srv.address() as AddressInfo).port
+    }`;
+    await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
+      KhouryAdminError,
+    );
+  });
+
+  it('C throws when the base URL path is wrong', async () => {
+    await point();
+    process.env.KHOURY_ADMIN_URL += '/wrong';
+    await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
+      KhouryAdminError,
+    );
+  });
+
+  it('C throws on an empty id', async () => {
+    await point();
+    await expect(client.getRoster('')).rejects.toBeInstanceOf(KhouryAdminError);
+  });
+
+  it.each([
+    ['GET', '/oops/v0/users/doe.j@northeastern.edu/courses?semester=202710'],
+    ['GET', '/api/v1/users/doe.j@northeastern.edu/courses/?semester=202710'],
+    ['GET', '//api/v1/users/doe.j@northeastern.edu/courses?semester=202710'],
+    ['GET', '/api//v1/users/doe.j@northeastern.edu/courses?semester=202710'],
+    ['GET', '/api/v1/section-groups//sg_1001/roster'],
+    ['POST', '/api/v1/users/doe.j@northeastern.edu/courses?semester=202710'],
+    ['GET', '/api/v1/users/x/roster'],
+    ['GET', '/api/v1/instructors/x/courses'],
+    ['GET', '/wrong/../api/v1/section-groups/sg_9999/roster'],
+    ['GET', '/api/v1/section-groups/sg_9999/roster#extra'],
+    ['GET', '/api/v1/%75sers/doe.j@northeastern.edu/courses?semester=202710'],
+  ])('stub answers no such route for %s %s', async (method, p) => {
+    const s = await listen();
+    servers.push(s.server);
+    const r = await new Promise<any>((resolve) =>
+      http
+        .request(
+          { host: '127.0.0.1', port: s.port, method, path: p },
+          (res) => {
+            let b = '';
+            res.on('data', (c) => (b += c));
+            res.on('end', () => resolve({ status: res.statusCode, b }));
+          },
+        )
+        .end(),
+    );
+    expect(r.status).toBe(404);
+    expect(JSON.parse(r.b)).toEqual({ error: 'no such route' });
+  });
+
+  it('C throws on a 404 body with an extra field', async () => {
+    const srv = http.createServer((req, res) => {
+      res.statusCode = 404;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(
+        JSON.stringify({ error: 'not found', upstream: 'proxy failure' }),
+      );
+    });
+    await new Promise<void>((r) => srv.listen(0, '127.0.0.1', r));
+    servers.push(srv);
+    process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${
+      (srv.address() as AddressInfo).port
+    }`;
+    await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
+      KhouryAdminError,
+    );
+  });
+
+  it('C throws on a whitespace-only id', async () => {
+    await expect(client.getRoster('  ')).rejects.toBeInstanceOf(
+      KhouryAdminError,
+    );
+  });
+
   it('throws KhouryAdminError on fail 500', async () => {
     await point({ fail: '500' });
     await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(

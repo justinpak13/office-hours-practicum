@@ -60,8 +60,11 @@ export class KhouryAdminClient {
     );
   }
 
-  /** null on 404 */
+  /** null only on a 404 whose body is {error:'not found'} */
   getRoster(id: string): Promise<RosterResponse | null> {
+    if (!id || !id.trim()) {
+      return Promise.reject(new KhouryAdminError('getRoster needs a group id'));
+    }
     return this.get(
       `/api/v1/section-groups/${encodeURIComponent(id)}/roster`,
       (d) =>
@@ -96,7 +99,19 @@ export class KhouryAdminClient {
     } catch (e) {
       throw new KhouryAdminError(`Khoury Admin request failed: ${e.message}`);
     }
-    if (nullOn404 && res.status === 404) return null;
+    // NOTE: only the agreed not-found body means "group gone"; any other 404 is a failure
+    const d404 = res.data;
+    if (
+      nullOn404 &&
+      res.status === 404 &&
+      d404 &&
+      typeof d404 === 'object' &&
+      !Array.isArray(d404) &&
+      Object.keys(d404).length === 1 &&
+      d404.error === 'not found'
+    ) {
+      return null;
+    }
     if (res.status < 200 || res.status >= 300) {
       throw new KhouryAdminError(`Khoury Admin returned ${res.status}`);
     }

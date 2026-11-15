@@ -26,16 +26,28 @@ function createStubServer(dataDir, opts = {}) {
     e.toLowerCase().replace(/@husky\.neu\.edu$/, '@northeastern.edu');
 
   return http.createServer((req, res) => {
-    let url, seg;
+    let url, kind, key, leaf;
+    // NOTE: exact route from the raw path (before any URL normalization), static segments undecoded
+    const m =
+      /^\/api\/v1\/(instructors|users|section-groups)\/([^/]+)\/(section-groups|courses|roster)$/;
+    let exact = false;
     try {
       url = new URL(req.url, 'http://stub');
-      seg = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+      const g = m.exec(req.url.split('?')[0]);
+      if (g) {
+        [kind, , leaf] = g.slice(1);
+        key = decodeURIComponent(g[2]);
+      }
+      exact =
+        !!g &&
+        req.method === 'GET' &&
+        !req.url.includes('#') &&
+        key !== '.' &&
+        key !== '..';
     } catch {
       return send(res, 400, { error: 'bad request' });
     }
     const semester = url.searchParams.get('semester');
-    // seg: api v1 <kind> <key> <leaf>
-    const [, , kind, key, leaf] = seg;
     // keep path traversal out of the filesystem lookups
     const safe = (s) => s && !/[\\/]|\.\./.test(s);
 
@@ -51,6 +63,7 @@ function createStubServer(dataDir, opts = {}) {
       if (opts.fail === 'badshape')
         return send(res, 200, { semester: '202710' });
 
+      if (!exact) return send(res, 404, { error: 'no such route' });
       if (
         kind === 'instructors' &&
         leaf === 'section-groups' &&
@@ -79,7 +92,7 @@ function createStubServer(dataDir, opts = {}) {
           ? send(res, 404, { error: 'not found' })
           : send(res, 200, d);
       }
-      send(res, 404, { error: 'not found' });
+      send(res, 404, { error: 'no such route' });
     };
 
     // 'slow' never answers within the client's 5s timeout
