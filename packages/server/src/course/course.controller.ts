@@ -149,7 +149,13 @@ export class CourseController {
       );
     }
 
-    const course_response = { ...course, crns: null };
+    // NOTE: spreading loses class metadata, so @Exclude doesn't apply; strip Khoury fields here
+    const {
+      khourySectionGroupId: _khourySectionGroupId,
+      khouryRosterGeneratedAt: _khouryRosterGeneratedAt,
+      ...rest
+    } = course;
+    const course_response = { ...rest, crns: null };
     try {
       const mappings = await CourseSectionMappingModel.find({
         where: {
