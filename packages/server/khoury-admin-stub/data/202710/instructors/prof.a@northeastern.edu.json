@@ -1,0 +1,7 @@
+{
+  "semester": "202710",
+  "section_groups": [
+    { "id": "sg_1001", "name": "CS 2500 Fundies 1", "crns": [10234, 10235] },
+    { "id": "sg_1002", "name": "CS 3500 OOD", "crns": [20111] }
+  ]
+}

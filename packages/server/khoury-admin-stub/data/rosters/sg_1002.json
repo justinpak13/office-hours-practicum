@@ -1,0 +1,11 @@
+{
+  "id": "sg_1002",
+  "name": "CS 3500 OOD",
+  "semester": "202710",
+  "generated_at": "2026-09-01T12:00:00Z",
+  "professors": [{ "email": "prof.a@northeastern.edu", "first_name": "Ada", "last_name": "Prof" }],
+  "tas": [],
+  "sections": [
+    { "crn": 20111, "students": [{ "email": "smith.t@northeastern.edu", "first_name": "Tom", "last_name": "Smith" }] }
+  ]
+}

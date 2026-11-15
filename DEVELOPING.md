@@ -56,6 +56,7 @@ These are hardcoded.
 | 3000 | Dev proxy (`infrastructure/dev/devProxy.js`), which serves the app and the API on one origin |
 | 3001 | Next.js |
 | 3002 | NestJS API |
+| 4100 | Fake Khoury Admin stub (`packages/server/khoury-admin-stub/server.js`), started by `yarn dev` as the `stub` process. Dev only. Override with `KHOURY_STUB_PORT` |
 | 5432 | Postgres |
 | 6379 | Redis |
 
@@ -73,6 +74,10 @@ The server loads `packages/server/.env`, then `packages/server/.env.development`
 | `UPLOAD_LOCATION` | Folder for profile photos and course calendar files, relative to `packages/server` |
 | `ADMIN_SESSION_SECRET` | Signs admin panel sessions |
 | `KHOURY_HMAC_KEY` | Verifies the `X-Signature` header on `POST /api/v1/khoury_login` (production only) |
+| `KHOURY_ADMIN_URL` | Base URL of the Khoury Admin API that OH calls for course data. In dev this is the stub. `.env.development` is local and untracked, so add `KHOURY_ADMIN_URL=http://localhost:4100` yourself |
+| `KHOURY_SEMESTER` | Semester code the server asks Khoury Admin about, such as `202710` (Fall 2026). Add `KHOURY_SEMESTER=202710` to your `.env.development` |
+| `KHOURY_STUB_PORT` | Port for the fake Khoury Admin stub (default 4100). Read by the stub, not the server |
+| `KHOURY_STUB_FAIL` | Makes the stub fail every request: `500`, `slow` or `badshape`. Read by the stub, not the server |
 | `SENTRY_APM_DSN`, `SERVICE_VERSION` | Optional Sentry setup |
 
 **When you add a required variable**, add it to your `.env.development`, to this table, and to `packages/server/.env.test` with a test-only value. Otherwise tests will pass on machines that have the variable and fail in CI.
