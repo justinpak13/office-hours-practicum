@@ -25,11 +25,12 @@
 // Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
 
 import { checkNavbarLoaded } from "../utils";
-import "@percy/cypress";
 
-Cypress.Commands.overwrite("percySnapshot", (originalFn, snapshotName) => {
-  // Check that the nav bar has been laoded
+// Percy (visual screenshots) isn't set up for this project: there is no
+// PERCY_TOKEN, so snapshots were never taken. @percy/cypress 3 also uses
+// JavaScript syntax that Cypress 8.7's bundler can't read, which stopped
+// every test file from loading. Keep the command so the tests still wait
+// for the nav bar at the same points.
+Cypress.Commands.add("percySnapshot", (snapshotName) => {
   checkNavbarLoaded();
-  // Take the percy snapshot
-  originalFn(snapshotName);
 });

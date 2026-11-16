@@ -5,7 +5,7 @@ import {
   ERROR_MESSAGES,
   UpdateProfileParams,
 } from "@koh/common";
-import { Button, Form, Input, List, message, Switch, Tooltip } from "antd";
+import { Button, Form, List, message, Switch, Tooltip } from "antd";
 import { pick } from "lodash";
 import { HeaderTitle } from "./Styled";
 import React, { ReactElement, useEffect, useState } from "react";
@@ -31,16 +31,15 @@ export default function NotificationsSettings(): ReactElement {
   );
 
   const [form] = Form.useForm();
-  const [soundEnabled, setSoundEnabled] = useLocalStorage<boolean>("ta-queue-sound-enabled", true);
+  const [soundEnabled, setSoundEnabled] = useLocalStorage<boolean>(
+    "ta-queue-sound-enabled",
+    true
+  );
 
   const editProfile = async (updateProfile: UpdateProfileParams) => {
     const newProfile = { ...profile, ...updateProfile };
     mutate(newProfile, false);
-    await API.profile.patch(
-      pick(newProfile, [
-        "desktopNotifsEnabled",
-      ])
-    );
+    await API.profile.patch(pick(newProfile, ["desktopNotifsEnabled"]));
     mutate();
     return newProfile;
   };
@@ -73,9 +72,7 @@ export default function NotificationsSettings(): ReactElement {
           <h1>Notifications</h1>
         </HeaderTitle>
         <Form wrapperCol={{ span: 10 }} form={form} initialValues={profile}>
-          <Form.Item
-            label="Play sound when student joins queue (TA only)"
-          >
+          <Form.Item label="Play sound when student joins queue (TA only)">
             <Switch
               checked={soundEnabled}
               onChange={(checked) => setSoundEnabled(checked)}
@@ -207,4 +204,3 @@ function DeviceNotifPanel() {
     </div>
   );
 }
-
