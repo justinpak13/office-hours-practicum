@@ -24,10 +24,14 @@ import {
 import { AdminController } from './admin.controller';
 import { AdminOverviewController } from './admin-overview.controller';
 import { AdminCommand } from './admin.command';
-import { adminSession } from './admin-session';
+import { createAdminSession } from './admin-session';
+import { RedisModule, RedisService } from '../redis/redis.module';
 
 @Module({
   imports: [
+    // Imported here (not only globally) so tests that load AdminModule on its
+    // own can still inject RedisService
+    RedisModule,
     TypeOrmModule.forFeature([
       AdminUserModel,
       CourseModel,
@@ -52,11 +56,13 @@ import { adminSession } from './admin-session';
   controllers: [AdminAuthController, AdminOverviewController, AdminController],
 })
 export class AdminModule implements NestModule {
+  constructor(private readonly redis: RedisService) {}
+
   configure(consumer: MiddlewareConsumer) {
     // Scope the session to the admin controllers only, so the rest of the
     // app is unaffected and Redis is never touched outside /admin
     consumer
-      .apply(adminSession)
+      .apply(createAdminSession(this.redis.getClient('db')))
       .forRoutes(AdminAuthController, AdminOverviewController, AdminController);
   }
 }
