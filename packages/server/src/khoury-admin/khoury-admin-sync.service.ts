@@ -1,6 +1,7 @@
 import { Role } from '@koh/common';
 import { ConsoleLogger, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DataSource, EntityManager } from 'typeorm';
 import { CourseModel } from '../course/course.entity';
 import { LoginCourseService } from '../login/login-course.service';
 import { ProfSectionGroupsModel } from '../login/prof-section-groups.entity';
@@ -30,23 +31,41 @@ export class KhouryAdminSyncService {
     private client: KhouryAdminClient,
     private config: ConfigService,
     private loginCourse: LoginCourseService,
+    private dataSource: DataSource,
   ) {}
+
+  // NOTE: code-level guard only; the old login path is not covered, and unique indexes come in a separate ticket
+  private locked<T>(
+    key: string,
+    fn: (m: EntityManager) => Promise<T>,
+  ): Promise<T> {
+    return this.dataSource.transaction(async (m) => {
+      await m.query('SELECT pg_advisory_xact_lock(hashtext($1))', [key]);
+      return fn(m);
+    });
+  }
 
   async onSignIn(
     email: string,
     name: { first: string; last: string },
   ): Promise<UserModel> {
     const norm = normalizeEmail(email);
-    let user = await UserModel.createQueryBuilder('u')
-      .where('LOWER(u.email) = :email', { email: norm })
-      .getOne();
-    if (!user) {
-      user = await UserModel.create({
-        email: norm,
-        firstName: name.first,
-        lastName: name.last,
-      }).save();
-    }
+    const user = await this.locked('koh:user:' + norm, async (m) => {
+      const found = await m
+        .createQueryBuilder(UserModel, 'u')
+        .where('LOWER(u.email) = :email', { email: norm })
+        .getOne();
+      return (
+        found ??
+        m.save(
+          m.create(UserModel, {
+            email: norm,
+            firstName: name.first,
+            lastName: name.last,
+          }),
+        )
+      );
+    });
     // NOTE: single semester from env; must be bumped each term and profs can't see next term early; compute from date when going live
     const semester = this.config.get('KHOURY_SEMESTER');
 
@@ -84,65 +103,69 @@ export class KhouryAdminSyncService {
     groups: { id: string; name: string; crns: number[] }[],
     semester: string,
   ) {
-    const row = await ProfSectionGroupsModel.findOne({
-      where: { profId: user.id },
-    });
-    if (!row && groups.length === 0) return;
+    if (
+      groups.length === 0 &&
+      !(await ProfSectionGroupsModel.findOneBy({ profId: user.id }))
+    )
+      return;
     const sectionGroups = groups.map((g) => ({ ...g, semester }));
-    await ProfSectionGroupsModel.create({
-      ...row,
-      profId: user.id,
-      sectionGroups,
-    }).save();
+    // NOTE: profId is unique (one-to-one), so concurrent first sign-ins converge on one row
+    await ProfSectionGroupsModel.upsert({ profId: user.id, sectionGroups }, [
+      'profId',
+    ]);
 
     for (const g of groups) {
       for (const crn of g.crns) {
         const course = await this.loginCourse.courseCRNToCourse(crn, semester);
         if (!course) continue;
+        if (course.khourySectionGroupId === g.id) break;
         // NOTE: conditional update; the unique index turns "another course holds this id" (or a race) into a 23505 we skip
         try {
-          await CourseModel.createQueryBuilder()
+          const res = await CourseModel.createQueryBuilder()
             .update()
             .set({ khourySectionGroupId: g.id })
             .where('id = :id AND "khourySectionGroupId" IS NULL', {
               id: course.id,
             })
             .execute();
+          if (res.affected === 1) break;
+          // 0 rows: this course belongs to another group, try the next CRN
         } catch (e) {
           if (e?.driverError?.code !== '23505') throw e;
+          break;
         }
-        break;
       }
     }
   }
 
-  private async upsertMembership(userId: number, courseId: number, role: Role) {
-    const uc = await UserCourseModel.findOne({ where: { userId, courseId } });
-    if (!uc) {
-      await UserCourseModel.create({ userId, courseId, role }).save();
-      return;
-    }
-    // NOTE: self-enroll placeholder (override+expires) upgrades and becomes permanent; manual pin (override only) keeps its role, same role clears the flag; normal row upgrades and loses expires
-    let changed = false;
-    const pin = uc.override && !uc.expires;
-    if (pin) {
-      if (uc.role === role) {
-        uc.override = false;
-        changed = true;
+  private upsertMembership(userId: number, courseId: number, role: Role) {
+    return this.locked(`koh:uc:${userId}:${courseId}`, async (m) => {
+      const uc = await m.findOneBy(UserCourseModel, { userId, courseId });
+      if (!uc) {
+        await m.save(m.create(UserCourseModel, { userId, courseId, role }));
+        return;
       }
-    } else {
-      const up = higherRole(uc.role, role);
-      if (up !== uc.role) {
-        uc.role = up;
-        changed = true;
+      // NOTE: self-enroll placeholder (override+expires) upgrades and becomes permanent; manual pin (override only) keeps its role, same role clears the flag; normal row upgrades and loses expires
+      let changed = false;
+      if (uc.override && !uc.expires) {
+        if (uc.role === role) {
+          uc.override = false;
+          changed = true;
+        }
+      } else {
+        const up = higherRole(uc.role, role);
+        if (up !== uc.role) {
+          uc.role = up;
+          changed = true;
+        }
+        if (uc.override || uc.expires) {
+          uc.override = false;
+          uc.expires = false;
+          changed = true;
+        }
       }
-      if (uc.override || uc.expires) {
-        uc.override = false;
-        uc.expires = false;
-        changed = true;
-      }
-    }
-    if (changed) await uc.save();
+      if (changed) await m.save(uc);
+    });
   }
 
   // A failed call keeps what OH already has; anything else is a real bug

@@ -350,4 +350,67 @@ describe('KhouryAdminSyncService', () => {
       expect(rows.map((r) => r.role)).toEqual([Role.TA]);
     });
   });
+
+  describe('concurrency and CRN fallthrough', () => {
+    it('tries the next CRN when the first course belongs to another group', async () => {
+      const semester = await fall2026();
+      const x = await CourseFactory.create({
+        semester,
+        khourySectionGroupId: 'sg_other',
+      });
+      const y = await CourseFactory.create({ semester });
+      await CourseSectionMappingModel.create({ crn: 1, courseId: x.id }).save();
+      await CourseSectionMappingModel.create({ crn: 2, courseId: y.id }).save();
+      client.getSectionGroups.mockResolvedValue({
+        semester: sem,
+        section_groups: [{ id: 'sg_1', name: 'CS', crns: [1, 2] }],
+      });
+      await service.onSignIn('p@northeastern.edu', name);
+      expect(
+        (await CourseModel.findOneBy({ id: y.id })).khourySectionGroupId,
+      ).toBe('sg_1');
+      expect(
+        (await CourseModel.findOneBy({ id: x.id })).khourySectionGroupId,
+      ).toBe('sg_other');
+    });
+
+    it('concurrent first sign-ins of a professor leave one row with A groups', async () => {
+      client.getSectionGroups.mockResolvedValue({
+        semester: sem,
+        section_groups: [{ id: 'sg_1', name: 'CS', crns: [1] }],
+      });
+      const [a, b] = await Promise.all([
+        service.onSignIn('p@northeastern.edu', name),
+        service.onSignIn('p@northeastern.edu', name),
+      ]);
+      expect(a.id).toBe(b.id);
+      const rows = await ProfSectionGroupsModel.find();
+      expect(rows).toHaveLength(1);
+      expect(rows[0].sectionGroups).toEqual([
+        { id: 'sg_1', name: 'CS', crns: [1], semester: sem },
+      ]);
+    });
+
+    it('concurrent sign-ins of a new email create one user', async () => {
+      await Promise.all([
+        service.onSignIn('new@northeastern.edu', name),
+        service.onSignIn('New@Husky.neu.edu', name),
+      ]);
+      expect(await UserModel.count()).toBe(1);
+    });
+
+    it('concurrent sign-ins create one membership', async () => {
+      await UserFactory.create({ email: 's@northeastern.edu' });
+      await CourseFactory.create({ khourySectionGroupId: 'sg_1' });
+      client.getCourses.mockResolvedValue({
+        semester: sem,
+        courses: [{ section_group_id: 'sg_1', role: 'Student' }],
+      });
+      await Promise.all([
+        service.onSignIn('s@northeastern.edu', name),
+        service.onSignIn('s@northeastern.edu', name),
+      ]);
+      expect(await UserCourseModel.count()).toBe(1);
+    });
+  });
 });
