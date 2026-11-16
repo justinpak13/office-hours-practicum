@@ -49,7 +49,8 @@ export default function TACheckInCheckOutTimes({
   const [startDate, setStartDate] = useState(sunday);
   const [endDate, setEndDate] = useState(nextSunday);
 
-  const fetcher = (_url: string, startDate: Date, endDate: Date) => {
+  // SWR 2 passes an array key to the fetcher as a single argument.
+  const fetcher = ([, startDate, endDate]: [string, Date, Date]) => {
     return API.course.getTACheckinTimes(
       courseId,
       startDate.toISOString(),
