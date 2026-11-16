@@ -2,6 +2,7 @@ import "antd/dist/antd.css";
 import { AppProps } from "next/app";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "../styles/global.css";
+import "../components/Schedule/fullcalendar.css";
 import { Footer } from "../components/common/Footer";
 import styled from "styled-components";
 import { ReactElement, useEffect } from "react";
