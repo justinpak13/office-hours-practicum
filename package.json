@@ -39,8 +39,6 @@
     "@babel/plugin-proposal-decorators": "^7.12.1",
     "@babel/preset-env": "^7.12.1",
     "@babel/preset-typescript": "^7.12.1",
-    "@percy/cli": "^1.32.12",
-    "@percy/cypress": "^3.1.9",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "concurrently": "^5.2.0",
@@ -100,18 +98,6 @@
     "lint-staged": "^11.2.6",
     "pm2": "^4.4.0",
     "rimraf": "^3.0.2"
-  },
-  "percy": {
-    "snapshot": {
-      "widths": [
-        1280,
-        1920
-      ]
-    },
-    "agent": {
-      "network-idle-timeout": 250,
-      "cache-responses": true
-    }
   },
   "resolutions": {
     "webpack": "^5.4.0"
