@@ -234,6 +234,52 @@ describe('KhouryAdminSyncService', () => {
     ).toBe(Role.TA);
   });
 
+  it('starts A and B together, before either resolves', async () => {
+    await UserFactory.create({ email: 's@northeastern.edu' });
+    let releaseA: () => void;
+    client.getSectionGroups.mockReturnValue(
+      new Promise((r) => {
+        releaseA = () => r({ semester: sem, section_groups: [] });
+      }),
+    );
+    const done = service.onSignIn('s@northeastern.edu', name);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(client.getSectionGroups).toHaveBeenCalledTimes(1);
+    expect(client.getCourses).toHaveBeenCalledTimes(1);
+    releaseA();
+    await done;
+  });
+
+  it('keeps A saved and does not throw when B fails', async () => {
+    const u = await UserFactory.create({ email: 's@northeastern.edu' });
+    client.getSectionGroups.mockResolvedValue({
+      semester: sem,
+      section_groups: [{ id: 'sg_1', name: 'N', crns: [1] }],
+    });
+    client.getCourses.mockRejectedValue(new KhouryAdminError('down'));
+    await service.onSignIn('s@northeastern.edu', name);
+    expect(
+      (await ProfSectionGroupsModel.findOneBy({ profId: u.id })).sectionGroups,
+    ).toHaveLength(1);
+  });
+
+  it('a KhouryAdminError rejection from A is logged and B is still applied', async () => {
+    const u = await UserFactory.create({ email: 's@northeastern.edu' });
+    const course = await CourseFactory.create({ khourySectionGroupId: 'sg_1' });
+    client.getSectionGroups.mockImplementation(async () => {
+      throw new KhouryAdminError('bad');
+    });
+    client.getCourses.mockResolvedValue({
+      semester: sem,
+      courses: [{ section_group_id: 'sg_1', role: 'TA' }],
+    });
+    await service.onSignIn('s@northeastern.edu', name);
+    expect(
+      (await UserCourseModel.findOneBy({ userId: u.id, courseId: course.id }))
+        .role,
+    ).toBe(Role.TA);
+  });
+
   it('swallows the unique violation when linking a held id', async () => {
     const x = await CourseFactory.create({
       semester: await fall2026(),

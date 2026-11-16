@@ -219,6 +219,41 @@ describe('KhouryAdminClient', () => {
     );
   });
 
+  it('rejects an empty A group id and a padded B group id', async () => {
+    const svc = new HttpService();
+    const get = jest.spyOn(svc, 'get');
+    const c = new KhouryAdminClient(svc, new ConfigService());
+    get.mockReturnValue(
+      of({
+        status: 200,
+        data: {
+          semester: '202710',
+          section_groups: [{ id: '', name: 'x', crns: [1] }],
+        },
+      } as any),
+    );
+    await expect(
+      c.getSectionGroups('a@northeastern.edu', '202710'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
+    get.mockReturnValue(
+      of({
+        status: 200,
+        data: {
+          semester: '202710',
+          courses: [{ section_group_id: ' sg_1', role: 'TA' }],
+        },
+      } as any),
+    );
+    await expect(
+      c.getCourses('a@northeastern.edu', '202710'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
+  });
+
+  it('rejects, not throws, on an email with a lone surrogate', async () => {
+    const p = client.getCourses('a\uD800@northeastern.edu', '202710');
+    await expect(p).rejects.toBeInstanceOf(KhouryAdminError);
+  });
+
   it('throws KhouryAdminError on a bad role or malformed person', async () => {
     const svc = new HttpService();
     const get = jest.spyOn(svc, 'get');

@@ -69,17 +69,22 @@ export class KhouryAdminSyncService {
     // NOTE: single semester from env; must be bumped each term and profs can't see next term early; compute from date when going live
     const semester = this.config.get('KHOURY_SEMESTER');
 
+    // NOTE: allSettled so both requests run together without an unhandled rejection
+    const [a, b] = await Promise.allSettled([
+      this.client.getSectionGroups(norm, semester),
+      this.client.getCourses(norm, semester),
+    ]);
     try {
-      const a = await this.client.getSectionGroups(norm, semester);
-      await this.saveSectionGroups(user, a.section_groups, semester);
+      if (a.status === 'rejected') throw a.reason;
+      await this.saveSectionGroups(user, a.value.section_groups, semester);
     } catch (e) {
       this.logFailure('A', e);
     }
     try {
-      const b = await this.client.getCourses(norm, semester);
+      if (b.status === 'rejected') throw b.reason;
       // NOTE: duplicate entries for one group collapse to the highest role
       const best = new Map<string, Role>();
-      for (const c of b.courses) {
+      for (const c of b.value.courses) {
         const r = khouryRoleToRole(c.role);
         const prev = best.get(c.section_group_id);
         best.set(c.section_group_id, prev ? higherRole(prev, r) : r);
