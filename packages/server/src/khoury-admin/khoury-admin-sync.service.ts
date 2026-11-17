@@ -34,7 +34,7 @@ export class KhouryAdminSyncService {
     private dataSource: DataSource,
   ) {}
 
-  // NOTE: code-level guard only; the old login path is not covered, and unique indexes come in a separate ticket
+  // NOTE: the advisory lock serializes sync; UNIQUE(email) on user_model is the DB backstop (the old login path is not covered by the lock)
   private locked<T>(
     key: string,
     fn: (m: EntityManager) => Promise<T>,
@@ -51,20 +51,22 @@ export class KhouryAdminSyncService {
   ): Promise<UserModel> {
     const norm = normalizeEmail(email);
     const user = await this.locked('koh:user:' + norm, async (m) => {
-      const found = await m
-        .createQueryBuilder(UserModel, 'u')
-        .where('LOWER(u.email) = :email', { email: norm })
-        .getOne();
-      return (
-        found ??
-        m.save(
-          m.create(UserModel, {
-            email: norm,
-            firstName: name.first,
-            lastName: name.last,
-          }),
-        )
-      );
+      const find = () =>
+        m
+          .createQueryBuilder(UserModel, 'u')
+          .where('LOWER(u.email) = :email', { email: norm })
+          .getOne();
+      // NOTE: legacy mixed-case rows only match via LOWER(), so look first; orIgnore (ON CONFLICT DO NOTHING) keeps the transaction alive if an exact-email row appears anyway
+      const found = await find();
+      if (found) return found;
+      await m
+        .createQueryBuilder()
+        .insert()
+        .into(UserModel)
+        .values({ email: norm, firstName: name.first, lastName: name.last })
+        .orIgnore()
+        .execute();
+      return (await find())!;
     });
     // NOTE: single semester from env; must be bumped each term and profs can't see next term early; compute from date when going live
     const semester = this.config.get('KHOURY_SEMESTER');

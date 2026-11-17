@@ -140,6 +140,29 @@ describe('Login Integration', () => {
       expect(huskyUser).toBeNull();
     });
 
+    it('reuses the existing user when a concurrent login wins the insert', async () => {
+      const existing = await UserFactory.create({
+        email: 'race.u@northeastern.edu',
+      });
+      jest.spyOn(UserModel, 'findOne').mockResolvedValueOnce(null);
+
+      const user = await new LoginCourseService(
+        UserModel.getRepository().manager.connection,
+      ).addUserFromKhoury({
+        email: 'race.u@northeastern.edu',
+        campus: 1,
+        first_name: 'Race',
+        last_name: 'User',
+        photo_url: 'https://www.sdf.com',
+        courses: [],
+      } as any);
+
+      expect(user.id).toBe(existing.id);
+      expect(
+        await UserModel.count({ where: { email: 'race.u@northeastern.edu' } }),
+      ).toBe(1);
+    });
+
     describe('with course mapping', () => {
       let course;
       let course2;

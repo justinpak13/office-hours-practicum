@@ -27,7 +27,7 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
   "staffList": [
     {
       "defaultMessage": null,
-      "email": "user@neu.edu",
+      "email": "user2@neu.edu",
       "firstName": "User",
       "id": 2,
       "includeDefaultMessage": true,
@@ -61,7 +61,7 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
   "staffList": [
     {
       "defaultMessage": null,
-      "email": "user@neu.edu",
+      "email": "user2@neu.edu",
       "firstName": "User",
       "id": 2,
       "includeDefaultMessage": true,
@@ -126,7 +126,7 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
   "staffList": [
     {
       "defaultMessage": null,
-      "email": "user@neu.edu",
+      "email": "user2@neu.edu",
       "firstName": "User",
       "id": 2,
       "includeDefaultMessage": true,
@@ -160,7 +160,7 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
   "staffList": [
     {
       "defaultMessage": null,
-      "email": "user@neu.edu",
+      "email": "user2@neu.edu",
       "firstName": "User",
       "id": 2,
       "includeDefaultMessage": true,

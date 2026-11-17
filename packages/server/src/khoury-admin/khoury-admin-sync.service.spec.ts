@@ -1,7 +1,7 @@
 import { Role } from '@koh/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource } from 'typeorm';
+import { DataSource, SelectQueryBuilder } from 'typeorm';
 import { CourseModel } from '../course/course.entity';
 import { LoginCourseService } from '../login/login-course.service';
 import { CourseSectionMappingModel } from '../login/course-section-mapping.entity';
@@ -443,6 +443,38 @@ describe('KhouryAdminSyncService', () => {
         service.onSignIn('New@Husky.neu.edu', name),
       ]);
       expect(await UserModel.count()).toBe(1);
+    });
+
+    it('returns an existing row with the exact normalized email without inserting', async () => {
+      const existing = await UserFactory.create({
+        email: 'old@northeastern.edu',
+      });
+      const u = await service.onSignIn('Old@Husky.neu.edu', name);
+      expect(u.id).toBe(existing.id);
+      expect(await UserModel.count()).toBe(1);
+    });
+
+    it('insert hits ON CONFLICT DO NOTHING when the first lookup misses', async () => {
+      const existing = await UserFactory.create({
+        email: 'race@northeastern.edu',
+      });
+      const spy = jest
+        .spyOn(SelectQueryBuilder.prototype, 'getOne')
+        .mockResolvedValueOnce(null);
+      try {
+        const u = await service.onSignIn('race@northeastern.edu', name);
+        expect(u.id).toBe(existing.id);
+      } finally {
+        spy.mockRestore();
+      }
+      expect(await UserModel.count()).toBe(1);
+    });
+
+    it('DB rejects a second user with the same email', async () => {
+      await UserFactory.create({ email: 'dup@northeastern.edu' });
+      await expect(
+        UserFactory.create({ email: 'dup@northeastern.edu' }),
+      ).rejects.toMatchObject({ driverError: { code: '23505' } });
     });
 
     it('concurrent sign-ins create one membership', async () => {

@@ -11,7 +11,7 @@ import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { UserModel } from 'profile/user.entity';
 import { SemesterModel } from 'semester/semester.entity';
-import { DataSource } from 'typeorm';
+import { DataSource, QueryFailedError } from 'typeorm';
 import { ProfSectionGroupsModel } from './prof-section-groups.entity';
 import { khourySemesterCodes } from './last-registration-model.entity';
 import {
@@ -36,13 +36,22 @@ export class LoginCourseService {
     });
 
     if (!user) {
-      user = await UserModel.create({
-        courses: [],
-        email: neuEmail,
-        firstName: info.first_name,
-        lastName: info.last_name,
-        hideInsights: [],
-      }).save();
+      try {
+        user = await UserModel.create({
+          courses: [],
+          email: neuEmail,
+          firstName: info.first_name,
+          lastName: info.last_name,
+          hideInsights: [],
+        }).save();
+      } catch (e) {
+        // NOTE: a concurrent first login won the insert (unique email); use that row
+        if (!(e instanceof QueryFailedError) || e['code'] !== '23505') throw e;
+        user = await UserModel.findOne({
+          where: { email: neuEmail },
+          relations: ['courses', 'courses.course'],
+        });
+      }
     }
 
     const userCourses = [];

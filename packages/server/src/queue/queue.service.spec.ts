@@ -198,13 +198,16 @@ describe('QueueService', () => {
     });
 
     it('hides details of other students', async () => {
+      // fixed emails keep the snapshot stable (factory emails are sequenced)
       const ours = await QuestionFactory.create({
         queue,
+        creator: await UserFactory.create({ email: 'user@neu.edu' }),
         createdAt: new Date('2020-11-02T12:00:00.000Z'),
         text: 'help us',
       });
       await QuestionFactory.create({
         queue,
+        creator: await UserFactory.create({ email: 'other@neu.edu' }),
         createdAt: new Date('2020-11-02T12:00:00.000Z'),
         text: 'help someone else',
       });

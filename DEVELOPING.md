@@ -80,6 +80,8 @@ The server loads `packages/server/.env`, then `packages/server/.env.development`
 | `KHOURY_STUB_FAIL` | Makes the stub fail every request: `500`, `slow` or `badshape`. Read by the stub, not the server |
 | `SENTRY_APM_DSN`, `SERVICE_VERSION` | Optional Sentry setup |
 
+User emails are now `UNIQUE`, so a local dev database that already holds duplicate emails will fail `synchronize` at boot. Remove the duplicates or run `yarn dev:db:reset`.
+
 **When you add a required variable**, add it to your `.env.development`, to this table, and to `packages/server/.env.test` with a test-only value. Otherwise tests will pass on machines that have the variable and fail in CI.
 
 ## Technologies
