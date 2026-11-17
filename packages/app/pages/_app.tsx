@@ -2,11 +2,14 @@ import "antd/dist/antd.css";
 import { AppProps } from "next/app";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "../styles/global.css";
+import "../styles/tailwind.css";
 import "../components/Schedule/fullcalendar.css";
 import { Footer } from "../components/common/Footer";
 import styled from "styled-components";
 import { ReactElement, useEffect } from "react";
 import { ErrorBoundary } from "../components/common/ErrorBoundary";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Commenting out Sentry for now
 // import * as Sentry from "@sentry/node";
@@ -34,12 +37,17 @@ const Content = styled.div`
 function MyApp({ Component, pageProps }: AppProps): ReactElement {
   useEffect(() => {
     const registerServiceWorker = async () => {
-      if ('serviceWorker' in navigator) {
+      if ("serviceWorker" in navigator) {
         try {
-          const registration = await navigator.serviceWorker.register('/service-worker.js');
-          console.log('Service Worker registered with scope:', registration.scope);
+          const registration = await navigator.serviceWorker.register(
+            "/service-worker.js"
+          );
+          console.log(
+            "Service Worker registered with scope:",
+            registration.scope
+          );
         } catch (error) {
-          console.error('Service Worker registration failed:', error);
+          console.error("Service Worker registration failed:", error);
         }
       }
     };
@@ -48,16 +56,20 @@ function MyApp({ Component, pageProps }: AppProps): ReactElement {
   }, []);
 
   return (
-    <Layout>
-      <Content>
-        <ErrorBoundary>
-          <Component {...pageProps} />
-        </ErrorBoundary>
-      </Content>
-      <Footer />
-    </Layout>
+    // TooltipProvider: every shadcn Tooltip needs one above it
+    <TooltipProvider delayDuration={200}>
+      <Layout>
+        <Content>
+          <ErrorBoundary>
+            <Component {...pageProps} />
+          </ErrorBoundary>
+        </Content>
+        <Footer />
+        {/* shadcn toasts (Sonner). antd message keeps working until antd is removed. */}
+        <Toaster />
+      </Layout>
+    </TooltipProvider>
   );
 }
 
 export default MyApp;
-

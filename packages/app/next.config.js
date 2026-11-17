@@ -1,6 +1,9 @@
 const withTM = require("next-transpile-modules")([
   "@koh/common",
   "@koh/api-client",
+  // Ships ES2022 class syntax that Next 12's minifier can't parse.
+  // Not needed on Next 13+.
+  "@radix-ui/react-collection",
 ]);
 
 const SentryWebpackPlugin = require("@sentry/webpack-plugin");
