@@ -112,10 +112,14 @@ describe("TA interacts with student question", () => {
       .first()
       .should("be.visible")
       .click();
-    // Click Remove from Queue
-    cy.get("[data-cy='remove-from-queue']").should("be.visible").click();
-    // Click yes on the modal
-    cy.get("span").contains("Yes").click();
+    // Click Remove from Queue. force: Cypress never moves the mouse away, so
+    // the "You are already helping a student" tooltip from the Help button
+    // stays open and can sit on top of this button (a real mouse closes it).
+    cy.get("[data-cy='remove-from-queue']")
+      .should("be.visible")
+      .click({ force: true });
+    // Click yes on the modal (force for the same leftover tooltip)
+    cy.get("span").contains("Yes").click({ force: true });
 
     // check question is helping
     cy.get(
