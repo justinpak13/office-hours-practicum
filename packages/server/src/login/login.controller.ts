@@ -3,6 +3,7 @@ import {
   GetSelfEnrollResponse,
   KhouryDataParams,
   KhouryRedirectResponse,
+  LogoutResponse,
   Role,
 } from '@koh/common';
 import {
@@ -178,11 +179,19 @@ export class LoginController {
       .redirect(302, '/');
   }
 
+  // Clears the dev / Khoury Admin cookie and says where the browser goes next.
+  // Behind oauth2-proxy that's its sign out, which also ends the Keycloak
+  // session; without the proxy (plain `yarn dev`, Cypress) it's /login. The
+  // Authorization header only picks the page, it doesn't log anyone in.
   @Post('/logout')
-  async logout(@Res() res: Response): Promise<void> {
+  async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
     const isSecure = this.configService
       .get<string>('DOMAIN')
       .startsWith('https://');
+    const behindProxy = /^Bearer /.test(req.headers.authorization ?? '');
+    const body: LogoutResponse = {
+      redirect: behindProxy ? '/oauth2/sign_out?rd=%2Fsigned-out' : '/login',
+    };
     res
       .clearCookie('auth_token', {
         httpOnly: true,
@@ -190,7 +199,7 @@ export class LoginController {
         sameSite: 'lax',
       })
       .status(200)
-      .send();
+      .json(body);
   }
 
   @Get('self_enroll_courses')

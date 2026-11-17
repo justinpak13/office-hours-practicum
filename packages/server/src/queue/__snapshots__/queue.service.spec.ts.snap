@@ -64,6 +64,7 @@ ListQuestionsResponse {
         "QuestionToStudentRatio",
         "MedianHelpingTime",
       ],
+      "keycloakSub": null,
       "lastName": "Person",
       "name": "User Person",
       "phoneNotifsEnabled": false,

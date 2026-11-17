@@ -23,6 +23,8 @@
    PRIVATEKEY=<vapid private key>
    EMAIL=mailto:you@example.com
    ADMIN_SESSION_SECRET=dev-only-not-a-secret
+   OIDC_ISSUER_URL=http://localhost:8180/realms/staging
+   OIDC_CLIENT_ID=dev-officehours
    ```
 
    This file is not committed. Use your own VAPID keypair here, not the test keypair in `.env.test` (see [Testing](#testing)).
@@ -69,6 +71,7 @@ The server loads `packages/server/.env`, then `packages/server/.env.development`
 | `DOMAIN` | Base URL for redirects. An `https://` value makes the auth cookie `secure`. The app treats itself as production only when this is `https://officehours.khoury.northeastern.edu` |
 | `DB_URL` | Postgres connection string |
 | `JWT_SECRET` | Signs the `auth_token` cookie |
+| `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` | The Keycloak realm and client whose ID tokens the API accepts from oauth2-proxy. For the fake Keycloak in `oauth2-proxy-demo`: `http://localhost:8180/realms/staging` and `dev-officehours` |
 | `PUBLICKEY`, `PRIVATEKEY`, `EMAIL` | VAPID keypair and contact (`mailto:` or `https:` URL) for web push. The server does not start without them |
 | `UPLOAD_LOCATION` | Folder for profile photos and course calendar files, relative to `packages/server` |
 | `ADMIN_SESSION_SECRET` | Signs admin panel sessions |

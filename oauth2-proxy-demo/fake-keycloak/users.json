@@ -1,0 +1,66 @@
+[
+  {
+    "id": "2a99da1b-bc99-47fd-ad46-280fba3941a3",
+    "username": "rivera.jo@northeastern.edu",
+    "email": "rivera.jo@northeastern.edu",
+    "emailVerified": true,
+    "firstName": "Jordan",
+    "lastName": "Rivera"
+  },
+  {
+    "id": "00a1df78-0708-45c2-ace5-8014693c9d23",
+    "username": "kim.ca@northeastern.edu",
+    "email": "kim.ca@northeastern.edu",
+    "emailVerified": true,
+    "firstName": "Casey",
+    "lastName": "Kim"
+  },
+  {
+    "id": "a425f202-e96c-47a2-98e3-9540db5d1724",
+    "username": "m.lee@northeastern.edu",
+    "email": "m.lee@northeastern.edu",
+    "emailVerified": true,
+    "firstName": "Morgan",
+    "lastName": "Lee"
+  },
+  {
+    "id": "f6805507-a879-4a0f-88e5-9278dbecafc9",
+    "username": "liu.sta@northeastern.edu",
+    "email": "liu.sta@northeastern.edu",
+    "emailVerified": true,
+    "firstName": "Stanley",
+    "lastName": "Liu"
+  },
+  {
+    "id": "ca7e14a6-f00c-4639-adea-8b14cff50243",
+    "username": "takayama.a@northeastern.edu",
+    "email": "takayama.a@northeastern.edu",
+    "emailVerified": true,
+    "firstName": "Alex",
+    "lastName": "Takayama"
+  },
+  {
+    "id": "8c6459fe-aa17-43e4-a392-55cee123e13e",
+    "username": "stenzel.w@northeastern.edu",
+    "email": "stenzel.w@northeastern.edu",
+    "emailVerified": true,
+    "firstName": "Will",
+    "lastName": "Stenzel"
+  },
+  {
+    "id": "e17bd22a-3a16-49ac-853f-6664fbf31a87",
+    "username": "chu.daj@northeastern.edu",
+    "email": "chu.daj@northeastern.edu",
+    "emailVerified": true,
+    "firstName": "Da-Jin",
+    "lastName": "Chu"
+  },
+  {
+    "id": "8df5d97a-b65c-460e-b141-2a56600811c1",
+    "username": "li.edwa@northeastern.edu",
+    "email": "li.edwa@northeastern.edu",
+    "emailVerified": true,
+    "firstName": "Eddy",
+    "lastName": "Li"
+  }
+]

@@ -6,7 +6,7 @@ import {
   SettingOutlined,
 } from "@ant-design/icons";
 import { Menu, Modal, Popover, Typography, Space } from "antd";
-import axios from "axios";
+import { logout } from "../../utils/logout";
 import Link from "next/link";
 import React, { ReactElement, ReactNode, useState } from "react";
 import styled from "styled-components";
@@ -118,13 +118,7 @@ export default function ProfileDrawer({
               </Link>
             </Menu.Item>
             <Menu.Item key="4" icon={<LogoutOutlined />}>
-              <a
-                data-cy="logout-button"
-                onClick={async () => {
-                  await axios.post("/api/v1/logout");
-                  window.location.href = "/login";
-                }}
-              >
+              <a data-cy="logout-button" onClick={logout}>
                 Logout
               </a>
             </Menu.Item>

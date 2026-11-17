@@ -5,6 +5,7 @@ import {
   BaseEntity,
   Column,
   Entity,
+  Index,
   ManyToMany,
   OneToMany,
   OneToOne,
@@ -24,6 +25,13 @@ export class UserModel extends BaseEntity {
 
   @Column('text')
   email: string;
+
+  // The user's permanent Keycloak ID (the ID token's `sub`). Null for users
+  // created by the Khoury Admin Portal login, which are not linked to Keycloak.
+  @Index('IDX_user_model_keycloakSub', { unique: true })
+  @Column('text', { nullable: true })
+  @Exclude()
+  keycloakSub: string | null;
 
   @Column('text', { nullable: true })
   firstName: string;

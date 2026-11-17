@@ -1,6 +1,8 @@
 import { Role } from '@koh/common';
 import { QuestionModel } from '../../server/src/question/question.entity';
 import { SeedModule } from '../../server/src/seed/seed.module';
+import { SEED_KEYCLOAK_SUBS } from '../../server/src/seed/seed.controller';
+import { UserModel } from '../../server/src/profile/user.entity';
 import { CourseFactory, QuestionFactory, QueueFactory } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 
@@ -31,6 +33,20 @@ describe('Seed Integration', () => {
 
     const numQuestions = await QuestionModel.count();
     expect(numQuestions).toBe(4);
+  });
+
+  it('GET /seeds/create gives seeded users their fake Keycloak IDs', async () => {
+    await supertest().get('/seeds/create').expect(200);
+
+    for (const sub of Object.values(SEED_KEYCLOAK_SUBS)) {
+      expect(await UserModel.count({ where: { keycloakSub: sub } })).toBe(1);
+    }
+    const ta = await UserModel.findOneOrFail({
+      where: { keycloakSub: SEED_KEYCLOAK_SUBS.TA_1 },
+      relations: ['courses'],
+    });
+    expect(ta.email).toBe('stenzel.w@northeastern.edu');
+    expect(ta.courses.map((c) => c.role)).toEqual([Role.TA]);
   });
 
   it('GET /seeds/createUser', async () => {

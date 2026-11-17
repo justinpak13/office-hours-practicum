@@ -698,5 +698,20 @@ describe('Login Integration', () => {
       const res = await supertest().post(`/logout`).expect(200);
       expect(res.get('Set-Cookie')[0]).toContain('auth_token=;');
     });
+
+    it('sends the browser to /login without oauth2-proxy', async () => {
+      const res = await supertest().post(`/logout`).expect(200);
+      expect(res.body).toEqual({ redirect: '/login' });
+    });
+
+    it("sends the browser to oauth2-proxy's sign out behind the proxy", async () => {
+      const res = await supertest()
+        .post(`/logout`)
+        .set('Authorization', 'Bearer some.id.token')
+        .expect(200);
+      expect(res.body).toEqual({
+        redirect: '/oauth2/sign_out?rd=%2Fsigned-out',
+      });
+    });
   });
 });
