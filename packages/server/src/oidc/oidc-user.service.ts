@@ -17,6 +17,7 @@ export class OidcUserService {
       email: claims.email.toLowerCase(),
       firstName: claims.given_name ?? null,
       lastName: claims.family_name ?? null,
+      nuid: claims.nuid ?? null,
     };
 
     let user = await UserModel.findOne({ where: { keycloakSub: claims.sub } });
@@ -31,11 +32,12 @@ export class OidcUserService {
       return UserModel.findOneOrFail({ where: { keycloakSub: claims.sub } });
     }
 
-    // Email and name can change in Keycloak, so keep them in sync
+    // Email, name and NUID can change in Keycloak, so keep them in sync
     if (
       user.email !== profile.email ||
       user.firstName !== profile.firstName ||
-      user.lastName !== profile.lastName
+      user.lastName !== profile.lastName ||
+      user.nuid !== profile.nuid
     ) {
       await UserModel.update(user.id, profile);
       user = await UserModel.findOneOrFail({ where: { id: user.id } });

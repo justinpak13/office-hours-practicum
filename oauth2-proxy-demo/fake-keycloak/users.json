@@ -5,7 +5,8 @@
     "email": "rivera.jo@northeastern.edu",
     "emailVerified": true,
     "firstName": "Jordan",
-    "lastName": "Rivera"
+    "lastName": "Rivera",
+    "nuid": "000000001"
   },
   {
     "id": "00a1df78-0708-45c2-ace5-8014693c9d23",
@@ -13,7 +14,8 @@
     "email": "kim.ca@northeastern.edu",
     "emailVerified": true,
     "firstName": "Casey",
-    "lastName": "Kim"
+    "lastName": "Kim",
+    "nuid": "000000002"
   },
   {
     "id": "a425f202-e96c-47a2-98e3-9540db5d1724",
@@ -21,7 +23,8 @@
     "email": "m.lee@northeastern.edu",
     "emailVerified": true,
     "firstName": "Morgan",
-    "lastName": "Lee"
+    "lastName": "Lee",
+    "nuid": "000000003"
   },
   {
     "id": "f6805507-a879-4a0f-88e5-9278dbecafc9",
@@ -29,7 +32,8 @@
     "email": "liu.sta@northeastern.edu",
     "emailVerified": true,
     "firstName": "Stanley",
-    "lastName": "Liu"
+    "lastName": "Liu",
+    "nuid": "000000004"
   },
   {
     "id": "ca7e14a6-f00c-4639-adea-8b14cff50243",
@@ -37,7 +41,8 @@
     "email": "takayama.a@northeastern.edu",
     "emailVerified": true,
     "firstName": "Alex",
-    "lastName": "Takayama"
+    "lastName": "Takayama",
+    "nuid": "000000005"
   },
   {
     "id": "8c6459fe-aa17-43e4-a392-55cee123e13e",
@@ -45,7 +50,8 @@
     "email": "stenzel.w@northeastern.edu",
     "emailVerified": true,
     "firstName": "Will",
-    "lastName": "Stenzel"
+    "lastName": "Stenzel",
+    "nuid": "000000006"
   },
   {
     "id": "e17bd22a-3a16-49ac-853f-6664fbf31a87",
@@ -53,7 +59,8 @@
     "email": "chu.daj@northeastern.edu",
     "emailVerified": true,
     "firstName": "Da-Jin",
-    "lastName": "Chu"
+    "lastName": "Chu",
+    "nuid": "000000007"
   },
   {
     "id": "8df5d97a-b65c-460e-b141-2a56600811c1",
@@ -61,7 +68,8 @@
     "email": "li.edwa@northeastern.edu",
     "emailVerified": true,
     "firstName": "Eddy",
-    "lastName": "Li"
+    "lastName": "Li",
+    "nuid": "000000008"
   },
   {
     "id": "2a99da1b-bc99-47fd-ad46-280fba312345",
@@ -78,7 +86,7 @@
     "emailVerified": false,
     "firstName": "unverified",
     "lastName": "email"
-  }, 
+  },
   {
     "id": "12345678-bk99-47fd-ad46-280fba312345",
     "username": "random.person@stanford.edu",
@@ -86,5 +94,5 @@
     "emailVerified": false,
     "firstName": "random",
     "lastName": "person"
-  } 
+  }
 ]

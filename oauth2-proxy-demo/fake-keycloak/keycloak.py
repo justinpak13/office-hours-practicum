@@ -178,6 +178,8 @@ def profile(user):
         "given_name": user["firstName"],
         "family_name": user["lastName"],
         "email": user["email"],
+        # Optional, so users without one test a token that has no nuid claim
+        **({"nuid": user["nuid"]} if user.get("nuid") else {}),
     }
 
 

@@ -31,6 +31,8 @@ export interface OidcClaims {
   given_name?: string;
   family_name?: string;
   preferred_username?: string;
+  // Northeastern ID, from a Keycloak protocol mapper
+  nuid?: string;
   [claim: string]: unknown;
 }
 
@@ -98,6 +100,7 @@ export class OidcTokenService {
       `email_verified     ${claims.email_verified ?? '-'}`,
       `name               ${claims.name ?? '-'}`,
       `preferred_username ${claims.preferred_username ?? '-'}`,
+      `nuid               ${claims.nuid ?? '-'}`,
       `iss                ${claims.iss}`,
       `aud                ${claims.aud}`,
       `azp                ${claims.azp}`,

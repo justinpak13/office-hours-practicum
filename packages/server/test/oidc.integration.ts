@@ -22,6 +22,7 @@ const jordan = {
   email_verified: true,
   given_name: 'Jordan',
   family_name: 'Rivera',
+  nuid: '000000001',
 };
 
 describe('Keycloak login (oauth2-proxy)', () => {
@@ -45,11 +46,32 @@ describe('Keycloak login (oauth2-proxy)', () => {
       courses: [],
     });
     expect(res.body.keycloakSub).toBeUndefined();
+    expect(res.body.nuid).toBeUndefined();
 
     const user = await UserModel.findOneOrFail({
       where: { keycloakSub: jordan.sub },
     });
     expect(user.id).toEqual(res.body.id);
+    expect(user.nuid).toEqual('000000001');
+  });
+
+  it('stores a null nuid when the token has none', async () => {
+    tokens.nonuid = { ...jordan, nuid: undefined };
+    await getProfile('nonuid').expect(200);
+    const user = await UserModel.findOneOrFail({
+      where: { keycloakSub: jordan.sub },
+    });
+    expect(user.nuid).toBeNull();
+  });
+
+  it('updates the nuid from the token', async () => {
+    tokens.nonuid = { ...jordan, nuid: undefined };
+    await getProfile('nonuid').expect(200);
+    await getProfile('jordan').expect(200);
+    const user = await UserModel.findOneOrFail({
+      where: { keycloakSub: jordan.sub },
+    });
+    expect(user.nuid).toEqual('000000001');
   });
 
   it('reuses the same user on later requests', async () => {
