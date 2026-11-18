@@ -229,7 +229,7 @@ export const taOpenOnline = () => {
   cy.get("[data-cy=\"select-existing-queue\"]").click();
   cy.get('[data-cy="select-queue-Online"]').click();
 
-  cy.get("[id^=rcDialogTitle]")
+  cy.get(".ant-modal-title")
     .contains("Check into a queue")
     .parent()
     .parent()

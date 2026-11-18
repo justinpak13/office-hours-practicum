@@ -182,7 +182,7 @@ export class SeedController {
     }
 
     const queue = await QueueFactory.create({
-      room: 'online',
+      room: 'Online',
       course: course,
       allowQuestions: true,
     });

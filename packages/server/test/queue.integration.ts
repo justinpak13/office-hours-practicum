@@ -45,7 +45,7 @@ describe('Queue Integration', () => {
         id: 2,
         notes: null,
         queueSize: 1,
-        room: 'online',
+        room: 'Online',
         staffList: expect.any(Array),
         isOpen: true,
       });
