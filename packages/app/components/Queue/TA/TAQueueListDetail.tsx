@@ -66,10 +66,10 @@ const BackToQueue = styled.div`
   cursor: pointer;
 `;
 
-
 function playNewStudentSound() {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = new (window.AudioContext ||
+      (window as any).webkitAudioContext)();
     const oscillator = ctx.createOscillator();
     const gain = ctx.createGain();
     oscillator.connect(gain);
@@ -145,14 +145,20 @@ export default function TAQueueListDetail({
   useHotkeys("up", () => navigateQuestions(true), [questions]);
   useHotkeys("down", () => navigateQuestions(false), [questions]);
   // Sound + browser notification when a new student joins the queue
-  const [soundEnabled] = useLocalStorage<boolean>("ta-queue-sound-enabled", true);
+  const [soundEnabled] = useLocalStorage<boolean>(
+    "ta-queue-sound-enabled",
+    true
+  );
   const prevWaitingCountRef = useRef<number | null>(null);
   const totalWaiting = questions
     ? questions.queue.length + questions.priorityQueue.length
     : null;
   useEffect(() => {
     if (totalWaiting === null) return;
-    if (prevWaitingCountRef.current !== null && totalWaiting > prevWaitingCountRef.current) {
+    if (
+      prevWaitingCountRef.current !== null &&
+      totalWaiting > prevWaitingCountRef.current
+    ) {
       if (soundEnabled) playNewStudentSound();
       try {
         if (
@@ -171,8 +177,6 @@ export default function TAQueueListDetail({
     }
     prevWaitingCountRef.current = totalWaiting;
   }, [totalWaiting]);
-
-
 
   const hasUnresolvedRephraseAlert = questions?.unresolvedAlerts
     ?.map((payload) => (payload as RephraseQuestionPayload).questionId)
@@ -194,7 +198,7 @@ export default function TAQueueListDetail({
     return (
       <EmptyQueueInfo>
         <NoQuestionsText>There are no questions in the queue</NoQuestionsText>
-        {!user.phoneNotifsEnabled && !user.desktopNotifsEnabled && (
+        {!user.desktopNotifsEnabled && (
           <NotifReminderButton courseId={courseId} />
         )}
       </EmptyQueueInfo>
