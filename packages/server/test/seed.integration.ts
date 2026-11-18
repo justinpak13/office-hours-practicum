@@ -47,7 +47,6 @@ describe('Seed Integration', () => {
         email: 'user@neu.edu',
         id: 1,
         includeDefaultMessage: true,
-        phoneNotifsEnabled: false,
         photoURL: null,
       },
       userId: 1,
