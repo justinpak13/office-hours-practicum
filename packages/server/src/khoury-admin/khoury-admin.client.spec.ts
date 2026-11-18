@@ -219,6 +219,41 @@ describe('KhouryAdminClient', () => {
     );
   });
 
+  it('rejects an empty A group id and a padded B group id', async () => {
+    const svc = new HttpService();
+    const get = jest.spyOn(svc, 'get');
+    const c = new KhouryAdminClient(svc, new ConfigService());
+    get.mockReturnValue(
+      of({
+        status: 200,
+        data: {
+          semester: '202710',
+          section_groups: [{ id: '', name: 'x', crns: [1] }],
+        },
+      } as any),
+    );
+    await expect(
+      c.getSectionGroups('a@northeastern.edu', '202710'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
+    get.mockReturnValue(
+      of({
+        status: 200,
+        data: {
+          semester: '202710',
+          courses: [{ section_group_id: ' sg_1', role: 'TA' }],
+        },
+      } as any),
+    );
+    await expect(
+      c.getCourses('a@northeastern.edu', '202710'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
+  });
+
+  it('rejects, not throws, on an email with a lone surrogate', async () => {
+    const p = client.getCourses('a\uD800@northeastern.edu', '202710');
+    await expect(p).rejects.toBeInstanceOf(KhouryAdminError);
+  });
+
   it('throws KhouryAdminError on a bad role or malformed person', async () => {
     const svc = new HttpService();
     const get = jest.spyOn(svc, 'get');
@@ -364,6 +399,63 @@ describe('KhouryAdminClient', () => {
     await client.getCourses('DOE.J@HUSKY.NEU.EDU', '202710');
     expect(urls).toHaveLength(2);
     urls.forEach((u) => expect(u).toContain('doe.j%40northeastern.edu'));
+  });
+
+  it('works when KHOURY_ADMIN_URL has a trailing slash', async () => {
+    await point();
+    process.env.KHOURY_ADMIN_URL += '//';
+    expect((await client.getRoster('sg_1001'))?.id).toBe('sg_1001');
+  });
+
+  it('rejects a response whose semester differs from the request', async () => {
+    const svc = new HttpService();
+    const get = jest.spyOn(svc, 'get');
+    const c = new KhouryAdminClient(svc, new ConfigService());
+    get.mockReturnValue(
+      of({
+        status: 200,
+        data: { semester: '202730', section_groups: [] },
+      } as any),
+    );
+    await expect(
+      c.getSectionGroups('a@northeastern.edu', '202710'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
+    get.mockReturnValue(
+      of({ status: 200, data: { semester: '202730', courses: [] } } as any),
+    );
+    await expect(
+      c.getCourses('a@northeastern.edu', '202710'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
+  });
+
+  it('C rejects a response whose id differs from the request', async () => {
+    const svc = new HttpService();
+    jest.spyOn(svc, 'get').mockReturnValue(
+      of({
+        status: 200,
+        data: {
+          id: 'sg_other',
+          name: 'x',
+          semester: '202710',
+          generated_at: '2026-09-01T12:00:00Z',
+          professors: [],
+          tas: [],
+          sections: [],
+        },
+      } as any),
+    );
+    await expect(
+      new KhouryAdminClient(svc, new ConfigService()).getRoster('sg_1001'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
+  });
+
+  it('C rejects an id with surrounding whitespace without a request', async () => {
+    const svc = new HttpService();
+    const get = jest.spyOn(svc, 'get');
+    await expect(
+      new KhouryAdminClient(svc, new ConfigService()).getRoster(' sg_1001'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
+    expect(get).not.toHaveBeenCalled();
   });
 
   it('refuses to be created in production', () => {

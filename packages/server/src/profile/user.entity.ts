@@ -22,7 +22,7 @@ export class UserModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column('text')
+  @Column('text', { unique: true })
   email: string;
 
   @Column('text', { nullable: true })

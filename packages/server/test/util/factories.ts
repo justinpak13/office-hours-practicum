@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { QuestionGroupModel } from 'question/question-group.entity';
 import { AlertType, QuestionType, Role, OpenQuestionStatus } from '@koh/common';
 import { AlertModel } from 'alerts/alerts.entity';
@@ -34,9 +35,20 @@ export function defineFactory<T extends BaseEntity>(Model: new () => T) {
   });
 }
 
+// Emails are unique per DB (UNIQUE(email)); the counter restarts with each DB reset so snapshots stay stable
+let userSeq = 0;
+export const resetUserSeq = () => {
+  userSeq = 0;
+};
 export const UserFactory = defineFactory(UserModel)(() => {
   const defaults: DeepPartial<UserModel> = {
-    email: 'user@neu.edu',
+    // NOTE: the counter restarts with the server, so non-test (seed) runs use a random email
+    email:
+      process.env.NODE_ENV === 'test'
+        ? ++userSeq === 1
+          ? 'user@neu.edu'
+          : `user${userSeq}@neu.edu`
+        : `user-${randomUUID()}@neu.edu`,
     firstName: 'User',
     lastName: 'Person',
     hideInsights: [],

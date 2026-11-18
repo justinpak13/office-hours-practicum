@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm';
 import { addGlobalsToApp } from '../../src/app-globals';
 import { LoginModule } from '../../src/login/login.module';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testDb';
+import { resetUserSeq } from './factories';
 import { QueueSSEService } from '../../src/queue/queue-sse.service';
 
 export interface SupertestOptions {
@@ -63,6 +64,7 @@ export function setupIntegrationTest(
 
   beforeEach(async () => {
     await conn.synchronize(true);
+    resetUserSeq();
   });
 
   return (options?: SupertestOptions): supertest.SuperTest<supertest.Test> => {

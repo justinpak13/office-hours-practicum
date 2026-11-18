@@ -10,10 +10,19 @@ import {
 } from './khoury-admin.types';
 
 const isArr = Array.isArray;
-// Private on purpose; the exported normalizeEmail lives in the sync service (T12).
+// NOTE: mirrors normalizeEmail in khoury-admin-sync.service.ts; importing it here would create an import cycle.
 const norm = (e: string) =>
   e.toLowerCase().replace(/@husky\.neu\.edu$/, '@northeastern.edu');
+// NOTE: a lone surrogate makes encodeURIComponent throw URIError; surface it as a normal client failure
+const enc = (x: string) => {
+  try {
+    return encodeURIComponent(x);
+  } catch {
+    throw new KhouryAdminError('Khoury Admin request has a malformed value');
+  }
+};
 const isStr = (x: any) => typeof x === 'string';
+const isId = (x: any) => isStr(x) && x !== '' && x === x.trim();
 const every = (a: any, f: (x: any) => boolean) => isArr(a) && a.every(f);
 const isPerson = (p: any) =>
   !!p && isStr(p.email) && isStr(p.first_name) && isStr(p.last_name);
@@ -22,53 +31,56 @@ const isPerson = (p: any) =>
 export class KhouryAdminClient {
   constructor(private http: HttpService, private config: ConfigService) {}
 
-  getSectionGroups(
+  async getSectionGroups(
     email: string,
     semester: string,
   ): Promise<SectionGroupsResponse> {
     return this.get(
-      `/api/v1/instructors/${encodeURIComponent(
-        norm(email),
-      )}/section-groups?semester=${encodeURIComponent(semester)}`,
+      `/api/v1/instructors/${enc(norm(email))}/section-groups?semester=${enc(
+        semester,
+      )}`,
       (d) =>
-        isStr(d.semester) &&
+        d.semester === semester &&
         every(
           d.section_groups,
           (g) =>
             !!g &&
-            isStr(g.id) &&
+            isId(g.id) &&
             isStr(g.name) &&
             every(g.crns, (n) => typeof n === 'number'),
         ),
     );
   }
 
-  getCourses(email: string, semester: string): Promise<UserCoursesResponse> {
+  async getCourses(
+    email: string,
+    semester: string,
+  ): Promise<UserCoursesResponse> {
     return this.get(
-      `/api/v1/users/${encodeURIComponent(
-        norm(email),
-      )}/courses?semester=${encodeURIComponent(semester)}`,
+      `/api/v1/users/${enc(norm(email))}/courses?semester=${enc(semester)}`,
       (d) =>
-        isStr(d.semester) &&
+        d.semester === semester &&
         every(
           d.courses,
           (c) =>
             !!c &&
-            isStr(c.section_group_id) &&
+            isId(c.section_group_id) &&
             ['Professor', 'TA', 'Student'].includes(c.role),
         ),
     );
   }
 
   /** null only on a 404 whose body is {error:'not found'} */
-  getRoster(id: string): Promise<RosterResponse | null> {
-    if (!id || !id.trim()) {
-      return Promise.reject(new KhouryAdminError('getRoster needs a group id'));
+  async getRoster(id: string): Promise<RosterResponse | null> {
+    if (!id || id !== id.trim()) {
+      return Promise.reject(
+        new KhouryAdminError('getRoster needs a clean group id'),
+      );
     }
     return this.get(
-      `/api/v1/section-groups/${encodeURIComponent(id)}/roster`,
+      `/api/v1/section-groups/${enc(id)}/roster`,
       (d) =>
-        isStr(d.id) &&
+        d.id === id &&
         isStr(d.name) &&
         isStr(d.semester) &&
         isStr(d.generated_at) &&
@@ -90,7 +102,8 @@ export class KhouryAdminClient {
     nullOn404 = false,
   ): Promise<any> {
     // read on every call, never cached
-    const url = this.config.get('KHOURY_ADMIN_URL') + path;
+    const url =
+      String(this.config.get('KHOURY_ADMIN_URL')).replace(/\/+$/, '') + path;
     let res;
     try {
       res = await firstValueFrom(
