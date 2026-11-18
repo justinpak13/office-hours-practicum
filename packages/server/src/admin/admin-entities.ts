@@ -87,7 +87,6 @@ export class UserAdmin extends AdminResource<UserModel> {
     'firstName',
     'lastName',
     'desktopNotifsEnabled',
-    'phoneNotifsEnabled',
     'queues',
   ];
 

@@ -55,7 +55,7 @@ export class ProfileController {
 
   @Get()
   async get(
-    @User(['courses', 'courses.course', 'phoneNotif', 'desktopNotifs'])
+    @User(['courses', 'courses.course', 'desktopNotifs'])
     user: UserModel,
   ): Promise<GetProfileResponse> {
     if (user === null) {
@@ -97,7 +97,6 @@ export class ProfileController {
       'defaultMessage',
       'includeDefaultMessage',
       'desktopNotifsEnabled',
-      'phoneNotifsEnabled',
       'insights',
     ]);
 
@@ -116,7 +115,6 @@ export class ProfileController {
     return {
       ...userResponse,
       courses,
-      phoneNumber: user.phoneNotif?.phoneNumber,
       desktopNotifs,
       pendingCourses,
       hasUnregisteredCourses,
@@ -131,7 +129,7 @@ export class ProfileController {
   @Patch()
   async patch(
     @Body() userPatch: UpdateProfileParams,
-    @User(['courses', 'courses.course', 'phoneNotif', 'desktopNotifs'])
+    @User(['courses', 'courses.course', 'desktopNotifs'])
     user: UserModel,
   ): Promise<GetProfileResponse> {
     // update() writes only the patched columns, without re-checking the
