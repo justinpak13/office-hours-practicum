@@ -35,6 +35,7 @@ services:
       OAUTH2_PROXY_INSECURE_OIDC_SKIP_NONCE: "false"
       OAUTH2_PROXY_SCOPE: openid email profile
       OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"
+      OAUTH2_PROXY_PROMPT: login 
       # Served without a login: /signed-out; the Next.js build files and service
       # worker it loads (the same for everyone, no user data); and the dev
       # server's live-reload stream (development only). Otherwise these

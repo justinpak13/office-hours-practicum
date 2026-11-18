@@ -62,5 +62,29 @@
     "emailVerified": true,
     "firstName": "Eddy",
     "lastName": "Li"
-  }
+  },
+  {
+    "id": "2a99da1b-bc99-47fd-ad46-280fba312345",
+    "username": "different.school@theydontevengohere.edu",
+    "email": "different.school@theydontevengohere.edu",
+    "emailVerified": true,
+    "firstName": "Different",
+    "lastName": "School"
+  },
+  {
+    "id": "12345678-bc99-47fd-ad46-280fba312345",
+    "username": "unverified.email@northeastern.edu",
+    "email": "unverified.email@northeastern.edu",
+    "emailVerified": false,
+    "firstName": "unverified",
+    "lastName": "email"
+  }, 
+  {
+    "id": "12345678-bk99-47fd-ad46-280fba312345",
+    "username": "random.person@stanford.edu",
+    "email": "random.person@stanford.edu",
+    "emailVerified": false,
+    "firstName": "random",
+    "lastName": "person"
+  } 
 ]
