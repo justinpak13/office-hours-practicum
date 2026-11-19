@@ -135,6 +135,7 @@ export default function CoursePreferenceSettings(): ReactElement {
                   href="#"
                   aria-label="Previous Page"
                   aria-disabled={page === 1}
+                  tabIndex={page === 1 ? -1 : undefined}
                   className={dimmed(page === 1)}
                   onClick={goTo(page - 1)}
                 >
@@ -157,6 +158,7 @@ export default function CoursePreferenceSettings(): ReactElement {
                   href="#"
                   aria-label="Next Page"
                   aria-disabled={page === pageCount}
+                  tabIndex={page === pageCount ? -1 : undefined}
                   className={dimmed(page === pageCount)}
                   onClick={goTo(page + 1)}
                 >
