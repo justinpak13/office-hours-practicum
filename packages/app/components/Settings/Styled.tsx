@@ -1,7 +1,6 @@
 import styled from "styled-components";
-import { Space } from "antd";
 
-export const HeaderTitle = styled(Space)`
+export const HeaderTitle = styled.div`
   display: none;
 
   @media (min-width: 768px) {
