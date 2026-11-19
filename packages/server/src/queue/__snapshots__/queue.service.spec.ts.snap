@@ -68,7 +68,6 @@ ListQuestionsResponse {
       "lastName": "Person",
       "name": "User Person",
       "nuid": null,
-      "phoneNotifsEnabled": false,
       "photoURL": null,
     },
     "creatorId": 1,

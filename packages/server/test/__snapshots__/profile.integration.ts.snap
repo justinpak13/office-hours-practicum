@@ -30,7 +30,6 @@ exports[`Profile Integration GET /profile returns the logged-in user profile 1`]
   ],
   "lastName": "Person",
   "name": "User Person",
-  "phoneNotifsEnabled": false,
   "photoURL": null,
 }
 `;

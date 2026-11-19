@@ -10,16 +10,7 @@ import { Collapse } from "antd";
 import { API } from "@koh/api-client";
 import { Role } from "@koh/common";
 import { useWindowWidth } from "@react-hook/window-size";
-import {
-  Button,
-  Col,
-  Menu,
-  message,
-  Row,
-  Skeleton,
-  Space,
-  Upload,
-} from "antd";
+import { Button, Col, Menu, message, Row, Skeleton, Space, Upload } from "antd";
 import React, { ReactElement, useEffect, useState } from "react";
 import styled from "styled-components";
 import useSWR from "swr";
@@ -61,9 +52,11 @@ const { Panel } = Collapse;
 export default function SettingsPage({
   defaultPage,
 }: SettingsPageProps): ReactElement {
-  const { data: profile, error, mutate } = useSWR(`api/v1/profile`, async () =>
-    API.profile.index()
-  );
+  const {
+    data: profile,
+    error,
+    mutate,
+  } = useSWR(`api/v1/profile`, async () => API.profile.index());
   const router = useRouter();
   const { cid } = router.query;
   const role = useRoleInCourse(Number(cid));
@@ -75,7 +68,9 @@ export default function SettingsPage({
   const [uploading, setUploading] = useState(false);
   const isMobile = useIsMobile();
   const windowWidth = useWindowWidth();
-  const [avatarSize, setAvatarSize] = useState(windowWidth / 2);
+  // Start at 0 so the server and browser render the same HTML; the effect
+  // below sets the real size once the page is running in the browser.
+  const [avatarSize, setAvatarSize] = useState(0);
 
   useEffect(() => {
     const widthDivider = isMobile ? 6 : 10;
@@ -175,10 +170,10 @@ export default function SettingsPage({
               profile?.courses?.some((c) => c.role === Role.PROFESSOR) && (
                 <Button
                   icon={<BookOutlined />}
-                  style={{ marginTop: '10px', width: '100%' }}
+                  style={{ marginTop: "10px", width: "100%" }}
                   onClick={async () => {
                     await API.profile.resetRegistration();
-                    router.push('/apply');
+                    router.push("/apply");
                   }}
                 >
                   Register More Courses
@@ -190,6 +185,10 @@ export default function SettingsPage({
     </Col>
   );
 
+  // SettingsMenu and DesktopSettingsSubpage are called as functions, like
+  // AvatarSettings(). Rendered as <SettingsMenu />, React saw a new component
+  // type on every render and remounted the settings forms, wiping unsaved
+  // typing whenever the profile refreshed (e.g. after a photo upload).
   const SettingsMenu = () => (
     <>
       {isMobile ? (
@@ -258,17 +257,17 @@ export default function SettingsPage({
       {isMobile ? (
         <Col>
           {AvatarSettings()}
-          <SettingsMenu />
+          {SettingsMenu()}
         </Col>
       ) : (
         <Row>
           <Col span={5} style={{ textAlign: "center" }}>
             {AvatarSettings()}
-            <SettingsMenu />
+            {SettingsMenu()}
           </Col>
           <VerticalDivider />
           <Space direction="vertical" size={40} style={{ flexGrow: 1 }}>
-            <DesktopSettingsSubpage />
+            {DesktopSettingsSubpage()}
           </Space>
         </Row>
       )}

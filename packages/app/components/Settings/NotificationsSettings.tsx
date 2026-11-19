@@ -1,10 +1,6 @@
 import { MinusCircleOutlined, QuestionCircleOutlined } from "@ant-design/icons";
 import { API } from "@koh/api-client";
-import {
-  DesktopNotifPartial,
-  ERROR_MESSAGES,
-  UpdateProfileParams,
-} from "@koh/common";
+import { DesktopNotifPartial, UpdateProfileParams } from "@koh/common";
 import { Button, Form, List, message, Switch, Tooltip } from "antd";
 import { pick } from "lodash";
 import { HeaderTitle } from "./Styled";
@@ -53,15 +49,7 @@ export default function NotificationsSettings(): ReactElement {
         "Your notification settings have been successfully updated"
       );
     } catch (e) {
-      if (
-        e.response?.status === 400 &&
-        e.response?.data?.message ===
-          ERROR_MESSAGES.notificationService.registerPhone
-      ) {
-        form.setFields([
-          { name: "phoneNumber", errors: ["Invalid phone number"] },
-        ]);
-      }
+      message.error("Failed to update your notification settings");
     }
   };
 
