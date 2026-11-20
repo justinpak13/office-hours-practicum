@@ -1,9 +1,10 @@
 import { API } from "@koh/api-client";
 import { isProd } from "@koh/common";
-import { Button, Divider } from "antd";
 import DefaultErrorPage from "next/error";
 import React, { ReactElement } from "react";
 import styled from "styled-components";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 const Container = styled.div`
   width: auto;
@@ -35,9 +36,25 @@ const PageHeader = styled.div`
   margin-top: 40px;
 `;
 
-const DevPageButton = styled(Button)`
-  margin-right: 15px;
-`;
+// antd <Divider plain> with a title: a line on each side of the text
+function SectionDivider({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="my-4 flex items-center whitespace-nowrap">
+      <Separator className="flex-1" />
+      <span className="inline-block px-[1em]">{children}</span>
+      <Separator className="flex-1" />
+    </div>
+  );
+}
+
+const DEV_LOGINS = [
+  { userId: 1, label: "Student 1" },
+  { userId: 2, label: "Student 2" },
+  { userId: 3, label: "TA" },
+  { userId: 4, label: "TA 2" },
+  { userId: 5, label: "Professor " },
+  { userId: 6, label: "No Course User" },
+];
 
 export default function DevPanel(): ReactElement {
   if (isProd()) {
@@ -49,61 +66,46 @@ export default function DevPanel(): ReactElement {
         <PageHeader>[ For Development Use Only ]</PageHeader>
       </h1>
       <LoginContainer>
-        <Divider plain>
+        <SectionDivider>
           <h3>Login</h3>
-        </Divider>
-        <a href="/api/v1/login/dev?userId=1">
-          <DevPageButton type="default" htmlType="submit">
-            Login as <b> Student 1</b>
-          </DevPageButton>
-        </a>
-        <a href="/api/v1/login/dev?userId=2">
-          <DevPageButton type="default" htmlType="submit">
-            Login as <b> Student 2</b>
-          </DevPageButton>
-        </a>
-        <a href="/api/v1/login/dev?userId=3">
-          <DevPageButton type="default" htmlType="submit">
-            Login as <b> TA</b>
-          </DevPageButton>
-        </a>
-        <a href="/api/v1/login/dev?userId=4">
-          <DevPageButton type="default" htmlType="submit">
-            Login as <b> TA 2</b>
-          </DevPageButton>
-        </a>
-        <a href="/api/v1/login/dev?userId=5">
-          <DevPageButton type="default" htmlType="submit">
-            Login as <b> Professor </b>
-          </DevPageButton>
-        </a>
-        <a href="/api/v1/login/dev?userId=6">
-          <DevPageButton type="default" htmlType="submit">
-            Login as <b> No Course User</b>
-          </DevPageButton>
-        </a>
+        </SectionDivider>
+        {DEV_LOGINS.map(({ userId, label }) => (
+          <Button
+            key={userId}
+            asChild
+            variant="outline"
+            className="mr-[15px] text-foreground"
+          >
+            <a href={`/api/v1/login/dev?userId=${userId}`}>
+              {/* one child, so the button's icon gap doesn't split the text */}
+              <span>
+                Login as <b> {label}</b>
+              </span>
+            </a>
+          </Button>
+        ))}
       </LoginContainer>
       <SeedingContainer>
-        <Divider plain>
+        <SectionDivider>
           <h3>Seed</h3>
-        </Divider>
+        </SectionDivider>
         <Button
-          style={{ marginRight: "15px" }}
-          type="default"
+          variant="outline"
+          className="mr-[15px]"
           onClick={() => API.seeds.delete()}
         >
           Delete Data
         </Button>
         <Button
-          style={{ marginRight: "15px" }}
-          type="default"
+          variant="outline"
+          className="mr-[15px]"
           onClick={() => API.seeds.create()}
         >
           Seed Data
         </Button>
         <Button
-          style={{ marginRight: "15px" }}
-          type="default"
+          variant="outline"
+          className="mr-[15px]"
           onClick={() => API.seeds.fillQueue()}
         >
           Add Questions to Queue

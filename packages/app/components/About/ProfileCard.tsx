@@ -1,6 +1,22 @@
 import React, { useEffect, useState, ReactElement } from "react";
-import { LinkedinFilled, LinkOutlined } from "@ant-design/icons";
+import { Link } from "lucide-react";
 import styled from "styled-components";
+
+// lucide has no brand icons, so this is the LinkedIn logo antd used, inline.
+function LinkedinIcon(props: React.SVGProps<SVGSVGElement>): ReactElement {
+  return (
+    <svg
+      viewBox="64 64 896 896"
+      width="1em"
+      height="1em"
+      fill="currentColor"
+      aria-hidden
+      {...props}
+    >
+      <path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM349.3 793.7H230.6V411.9h118.7v381.8zm-59.3-434a68.8 68.8 0 1168.8-68.8c-.1 38-30.9 68.8-68.8 68.8zm503.7 434H675.1V608c0-44.3-.8-101.2-61.7-101.2-61.7 0-71.2 48.2-71.2 98v188.9H423.7V411.9h113.8v52.2h1.6c15.8-30 54.5-61.7 112.3-61.7 120.2 0 142.3 79.1 142.3 181.9v209.4z" />
+    </svg>
+  );
+}
 
 // Styled components
 const StyledCard = styled.div`
@@ -84,7 +100,7 @@ const NavyLink = styled.a`
 const generateInitialsImage = (name: string): string => {
   const initials = name
     .split(" ")
-    .map(word => word.charAt(0).toUpperCase())
+    .map((word) => word.charAt(0).toUpperCase())
     .join("");
 
   const canvas = document.createElement("canvas");
@@ -134,8 +150,14 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
         <div>{role}</div>
         <LinkIcons>
           {linkedin && (
-            <NavyLink href={linkedin} target="_blank" rel="noopener noreferrer">
-              <LinkedinFilled title="LinkedIn" style={{ cursor: "pointer" }} />
+            <NavyLink
+              href={linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="LinkedIn"
+              aria-label="LinkedIn"
+            >
+              <LinkedinIcon className="inline-block cursor-pointer align-[-0.125em]" />
             </NavyLink>
           )}
           {personalSite && (
@@ -143,10 +165,12 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
               href={personalSite}
               target="_blank"
               rel="noopener noreferrer"
+              title="Personal Website"
+              aria-label="Personal Website"
             >
-              <LinkOutlined
-                title="Personal Website"
-                style={{ cursor: "pointer" }}
+              <Link
+                className="inline-block size-[1em] cursor-pointer align-[-0.125em]"
+                aria-hidden
               />
             </NavyLink>
           )}
@@ -157,4 +181,3 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
 };
 
 export default ProfileCard;
-
