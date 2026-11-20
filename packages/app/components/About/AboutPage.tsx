@@ -1,6 +1,5 @@
 import React, { ReactElement } from "react";
 import styled from "styled-components";
-import { Col, Row, Space } from "antd";
 import ProfileCard from "./ProfileCard";
 import { VerticalDivider } from "../Settings/SettingsPage";
 
@@ -31,8 +30,8 @@ const ProfilesSection = styled.div`
 
 export default function AboutPage(): ReactElement {
   return (
-    <Row style={{ padding: "20px 0px", flexFlow: "unset" }}>
-      <Col span={7} style={{ margin: "0px 30px" }}>
+    <div className="flex min-w-0 py-5">
+      <div className="relative mx-[30px] min-h-px max-w-[29.16666667%] flex-[0_0_29.16666667%]">
         <Title>About Us</Title>
         <Description>
           <p>
@@ -54,7 +53,7 @@ export default function AboutPage(): ReactElement {
             to learn more.
           </p>
           <p>
-	    Since 2022, Sandbox has handed over control of the App to Khoury. 
+            Since 2022, Sandbox has handed over control of the App to Khoury.
           </p>
           <p>
             <strong>Contact the Khoury IT team: </strong>
@@ -64,14 +63,10 @@ export default function AboutPage(): ReactElement {
             </a>
           </p>
         </Description>
-      </Col>
+      </div>
       <VerticalDivider />
-      <Space
-        direction="vertical"
-        size={40}
-        style={{ flexGrow: 1, paddingTop: "20px" }}
-      >
-        <Col span={20} style={{ maxWidth: "100%" }}>
+      <div className="inline-flex grow flex-col gap-10 pt-5">
+        <div className="relative min-h-px max-w-full">
           <ProfilesTitle>Past Members</ProfilesTitle>
           <ProfilesSection>
             {PROFILES_PAST.map((prof, idx) => (
@@ -84,9 +79,9 @@ export default function AboutPage(): ReactElement {
               />
             ))}
           </ProfilesSection>
-        </Col>
-      </Space>
-    </Row>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -183,4 +178,3 @@ const PROFILES_PAST = [
     personalSite: "https://alexkopel.myportfolio.com/",
   },
 ];
-
