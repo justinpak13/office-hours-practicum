@@ -1,5 +1,5 @@
-import { Button } from "antd";
 import styled from "styled-components";
+import { Button } from "@/components/ui/button";
 import { ReactElement } from "react";
 import { useHomePageRedirect } from "../hooks/useHomePageRedirect";
 import { User } from "@koh/common";
@@ -29,8 +29,10 @@ export default function Login(): ReactElement {
       <ContentContainer>
         <h1>You are currently not logged in</h1>
         <p>Click the button below to login via Khoury Admin</p>
-        <Button href="https://admin.khoury.northeastern.edu/teaching/officehourslogin/">
-          Log in via Khoury Admin
+        <Button asChild variant="outline" className="text-foreground">
+          <a href="https://admin.khoury.northeastern.edu/teaching/officehourslogin/">
+            Log in via Khoury Admin
+          </a>
         </Button>
       </ContentContainer>
     </Container>

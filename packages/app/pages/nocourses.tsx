@@ -1,10 +1,10 @@
 import { API } from "@koh/api-client";
-import { Button, Result } from "antd";
 import axios from "axios";
+import { CircleAlert } from "lucide-react";
 import Router from "next/router";
 import { ReactElement } from "react";
-import styled from "styled-components";
 import useSWR from "swr";
+import { Button } from "@/components/ui/button";
 import { useHomePageRedirect } from "../hooks/useHomePageRedirect";
 
 export default function NoCourses(): ReactElement {
@@ -14,24 +14,23 @@ export default function NoCourses(): ReactElement {
     API.course.selfEnrollCourses()
   );
 
-  const LogoutButton = styled(Button)`
-    background-color: #3684c6;
-    border-radius: 6px;
-    color: white;
-    font-weight: 500;
-    font-size: 14px;
-    width: 200px;
-    margin: 0 auto;
-    display: block;
-  `;
-
   return (
     <div>
-      <Result
-        status="info"
-        title="None of your courses are using the Khoury Office Hours App."
-        subTitle="If you expected your course to be here, try logging in again. If it still does not appear, please reach out to your course coordinator or professor."
-      />
+      {/* was antd <Result status="info">: icon, title, subtitle */}
+      <div className="px-8 py-12 text-center">
+        <CircleAlert
+          className="mx-auto mb-6 block size-[72px] fill-primary text-primary-foreground"
+          aria-hidden
+        />
+        <h2 className="m-0 text-2xl font-normal leading-[1.8] text-foreground">
+          None of your courses are using the Khoury Office Hours App.
+        </h2>
+        <p className="m-0 text-sm leading-[1.6] text-muted-foreground">
+          If you expected your course to be here, try logging in again. If it
+          still does not appear, please reach out to your course coordinator or
+          professor.
+        </p>
+      </div>
       {data?.courses.length > 0 ? (
         <div style={{ textAlign: "center" }}>
           One of our data sources for student-enrollment is currently
@@ -42,6 +41,7 @@ export default function NoCourses(): ReactElement {
               return (
                 <Button
                   key={i}
+                  variant="outline"
                   onClick={async () => {
                     await API.course.createSelfEnrollOverride(course.id);
                     Router.push("/login");
@@ -54,15 +54,16 @@ export default function NoCourses(): ReactElement {
           </div>
         </div>
       ) : null}
-      <LogoutButton
+      <Button
         data-cy="logout-button"
+        className="mx-auto flex w-[200px]"
         onClick={async () => {
           await axios.post("/api/v1/logout");
           window.location.href = "/login";
         }}
       >
         Logout
-      </LogoutButton>
+      </Button>
     </div>
   );
 }
