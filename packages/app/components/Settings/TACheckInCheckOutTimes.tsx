@@ -1,7 +1,7 @@
 import { API } from "@koh/api-client";
-import { Button, Modal } from "antd";
+import { Info } from "lucide-react";
 import moment from "moment";
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useRef, useState } from "react";
 import {
   Calendar,
   CalendarProps,
@@ -10,19 +10,21 @@ import {
 } from "react-big-calendar";
 import styled from "styled-components";
 import useSWR from "swr";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 const TACheckInCheckOutCalendar = styled(Calendar)<CalendarProps>`
   height: 70vh;
   padding-top: 36px;
   padding-left: 36px;
-`;
-
-const DownloadButton = styled(Button)`
-  border-radius: 6px;
-  color: white;
-  font-weight: 500;
-  font-size: 14px;
-  margin-left: 36px;
 `;
 
 const CheckinHeader = styled.h1`
@@ -48,6 +50,13 @@ export default function TACheckInCheckOutTimes({
 
   const [startDate, setStartDate] = useState(sunday);
   const [endDate, setEndDate] = useState(nextSunday);
+  // The clicked event; kept while the dialog closes so its text doesn't blank
+  const [selectedEvent, setSelectedEvent] = useState<Event>();
+  const [infoOpen, setInfoOpen] = useState(false);
+  // The dialog has no trigger or Cancel button, so Radix can't place focus by
+  // itself: focus OK on open and give focus back to the clicked event on close
+  const eventElement = useRef<HTMLElement>(null);
+  const okButton = useRef<HTMLButtonElement>(null);
 
   // SWR 2 passes an array key to the fetcher as a single argument.
   const fetcher = ([, startDate, endDate]: [string, Date, Date]) => {
@@ -88,21 +97,32 @@ export default function TACheckInCheckOutTimes({
 
   const exportData = () => {
     const rows = data?.taCheckinTimes ?? [];
-    const headers = ["Name", "Check-In Time", "Check-Out Time", "Students Helped", "Forced Checkout", "In Progress"];
+    const headers = [
+      "Name",
+      "Check-In Time",
+      "Check-Out Time",
+      "Students Helped",
+      "Forced Checkout",
+      "In Progress",
+    ];
     const csvRows = [
       headers.join(","),
       ...rows.map((e) =>
         [
           `"${e.name}"`,
           `"${e.checkinTime ? new Date(e.checkinTime).toLocaleString() : ""}"`,
-          `"${e.checkoutTime ? new Date(e.checkoutTime).toLocaleString() : ""}"`,
+          `"${
+            e.checkoutTime ? new Date(e.checkoutTime).toLocaleString() : ""
+          }"`,
           e.numHelped ?? 0,
           e.forced ? "Yes" : "No",
           e.inProgress ? "Yes" : "No",
         ].join(",")
       ),
     ].join("\n");
-    const csvString = `data:text/csv;charset=utf-8,${encodeURIComponent(csvRows)}`;
+    const csvString = `data:text/csv;charset=utf-8,${encodeURIComponent(
+      csvRows
+    )}`;
     const link = document.createElement("a");
     link.href = csvString;
     link.download = "checkinCheckoutEventData.csv";
@@ -127,16 +147,46 @@ export default function TACheckInCheckOutTimes({
           }
           mutate();
         }}
-        onSelectEvent={(event) => {
-          Modal.info({
-            title: event.title as string,
-            content: `Helped ${event.resource} students during this session`,
-          });
+        onSelectEvent={(event, e) => {
+          eventElement.current = e.currentTarget as HTMLElement;
+          setSelectedEvent(event);
+          setInfoOpen(true);
         }}
       />
-      <DownloadButton type="primary" onClick={exportData}>
+      <AlertDialog open={infoOpen} onOpenChange={setInfoOpen}>
+        <AlertDialogContent
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            okButton.current?.focus();
+          }}
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            eventElement.current?.focus();
+          }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Info
+                aria-hidden="true"
+                className="size-5 shrink-0 text-primary"
+              />
+              {selectedEvent?.title as string}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {`Helped ${selectedEvent?.resource} students during this session`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction ref={okButton}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <Button
+        onClick={exportData}
+        className="ml-9 cursor-pointer [font-family:inherit]"
+      >
         Download check-in/checkout data
-      </DownloadButton>
+      </Button>
       {tasWhoAreCurrentlyInOH?.length ? (
         <div>
           <h3>People currently holding office hours:</h3>
