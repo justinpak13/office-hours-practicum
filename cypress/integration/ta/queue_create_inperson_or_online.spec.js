@@ -22,7 +22,7 @@ describe('Can successfully create queues', () => {
                 .wait(250);
 
             // submit and create queue
-            cy.get("[id^=rcDialogTitle]")
+            cy.get(".ant-modal-title")
                 .contains("Create a new queue")
                 .parent()
                 .parent()
@@ -58,7 +58,7 @@ describe('Can successfully create queues', () => {
 
             cy.percySnapshot("CheckIn Modal Selection Page -- Custom Already Created")
 
-            cy.get("[id^=rcDialogTitle]")
+            cy.get(".ant-modal-title")
                 .contains("Check into a queue")
                 .parent()
                 .parent()
@@ -111,7 +111,7 @@ describe('Can successfully create queues', () => {
                 .should("be.visible")
                 .should("not.be.disabled")
                 .click();
-            cy.get("[id^=rcDialogTitle]")
+            cy.get(".ant-modal-title")
                 .should("contain","Create a new queue");
 
             // assert the allow TA's checkbox does not exist
@@ -147,7 +147,7 @@ describe('Can successfully create queues', () => {
                 .should('have.value','');
 
             // try to submit an empty room name:
-            cy.get("[id^=rcDialogTitle]")
+            cy.get(".ant-modal-title")
                 .contains("Create a new queue")
                 .parent()
                 .parent()
@@ -181,7 +181,7 @@ describe('Can successfully create queues', () => {
                 .should("be.visible")
                 .should("not.be.disabled")
                 .click();
-            cy.get("[id^=rcDialogTitle]")
+            cy.get(".ant-modal-title")
                 .should("contain","Create a new queue");
 
             cy.get("[data-cy=\"qc-allowTA\"]")

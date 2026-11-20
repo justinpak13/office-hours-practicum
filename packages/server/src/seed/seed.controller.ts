@@ -26,6 +26,17 @@ import { QuestionModel } from '../question/question.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { SeedService } from './seed.service';
 
+// Keycloak IDs (`sub`) of the seeded users. They match the users with the
+// same IDs in oauth2-proxy-demo/fake-keycloak/users.json, so picking one of
+// them on the fake Keycloak's login page logs in as that seeded user.
+export const SEED_KEYCLOAK_SUBS = {
+  STUDENT_1: 'f6805507-a879-4a0f-88e5-9278dbecafc9',
+  STUDENT_2: 'ca7e14a6-f00c-4639-adea-8b14cff50243',
+  TA_1: '8c6459fe-aa17-43e4-a392-55cee123e13e',
+  TA_2: 'e17bd22a-3a16-49ac-853f-6664fbf31a87',
+  PROFESSOR: '8df5d97a-b65c-460e-b141-2a56600811c1',
+};
+
 @Controller('seeds')
 @UseGuards(NonProductionGuard)
 export class SeedController {
@@ -99,6 +110,7 @@ export class SeedController {
       // Student 1
       const user1 = await UserFactory.create({
         email: 'liu.sta@northeastern.edu',
+        keycloakSub: SEED_KEYCLOAK_SUBS.STUDENT_1,
         firstName: 'Stanley',
         lastName: 'Liu',
       });
@@ -111,6 +123,7 @@ export class SeedController {
       // Student 2
       const user2 = await UserFactory.create({
         email: 'takayama.a@northeastern.edu',
+        keycloakSub: SEED_KEYCLOAK_SUBS.STUDENT_2,
         firstName: 'Alex',
         lastName: 'Takayama',
       });
@@ -124,6 +137,7 @@ export class SeedController {
       // TA 1
       const user3 = await UserFactory.create({
         email: 'stenzel.w@northeastern.edu',
+        keycloakSub: SEED_KEYCLOAK_SUBS.TA_1,
         firstName: 'Will',
         lastName: 'Stenzel',
       });
@@ -135,6 +149,7 @@ export class SeedController {
       // TA 2
       const user4 = await UserFactory.create({
         email: 'chu.daj@northeastern.edu',
+        keycloakSub: SEED_KEYCLOAK_SUBS.TA_2,
         firstName: 'Da-Jin',
         lastName: 'Chu',
       });
@@ -146,6 +161,7 @@ export class SeedController {
       // Professor (Snarky!!)
       const user5 = await UserFactory.create({
         email: 'li.edwa@northeastern.edu',
+        keycloakSub: SEED_KEYCLOAK_SUBS.PROFESSOR,
         firstName: 'Eddy',
         lastName: 'Li',
         photoURL:
@@ -164,7 +180,7 @@ export class SeedController {
     }
 
     const queue = await QueueFactory.create({
-      room: 'online',
+      room: 'Online',
       course: course,
       allowQuestions: true,
     });
