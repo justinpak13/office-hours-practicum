@@ -1,18 +1,17 @@
-import { Avatar } from "antd";
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement } from "react";
 import { useProfile } from "../../hooks/useProfile";
 import AvatarWithInitals from "./AvatarWithInitials";
 
 type SelfAvatarProps = {
   size: number;
-  style?: any;
+  style?: React.CSSProperties;
 };
 
 type KOHAvatarProps = {
   size: number;
   name: string;
   photoURL?: string;
-  style?: any;
+  style?: React.CSSProperties;
   className?: string;
 };
 
@@ -32,34 +31,22 @@ export default function SelfAvatar({
   );
 }
 
-export function KOHAvatar({
-  size,
-  name,
-  photoURL,
-  style,
-  className,
-}: KOHAvatarProps): ReactElement {
-  const [photoFailed, setPhotoFailed] = useState(false);
-
-  return photoURL && !photoFailed ? (
-    <Avatar
-      src={"/api/v1/profile/get_picture/" + photoURL}
-      size={size}
-      style={style}
-      className={className}
-      onError={() => {
-        // Fall back to initials if the image is missing or fails to load
-        setPhotoFailed(true);
-        return false;
-      }}
-    />
-  ) : (
-    <AvatarWithInitals
-      name={name}
-      size={size}
-      fontSize={(3 / 7) * size}
-      style={style}
-      className={className}
-    />
-  );
-}
+// The photo if there is one; the initials while it loads or if it fails
+// (the shadcn Avatar handles the fallback, so no onError state is needed).
+export const KOHAvatar = React.forwardRef<HTMLSpanElement, KOHAvatarProps>(
+  function KOHAvatar(
+    { size, name, photoURL, ...props }: KOHAvatarProps,
+    ref: React.ForwardedRef<HTMLSpanElement>
+  ) {
+    return (
+      <AvatarWithInitals
+        ref={ref}
+        name={name}
+        size={size}
+        fontSize={(3 / 7) * size}
+        src={photoURL ? "/api/v1/profile/get_picture/" + photoURL : undefined}
+        {...props}
+      />
+    );
+  }
+);

@@ -135,7 +135,7 @@ export default function ProfileDrawer({
         visible={isPopoverOpen}
         onVisibleChange={setIsPopoverOpen}
       >
-        <AvatarButton>
+        <AvatarButton data-cy="profile-avatar">
           <SelfAvatar size={40} />
         </AvatarButton>
       </NoPaddingPopover>
