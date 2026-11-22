@@ -50,7 +50,11 @@ jobs:
           record: false
           start: yarn ci:start
           wait-on: "http://localhost:3000"
-          browser: chrome
+          # Cypress's default browser (Electron), not Chrome. Through Cypress's
+          # proxy, Chrome allows only 6 connections to https://localhost:4443,
+          # and the queue page's live updates (EventSource) hold them open, so
+          # later requests stall. Electron doesn't have this problem, and it's
+          # what `yarn cypress:run` uses locally.
         env:
           CYPRESS_USE_LIVE_API: true
           # The fake Keycloak whose ID tokens the server accepts from
