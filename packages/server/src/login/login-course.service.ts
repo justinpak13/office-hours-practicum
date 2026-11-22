@@ -11,7 +11,7 @@ import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { UserModel } from 'profile/user.entity';
 import { SemesterModel } from 'semester/semester.entity';
-import { DataSource } from 'typeorm';
+import { DataSource, IsNull } from 'typeorm';
 import { ProfSectionGroupsModel } from './prof-section-groups.entity';
 import { khourySemesterCodes } from './last-registration-model.entity';
 import {
@@ -30,8 +30,10 @@ export class LoginCourseService {
   public async addUserFromKhoury(info: KhouryDataParams): Promise<UserModel> {
     let user: UserModel;
     const neuEmail = info.email.replace('@husky.neu.edu', '@northeastern.edu');
+    // Only users from this login. Keycloak users can share an email but are
+    // kept separate until the database is rehydrated from the new data endpoint.
     user = await UserModel.findOne({
-      where: { email: neuEmail },
+      where: { email: neuEmail, keycloakSub: IsNull() },
       relations: ['courses', 'courses.course'],
     });
 

@@ -4,6 +4,7 @@ import { JwtStrategy } from '../login/jwt.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoginCourseService } from './login-course.service';
+import { OidcModule } from '../oidc/oidc.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { LoginCourseService } from './login-course.service';
         secret: configService.get('JWT_SECRET'),
       }),
     }),
+    OidcModule,
   ],
   controllers: [LoginController],
   providers: [JwtStrategy, LoginCourseService],

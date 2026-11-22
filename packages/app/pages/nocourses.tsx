@@ -1,6 +1,6 @@
 import { API } from "@koh/api-client";
 import { Button, Result } from "antd";
-import axios from "axios";
+import { logout } from "../utils/logout";
 import Router from "next/router";
 import { ReactElement } from "react";
 import styled from "styled-components";
@@ -54,13 +54,7 @@ export default function NoCourses(): ReactElement {
           </div>
         </div>
       ) : null}
-      <LogoutButton
-        data-cy="logout-button"
-        onClick={async () => {
-          await axios.post("/api/v1/logout");
-          window.location.href = "/login";
-        }}
-      >
+      <LogoutButton data-cy="logout-button" onClick={logout}>
         Logout
       </LogoutButton>
     </div>

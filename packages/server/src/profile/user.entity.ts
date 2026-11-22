@@ -5,6 +5,7 @@ import {
   BaseEntity,
   Column,
   Entity,
+  Index,
   ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -22,6 +23,21 @@ export class UserModel extends BaseEntity {
 
   @Column('text')
   email: string;
+
+  // The user's Northeastern ID, from the Keycloak token's `nuid` claim. Null
+  // for users created by the Khoury Admin Portal login, or whose token has none.
+  // Excluded from responses: it's a student ID, and users are serialized into
+  // responses other users see (queues, staff lists).
+  @Column('text', { nullable: true })
+  @Exclude()
+  nuid: string | null;
+
+  // The user's permanent Keycloak ID (the ID token's `sub`). Null for users
+  // created by the Khoury Admin Portal login, which are not linked to Keycloak.
+  @Index('IDX_user_model_keycloakSub', { unique: true })
+  @Column('text', { nullable: true })
+  @Exclude()
+  keycloakSub: string | null;
 
   @Column('text', { nullable: true })
   firstName: string;

@@ -385,6 +385,11 @@ export interface KhouryRedirectResponse {
   redirect: string;
 }
 
+// Where the browser goes after POST /logout
+export interface LogoutResponse {
+  redirect: string;
+}
+
 export class UpdateProfileParams {
   @IsBoolean()
   @IsOptional()
