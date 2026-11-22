@@ -15,8 +15,9 @@ import { useQueue } from "../../hooks/useQueue";
 import { RenderEvery } from "../RenderEvery";
 import { TAStatuses } from "./TAStatuses";
 import { API } from "@koh/api-client";
-import Router from "next/router";
+import Router, { useRouter } from "next/router";
 import { buttonDataCy } from "../../utils/buttonDataCy";
+import { useCourse } from "../../hooks/useCourse";
 
 export const Container = styled.div`
   display: flex;
@@ -148,10 +149,15 @@ export function QueueInfoColumn({
   buttons,
 }: QueueInfoColumnProps): ReactElement {
   const { queue, mutateQueue } = useQueue(queueId);
+  const router = useRouter();
+  const { mutateCourse } = useCourse(Number(router.query.cid));
 
   const disableQueue = async () => {
     await API.queues.disable(queueId);
-    await mutateQueue();
+    // Refresh the course too: the today page we go to next reads the queue
+    // list from it, and SWR would otherwise reuse a copy fetched moments ago
+    // that still lists this queue
+    await Promise.all([mutateQueue(), mutateCourse()]);
     message.success("Successfully disabled queue: " + queue.room);
     await Router.push("/");
   };
