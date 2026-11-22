@@ -20,7 +20,15 @@ import "./commands";
 // require('./commands')
 
 beforeEach(() => {
-  cy.request("/api/v1/seeds/delete");
+  // Cypress clears cookies between tests, so log in to oauth2-proxy each time
+  if (Cypress.env("OAUTH_PROXY")) {
+    cy.proxyLogin();
+  }
+  // Don't follow redirects: if the proxy sends us to Keycloak, the seed data
+  // wasn't deleted and the test should stop here
+  cy.request({ url: "/api/v1/seeds/delete", followRedirect: false })
+    .its("status")
+    .should("eq", 200);
 });
 
 const resizeObserverLoopErrRe = /ResizeObserver loop/;

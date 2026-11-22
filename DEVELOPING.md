@@ -170,8 +170,11 @@ Tests read their environment from **`packages/server/.env.test`**, which is comm
 
 #### End to end tests
 
-End to end (E2E) tests are in the `cypress` folder and run against http://localhost:3000, so `yarn dev` has to be running. They use the `/api/v1/seeds/*` and `/api/v1/login/dev` endpoints.
+End to end (E2E) tests are in the `cypress` folder and run through oauth2-proxy at https://localhost:4443, so `yarn dev` and the containers in `oauth2-proxy-demo` (`docker compose up -d`) both have to be running. They use the `/api/v1/seeds/*` endpoints to create test data.
+Before each test, the `proxyLogin` command logs in to oauth2-proxy as the fake Keycloak user in the `OAUTH_PROXY_USER` setting in `cypress.json`, so the seed requests get through. Each user a test creates (`createAndLoginTA` and so on in `cypress/utils.js`) is linked to the next `cypress.*` user in `oauth2-proxy-demo/fake-keycloak/users.json`, so tests never change the roles of the dev seed users, and the test logs in as them through the fake Keycloak. A test that needs more users than that file has fails with a message saying to add some.
 To run them headlessly, do `yarn cypress:run`. To watch them run interactively, use `yarn cypress:open`.
+To run them against the app directly, without the proxy, set `CYPRESS_BASE_URL=http://localhost:3000 CYPRESS_OAUTH_PROXY=false`. Users then log in with `/api/v1/login/dev` instead.
+`.github/workflows/cypress.yml` runs them the same way as locally: it starts the containers in `oauth2-proxy-demo` (creating `.env` from `.env.example` and a self-signed certificate with `init-secrets.sh`), then runs `yarn ci:start` and the tests through https://localhost:4443. If they fail only in CI, the workflow prints the containers' logs at the end.
 
 ### Installing new packages
 

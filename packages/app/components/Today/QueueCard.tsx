@@ -182,6 +182,7 @@ const QueueCard = ({
                   <Tag
                     icon={<StopOutlined />}
                     color="error"
+                    data-cy="not-accepting-questions"
                     style={{ margin: "0px 0px 0px 8px" }}
                   >
                     Not Accepting Questions
@@ -229,6 +230,7 @@ const QueueCard = ({
               defaultValue={queue.notes}
               value={updatedNotes}
               onChange={(e) => setUpdatedNotes(e.target.value as any)}
+              data-cy="edit-notes-input"
             />
           </NotesDiv>
         ) : queue.notes ? (
@@ -257,7 +259,11 @@ const QueueCard = ({
         )}
         <RightQueueNotesRow>
           {editingNotes && (
-            <SaveButton onClick={handleUpdate} size="large">
+            <SaveButton
+              onClick={handleUpdate}
+              size="large"
+              data-cy="save-notes-button"
+            >
               Save Changes
             </SaveButton>
           )}
@@ -266,6 +272,7 @@ const QueueCard = ({
               {isTA && (
                 <EditNotesButton
                   size="large"
+                  data-cy="edit-notes-button"
                   onClick={() => {
                     setEditingNotes(true);
                   }}

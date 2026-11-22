@@ -6,6 +6,7 @@ import {
   createAndLoginTA,
   loginUser,
   helpQuestionWithID,
+  clickVisible,
 } from "../../utils";
 
 describe("TA Priority Queue", () => {
@@ -54,15 +55,13 @@ describe("TA Priority Queue", () => {
       helpQuestionWithID(this.question.id);
       cy.get('[data-cy="cant-find-button"]').should("be.visible").click();
 
-      cy.get("body").should("contain", "Yes");
-      cy.get("button").contains("Yes").click();
+      clickVisible("cant-find-confirm");
 
       // Help student 2
       helpQuestionWithID(this.question2.id);
       cy.get('[data-cy="cant-find-button"]').should("be.visible").click();
 
-      cy.get("body").should("contain", "Yes");
-      cy.get("button").contains("Yes").click();
+      clickVisible("cant-find-confirm");
 
       // login as a student and rejoin the queue.
       loginUser("student1");
@@ -73,10 +72,10 @@ describe("TA Priority Queue", () => {
             "A TA tried to help you, but couldn't reach you. Are you still in the queue? If you are, make sure you have Teams open, and rejoin the queue."
           );
 
-          cy.get("button").contains("Rejoin Queue").click();
-          cy.get("body").contains("Rejoin Queue").should("not.visible");
+          cy.get('[data-cy="cant-find-rejoin"]').click();
+          cy.get('[data-cy="cant-find-rejoin"]').should("not.be.visible");
           cy.contains(
-            "You are now in a priority queue, you will be helped soon. You were last helped by User Person."
+            `You are now in a priority queue, you will be helped soon. You were last helped by ${this.ta.user.firstName} ${this.ta.user.lastName}.`
           );
 
           cy.percySnapshot("Student Queue Page - Priority Queued");
@@ -92,7 +91,7 @@ describe("TA Priority Queue", () => {
             "A TA tried to help you, but couldn't reach you. Are you still in the queue? If you are, make sure you have Teams open, and rejoin the queue."
           );
 
-          cy.get("button").contains("Leave Queue");
+          cy.get('[data-cy="cant-find-leave"]').should("be.visible");
         }
       );
 
@@ -114,8 +113,7 @@ describe("TA Priority Queue", () => {
 
       cy.percySnapshot("TA Queue Page - Priority Queue");
 
-      cy.get("body").should("contain", "Help Next");
-      cy.get("button").contains("Help Next").click();
+      cy.get('[data-cy="help-next"]').should("be.visible").click();
     });
   });
 
@@ -123,13 +121,11 @@ describe("TA Priority Queue", () => {
     it("Requeue student works", function () {
       helpQuestionWithID(this.question.id);
       cy.get('[data-cy="requeue-student-button"]').should("be.visible").click();
-      cy.get("body").should("contain", "Yes");
-      cy.get("button").contains("Yes").click();
+      clickVisible("requeue-confirm");
 
       helpQuestionWithID(this.question2.id);
       cy.get('[data-cy="requeue-student-button"]').should("be.visible").click();
-      cy.get("body").should("contain", "Yes");
-      cy.get("button").contains("Yes").click();
+      clickVisible("requeue-confirm");
 
       // Login the student and rejoin the queue
       loginUser("student1");
@@ -142,7 +138,7 @@ describe("TA Priority Queue", () => {
 
           cy.get("[data-cy='re-join-queue']").click();
           cy.contains(
-            "You are now in a priority queue, you will be helped soon. You were last helped by User Person."
+            `You are now in a priority queue, you will be helped soon. You were last helped by ${this.ta.user.firstName} ${this.ta.user.lastName}.`
           );
         }
       );
@@ -159,6 +155,7 @@ describe("TA Priority Queue", () => {
           cy.percySnapshot("Student Queue Page - Requeue Banner");
 
           cy.get('[data-cy="leave-queue"]').should("be.visible").click();
+          clickVisible("leave-queue-confirm");
         }
       );
 

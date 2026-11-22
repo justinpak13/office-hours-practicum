@@ -7,23 +7,26 @@ import styled from "styled-components";
 import useSWR from "swr";
 import { useHomePageRedirect } from "../hooks/useHomePageRedirect";
 
+// Defined outside the component: a styled component created during render is
+// a new component type every render, so React replaces the button each time
+// (and Cypress can grab one that's about to be removed).
+const LogoutButton = styled(Button)`
+  background-color: #3684c6;
+  border-radius: 6px;
+  color: white;
+  font-weight: 500;
+  font-size: 14px;
+  width: 200px;
+  margin: 0 auto;
+  display: block;
+`;
+
 export default function NoCourses(): ReactElement {
   useHomePageRedirect();
 
   const { data } = useSWR("/api/v1/courses/self_enroll_courses", async () =>
     API.course.selfEnrollCourses()
   );
-
-  const LogoutButton = styled(Button)`
-    background-color: #3684c6;
-    border-radius: 6px;
-    color: white;
-    font-weight: 500;
-    font-size: 14px;
-    width: 200px;
-    margin: 0 auto;
-    display: block;
-  `;
 
   return (
     <div>

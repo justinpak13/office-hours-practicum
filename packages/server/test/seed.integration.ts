@@ -69,6 +69,31 @@ describe('Seed Integration', () => {
     });
   });
 
+  it('POST /seeds/createUser with a Keycloak user', async () => {
+    const user = {
+      keycloakSub: '2a99da1b-bc99-47fd-ad46-280fba3941a3',
+      email: 'Rivera.Jo@northeastern.edu',
+      firstName: 'Jordan',
+      lastName: 'Rivera',
+      nuid: '000000001',
+    };
+    const res = await supertest()
+      .post('/seeds/createUser')
+      .send({ role: Role.STUDENT, user })
+      .expect(201);
+    expect(
+      await UserModel.findOneOrFail({ where: { id: res.body.userId } }),
+    ).toMatchObject({ ...user, email: 'rivera.jo@northeastern.edu' });
+
+    // The same Keycloak user again is the same app user, in another course
+    const again = await supertest()
+      .post('/seeds/createUser')
+      .send({ role: Role.TA, user })
+      .expect(201);
+    expect(again.body.userId).toBe(res.body.userId);
+    expect(await UserModel.count()).toBe(1);
+  });
+
   it('GET /seeds/createQueue', async () => {
     await CourseFactory.create({ name: 'CS 1800' });
     const res = await supertest()

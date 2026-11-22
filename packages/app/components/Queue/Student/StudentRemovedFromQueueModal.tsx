@@ -16,10 +16,20 @@ export default function StudentRemovedFromQueueModal(
     <Modal
       visible={props.question?.status === LimboQuestionStatus.TADeleted}
       footer={[
-        <Button key="leave" danger onClick={props.leaveQueue}>
+        <Button
+          key="leave"
+          danger
+          data-cy="removed-leave"
+          onClick={props.leaveQueue}
+        >
           Leave Queue
         </Button>,
-        <Button type="primary" key="rejoin" onClick={props.joinQueue}>
+        <Button
+          type="primary"
+          key="rejoin"
+          data-cy="removed-rejoin"
+          onClick={props.joinQueue}
+        >
           Rejoin Queue
         </Button>,
       ]}

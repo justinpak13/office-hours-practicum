@@ -2,6 +2,7 @@ import {
   createAndLoginStudent,
   createQueue,
   createQuestion, createAndLoginTA, checkInTA,
+  clickVisible,
 } from "../../utils";
 
 describe("Student can delete their question", () => {
@@ -20,7 +21,7 @@ describe("Student can delete their question", () => {
     cy.visit(`/course/${this.queue.courseId}/queue/${this.queue.id}`);
 
     cy.get('[data-cy="leave-queue"]').should("be.visible").click();
-    cy.get("span").contains("Yes").click();
+    clickVisible("leave-queue-confirm");
 
     cy.get("body").should("contain", "There are no questions in the queue");
   });

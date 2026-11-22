@@ -21,7 +21,7 @@ describe("Allow or disable new questions for a queue", () => {
     // Change the toggle to not allow new quetsions
     cy.get("[data-cy='editQueue']").click();
     cy.get("[data-cy='allow-questions-toggle']").click();
-    cy.get("span").contains("OK").click();
+    cy.get("[data-cy='edit-queue-submit']").click();
 
     // See that allow questions has been toggled off
     cy.get("[data-cy='stopQuestions']").should("exist");
@@ -29,7 +29,7 @@ describe("Allow or disable new questions for a queue", () => {
     // Change the toggle back to allow new questions
     cy.get("[data-cy='editQueue']").click();
     cy.get("[data-cy='allow-questions-toggle']").click();
-    cy.get("span").contains("OK").click();
+    cy.get("[data-cy='edit-queue-submit']").click();
 
     // See that the 'not allowing new questions' icon is not there any more
     cy.get("[data-cy='stopQuestions']").should("not.exist");
@@ -52,7 +52,7 @@ describe("When allow questions is disabled", () => {
     cy.visit(`/course/${this.queue.courseId}/queue/${this.queue.id}`);
     cy.get("[data-cy='editQueue']").click();
     cy.get("[data-cy='allow-questions-toggle']").click();
-    cy.get("span").contains("OK").click();
+    cy.get("[data-cy='edit-queue-submit']").click();
 
     // See that allow questions has been toggled off
     cy.get("[data-cy='stopQuestions']").should("exist");
@@ -65,7 +65,7 @@ describe("When allow questions is disabled", () => {
     cy.visit(`/course/${this.queue.courseId}/today`);
 
     // Check that the queue is not acccpeting new questions on the today page
-    cy.get('[data-icon="stop"]').should("exist");
+    cy.get("[data-cy='not-accepting-questions']").should("exist");
 
     // Navigate to the queue
     cy.get('[data-cy="open-queue-button"]').click();

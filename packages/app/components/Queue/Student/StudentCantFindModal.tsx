@@ -13,10 +13,20 @@ export default function CantFindModal(props: CantFindModalProps): ReactElement {
     <Modal
       visible={props.visible}
       footer={[
-        <Button key="leave" danger onClick={props.leaveQueue}>
+        <Button
+          key="leave"
+          danger
+          data-cy="cant-find-leave"
+          onClick={props.leaveQueue}
+        >
           Leave Queue
         </Button>,
-        <Button type="primary" key="rejoin" onClick={props.rejoinQueue}>
+        <Button
+          type="primary"
+          key="rejoin"
+          data-cy="cant-find-rejoin"
+          onClick={props.rejoinQueue}
+        >
           Rejoin Queue
         </Button>,
       ]}
