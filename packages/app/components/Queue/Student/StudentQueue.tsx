@@ -27,6 +27,7 @@ import CantFindModal from "./StudentCantFindModal";
 import StudentQueueCard from "./StudentQueueCard";
 import StudentRemovedFromQueueModal from "./StudentRemovedFromQueueModal";
 import { useHotkeys } from "react-hotkeys-hook";
+import { buttonDataCy } from "../../../utils/buttonDataCy";
 
 const Container = styled.div`
   flex: 1;
@@ -339,6 +340,7 @@ export default function StudentQueue({
                   }
                   onConfirm={() => joinQueueOpenModal(true)}
                   okText="Yes"
+                  okButtonProps={buttonDataCy("join-queue-confirm")}
                   cancelText="No"
                   disabled
                   visible={showJoinPopconfirm}

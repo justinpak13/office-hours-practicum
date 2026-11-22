@@ -94,5 +94,41 @@
     "emailVerified": false,
     "firstName": "random",
     "lastName": "person"
+  },
+  {
+    "id": "f207da6a-3293-4aa5-81d0-f1ef5d8c3758",
+    "username": "cypress.user1@northeastern.edu",
+    "email": "cypress.user1@northeastern.edu",
+    "emailVerified": true,
+    "firstName": "Cypress",
+    "lastName": "User1",
+    "nuid": "000000101"
+  },
+  {
+    "id": "470435cf-b031-47b6-b622-34d4f81f96df",
+    "username": "cypress.user2@northeastern.edu",
+    "email": "cypress.user2@northeastern.edu",
+    "emailVerified": true,
+    "firstName": "Cypress",
+    "lastName": "User2",
+    "nuid": "000000102"
+  },
+  {
+    "id": "a480aa83-30d3-4d14-a53e-6b41a1604ead",
+    "username": "cypress.user3@northeastern.edu",
+    "email": "cypress.user3@northeastern.edu",
+    "emailVerified": true,
+    "firstName": "Cypress",
+    "lastName": "User3",
+    "nuid": "000000103"
+  },
+  {
+    "id": "a1c8196d-f9e0-4f44-893e-55f5ec33d2bc",
+    "username": "cypress.user4@northeastern.edu",
+    "email": "cypress.user4@northeastern.edu",
+    "emailVerified": true,
+    "firstName": "Cypress",
+    "lastName": "User4",
+    "nuid": "000000104"
   }
 ]

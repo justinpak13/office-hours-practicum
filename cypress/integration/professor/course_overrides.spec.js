@@ -7,20 +7,26 @@ describe("Professor can create an override", () => {
   });
 
   it("Creates an override and then deletes it", function () {
-    cy.visit(`/course/${this.professor.course.id}/course_admin_panel`);
-    cy.get(".ant-col-4 > .ant-menu > :nth-child(2)").click();
-    // Target the Email box itself: ".ant-input" also matches the roster's
-    // "Search TAs" and "Search students" boxes once they load (~300 ms later),
-    // so the click failed whenever Cypress got there after them.
-    cy.get("input[placeholder='Email']").click().type(this.student.user.email);
-    cy.get(".ant-select-selector").click();
-    cy.contains(/^TA$/).click();
-    cy.get("button").contains("Add Override").click();
-    cy.contains(this.student.user.firstName + " " + this.student.user.lastName);
-    cy.contains(this.student.user.email);
-    cy.contains("ta");
+    const { email, firstName, lastName } = this.student.user;
 
-    cy.get(".ant-btn > .anticon > svg").click();
-    cy.should("not.contain", this.student.user.name);
+    cy.visit(`/course/${this.professor.course.id}/course_admin_panel`);
+    cy.get("[data-cy='admin-menu-roster']").click();
+
+    // Make the student a TA
+    cy.get("[data-cy='override-email']").click().type(email);
+    cy.get("[data-cy='override-role']").click();
+    cy.get("[data-cy='override-role-ta']").click();
+    cy.get("[data-cy='add-override']").click();
+
+    cy.get("[data-cy='override-table']")
+      .should("contain", `${firstName} ${lastName}`)
+      .and("contain", email)
+      .and("contain", "TA");
+
+    // Delete it, and confirm in the popup
+    cy.get(`[data-cy='delete-override-${email}']`).click();
+    cy.get("[data-cy='confirm-delete-override']").should("be.visible").click();
+
+    cy.get("[data-cy='override-table']").should("not.contain", email);
   });
 });

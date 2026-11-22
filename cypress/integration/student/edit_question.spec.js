@@ -29,11 +29,12 @@ describe("Student can edit their question", () => {
       .clear()
       .type("I want to type things");
 
-    cy.get("label").contains("Clarification").click({ force: true });
-    cy.get("body").should("contain", "Clarification");
+    cy.get("[data-cy='question-type-Clarification']")
+      .click({ force: true })
+      .should("be.checked");
 
     // Click Submit
-    cy.get("button").contains("Save Changes").click();
+    cy.get("[data-cy='finishQuestion']").should("contain", "Save Changes").click();
 
     // See that the question is updated on the page
     cy.get("body").contains("I want to type things");

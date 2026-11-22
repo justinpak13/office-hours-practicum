@@ -18,6 +18,11 @@ services:
     ports:
       - "127.0.0.1:4443:4443"
       - "127.0.0.1:8180:8180"
+    # Lets oauth2-proxy reach an app running on the host at
+    # host.docker.internal. Docker Desktop provides that name on its own;
+    # plain Docker Engine on Linux (and GitHub's runners) needs this line.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8180/realms/staging/.well-known/openid-configuration', timeout=2)"]
       interval: 2s

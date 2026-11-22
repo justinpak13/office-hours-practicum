@@ -117,10 +117,13 @@ export default function ProfileDrawer({
                 <a>About Us</a>
               </Link>
             </Menu.Item>
-            <Menu.Item key="4" icon={<LogoutOutlined />}>
-              <a data-cy="logout-button" onClick={logout}>
-                Logout
-              </a>
+            <Menu.Item
+              key="4"
+              icon={<LogoutOutlined />}
+              data-cy="logout-button"
+              onClick={() => logout()}
+            >
+              Logout
             </Menu.Item>
           </Menu>
         }
@@ -129,7 +132,7 @@ export default function ProfileDrawer({
         visible={isPopoverOpen}
         onVisibleChange={setIsPopoverOpen}
       >
-        <AvatarButton>
+        <AvatarButton data-cy="avatar-button">
           <SelfAvatar size={40} />
         </AvatarButton>
       </NoPaddingPopover>

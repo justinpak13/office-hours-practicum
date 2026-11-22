@@ -270,20 +270,54 @@ export class SeedController {
     return 'Data successfully seeded';
   }
 
+  // With `user`, the user is the one with that Keycloak `sub` (created if
+  // needed), so logging in as that fake Keycloak user through oauth2-proxy
+  // logs in as them. Their profile is set to match Keycloak's, because every
+  // request copies it from the token.
   @Post('createUser')
   async createUser(
-    @Body() body: { role: Role; courseId: number },
+    @Body()
+    body: {
+      role: Role;
+      courseId: number;
+      user?: {
+        keycloakSub: string;
+        email: string;
+        firstName?: string;
+        lastName?: string;
+        nuid?: string;
+      };
+    },
   ): Promise<UserCourseModel> {
-    let ta: UserCourseModel;
+    const options: DeepPartial<UserCourseModel> = { role: body.role };
     if (body.courseId) {
-      const course = await CourseModel.findOneOrFail({
+      options.course = await CourseModel.findOneOrFail({
         where: { id: body.courseId },
       });
-      ta = await UserCourseFactory.create({ role: body.role, course: course });
-    } else {
-      ta = await UserCourseFactory.create({ role: body.role });
     }
-    return ta;
+    if (body.user) {
+      const profile = {
+        email: body.user.email.toLowerCase(),
+        firstName: body.user.firstName ?? null,
+        lastName: body.user.lastName ?? null,
+        nuid: body.user.nuid ?? null,
+      };
+      const existing = await UserModel.findOne({
+        where: { keycloakSub: body.user.keycloakSub },
+      });
+      if (existing) {
+        await UserModel.update(existing.id, profile);
+        options.user = await UserModel.findOneOrFail({
+          where: { id: existing.id },
+        });
+      } else {
+        options.user = await UserFactory.create({
+          ...profile,
+          keycloakSub: body.user.keycloakSub,
+        });
+      }
+    }
+    return UserCourseFactory.create(options);
   }
 
   @Post('createQueue')

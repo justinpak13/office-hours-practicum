@@ -16,6 +16,7 @@ import { RenderEvery } from "../RenderEvery";
 import { TAStatuses } from "./TAStatuses";
 import { API } from "@koh/api-client";
 import Router from "next/router";
+import { buttonDataCy } from "../../utils/buttonDataCy";
 
 export const Container = styled.div`
   display: flex;
@@ -168,6 +169,7 @@ export function QueueInfoColumn({
       style: { whiteSpace: "pre-wrap" },
       content: `Please confirm that you want to disable the queue: ${queue.room}.\n
       This queue will no longer appear in the app, and any students currently in the queue will be removed.`,
+      okButtonProps: buttonDataCy("disable-queue-confirm"),
       onOk() {
         disableQueue();
       },
@@ -229,12 +231,15 @@ export function QueueInfoColumn({
               "Are you sure you want to clear all students from the queue?"
             }
             okText="Yes"
+            okButtonProps={buttonDataCy("clear-queue-confirm")}
             cancelText="No"
             placement="top"
             arrowPointAtCenter={true}
             onConfirm={clearQueue}
           >
-            <ClearQueueButton>Clear Queue</ClearQueueButton>
+            <ClearQueueButton data-cy="clear-queue-button">
+              Clear Queue
+            </ClearQueueButton>
           </Popconfirm>
           <DisableQueueButton
             onClick={confirmDisable}

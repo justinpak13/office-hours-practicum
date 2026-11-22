@@ -15,6 +15,7 @@ import { useQueue } from "../../../hooks/useQueue";
 import { useStudentQuestion } from "../../../hooks/useStudentQuestion";
 import { toOrdinal } from "../../../utils/ordinal";
 import Banner, { BannerButton, BannerDangerButton } from "../Banner";
+import { buttonDataCy } from "../../../utils/buttonDataCy";
 
 const BoldNumber = styled.span`
   font-weight: bold;
@@ -230,6 +231,7 @@ function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => void }) {
     <Popconfirm
       title={`Are you sure you want to leave the queue?`}
       okText="Yes"
+      okButtonProps={buttonDataCy("leave-queue-confirm")}
       cancelText="No"
       onConfirm={leaveQueue}
     >

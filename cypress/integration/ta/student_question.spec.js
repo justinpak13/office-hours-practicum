@@ -5,6 +5,7 @@ import {
   createQuestion,
   loginUser,
   createAndLoginStudent,
+  clickVisible,
 } from "../../utils";
 
 describe("TA interacts with student question", () => {
@@ -89,7 +90,7 @@ describe("TA interacts with student question", () => {
     // Click Remove from Queue
     cy.get("[data-cy='remove-from-queue']").should("be.visible").click();
     // Click yes on the modal
-    cy.get("span").contains("Yes").click();
+    clickVisible("remove-from-queue-confirm");
 
     // Check that there is only one question left in the queue
     cy.get("[data-cy='list-queue'] [data-cy^='queue-list-item']").should(
@@ -119,7 +120,7 @@ describe("TA interacts with student question", () => {
       .should("be.visible")
       .click({ force: true });
     // Click yes on the modal (force for the same leftover tooltip)
-    cy.get("span").contains("Yes").click({ force: true });
+    clickVisible("remove-from-queue-confirm", { force: true });
 
     // check question is helping
     cy.get(
@@ -137,8 +138,7 @@ describe("TA interacts with student question", () => {
         .click();
       cy.get("[data-cy='remove-from-queue']").first().click();
 
-      cy.get("body").should("contain", "Yes");
-      cy.get("button").contains("Yes").click();
+      clickVisible("remove-from-queue-confirm");
 
       // Login the student
       loginUser("student");
@@ -150,8 +150,7 @@ describe("TA interacts with student question", () => {
             "You've been removed from the queue by a TA. If you have any questions, please reach out to the TA. If you'd like to join back into the queue with your previous question, click Rejoin Queue, otherwise click Leave Queue."
           );
 
-          cy.get("body").should("contain", "Rejoin Queue");
-          cy.get("button").contains("Rejoin Queue").click();
+          cy.get('[data-cy="removed-rejoin"]').should("be.visible").click();
 
           // Check that the student was sucessfully but back into the queue
           cy.get("body").should("contain", "How do I use the design recipe?");
@@ -171,8 +170,7 @@ describe("TA interacts with student question", () => {
       // Click Remove from queue from the sidebar
       cy.get("[data-cy='remove-from-queue']").click();
 
-      cy.get("body").should("contain", "Yes");
-      cy.get("button").contains("Yes").click();
+      clickVisible("remove-from-queue-confirm");
 
       // Login the student
       loginUser("student");
@@ -184,7 +182,7 @@ describe("TA interacts with student question", () => {
             "You've been removed from the queue by a TA. If you have any questions, please reach out to the TA. If you'd like to join back into the queue with your previous question, click Rejoin Queue, otherwise click Leave Queue."
           );
 
-          cy.get("button").contains("Leave Queue").click();
+          cy.get('[data-cy="removed-leave"]').should("be.visible").click();
 
           // Check to see that the student sucessfully left the queue
           cy.get("body").should(
@@ -205,11 +203,14 @@ describe("TA interacts with student question", () => {
         },
       });
 
-      cy.get("body").contains("Still Drafting").click();
+      cy.get("@draftingQuestion").then((question) => {
+        cy.get(`[data-cy='queue-list-item-${question.id}']`)
+          .should("contain", "Still Drafting")
+          .click();
+      });
 
       cy.get("[data-cy='remove-from-queue']").click();
-      cy.get("body").should("contain", "Yes");
-      cy.get("button").contains("Yes").click();
+      clickVisible("remove-from-queue-confirm");
 
       cy.get("body").should("not.contain", "Still Drafting");
     });

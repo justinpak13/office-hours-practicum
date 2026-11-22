@@ -7,6 +7,7 @@ import styled from "styled-components";
 import useSWR from "swr";
 import { useCourse } from "../../hooks/useCourse";
 import AddOverrideInput from "./AddOverrideInput";
+import { buttonDataCy } from "../../utils/buttonDataCy";
 
 const { Column } = Table;
 
@@ -39,6 +40,7 @@ export default function CourseOverrideSettings({
       <br />
       <AddOverrideInput courseId={courseId} onAddOverride={() => mutate()} />
       <Table
+        data-cy="override-table"
         dataSource={data?.data.map((row, i) => ({
           ...row,
           key: i,
@@ -65,11 +67,14 @@ export default function CourseOverrideSettings({
                 mutate();
               }}
               okText="Remove"
-              okButtonProps={{ danger: true }}
+              okButtonProps={buttonDataCy("confirm-delete-override", {
+                danger: true,
+              })}
               cancelText="Cancel"
             >
               <Button
                 type="link"
+                data-cy={`delete-override-${record.email}`}
                 style={{ textAlign: "center" }}
                 icon={<DeleteOutlined style={{ color: "red" }} />}
               />

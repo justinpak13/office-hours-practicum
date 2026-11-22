@@ -26,19 +26,9 @@ describe('Can successfully delete queues', () => {
             .click();
 
         // modal shenanigans
-        cy.get("[class=\"ant-modal-confirm-title\"]")
-            .contains("Please Confirm!")
-            .parent()
-            .parent()
-            .parent()
-            .parent()
-            .should('have.class', 'ant-modal-content')
-            .within(($content) => {
-                cy.get("span").contains("OK")
-                    .parent()
-                    .should('have.class', 'ant-btn-primary')
-                    .click();
-            });
+        cy.get("[data-cy=\"disable-queue-confirm\"]")
+            .should("be.visible")
+            .click();
 
         // shouldnt be in a queue, but want to be at the today page (fallback)
         cy.location("pathname", {timeout: 30000})

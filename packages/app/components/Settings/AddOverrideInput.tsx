@@ -40,17 +40,28 @@ export default function AddOverrideInput({
           style={{ marginRight: 10 }}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          data-cy="override-email"
         />
         <Select
           style={{ width: 120, marginRight: 10 }}
           value={role}
           onChange={(e) => setRole(e)}
+          data-cy="override-role"
         >
-          <Select.Option value={Role.STUDENT}>Student</Select.Option>
-          <Select.Option value={Role.TA}>TA</Select.Option>
-          <Select.Option value={Role.PROFESSOR}>Professor</Select.Option>
+          <Select.Option value={Role.STUDENT} data-cy="override-role-student">
+            Student
+          </Select.Option>
+          <Select.Option value={Role.TA} data-cy="override-role-ta">
+            TA
+          </Select.Option>
+          <Select.Option
+            value={Role.PROFESSOR}
+            data-cy="override-role-professor"
+          >
+            Professor
+          </Select.Option>
         </Select>
-        <Button type="primary" onClick={addOverride}>
+        <Button type="primary" onClick={addOverride} data-cy="add-override">
           Add Override
         </Button>
       </OverrideInput>

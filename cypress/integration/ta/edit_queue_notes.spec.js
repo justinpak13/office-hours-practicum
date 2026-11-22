@@ -14,9 +14,9 @@ describe("Edit Queue Notes", () => {
     taOpenOnline();
     cy.visit(`/course/${this.queue.course.id}/today`);
 
-    cy.get("button[class*='EditNotesButton']").click();
-    cy.get("textarea").click().type("alex has a smooth brain");
-    cy.contains("button", "Save Changes").click();
+    cy.get("[data-cy='edit-notes-button']").click();
+    cy.get("[data-cy='edit-notes-input']").click().type("alex has a smooth brain");
+    cy.get("[data-cy='save-notes-button']").click();
 
     cy.get("body").contains("alex has a smooth brain");
   });
@@ -26,10 +26,9 @@ describe("Edit Queue Notes", () => {
 
     cy.get("[data-cy='editQueue']").click();
 
-    cy.get("textarea").type("read the question!{enter}");
+    cy.get("[data-cy='queue-notes-input']").type("read the question!{enter}");
 
-    cy.get("body").should("contain", "OK");
-    cy.contains("button", "OK").click();
+    cy.get("[data-cy='edit-queue-submit']").should("be.visible").click();
 
     cy.contains("read the question!");
   });

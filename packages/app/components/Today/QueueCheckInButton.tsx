@@ -31,6 +31,9 @@ export default function TodayPageCheckinButton(): ReactElement {
   const { cid } = router.query;
   const { course, mutateCourse } = useCourse(Number(cid));
   const role = useRoleInCourse(Number(cid));
+  // undefined until the profile loads, so check for staff rather than
+  // "not a student"
+  const isStaff = role === Role.TA || role === Role.PROFESSOR;
   const availableQueues = course?.queues.filter((q) =>
     role === Role.TA ? !q.isProfessorQueue : true
   );
@@ -41,13 +44,22 @@ export default function TodayPageCheckinButton(): ReactElement {
   const numQueues = course?.queues.length;
 
   const renderProperModal = () => {
+    // Until the course loads, numQueues is undefined and there are no queues
+    // to list, so the check-in modal would crash
+    if (!course) return;
     numQueues !== 0
       ? setCheckInModalVisible(true)
       : setCreateQueueModalVisible(true);
   };
 
   const submitMakeQueue = async (submittedForm) => {
-    const queueRequest = await submittedForm.validateFields();
+    let queueRequest;
+    try {
+      queueRequest = await submittedForm.validateFields();
+    } catch {
+      // Invalid form: antd already shows the errors next to the fields
+      return;
+    }
     try {
       await API.taStatus.makeQueue(
         Number(cid),
@@ -117,17 +129,18 @@ export default function TodayPageCheckinButton(): ReactElement {
           lastName={profile?.lastName}
         />
       )}
-      {!queueCheckedIn && role !== Role.STUDENT && (
+      {!queueCheckedIn && isStaff && (
         <CheckinButton
           type="default"
           size="large"
           data-cy="check-in-modal-button"
+          disabled={!course}
           onClick={() => renderProperModal()}
         >
           Check In
         </CheckinButton>
       )}
-      {queueCheckedIn && role !== Role.STUDENT && (
+      {queueCheckedIn && isStaff && (
         <TACheckinButton
           courseId={Number(cid)}
           room={queueCheckedIn.room}
