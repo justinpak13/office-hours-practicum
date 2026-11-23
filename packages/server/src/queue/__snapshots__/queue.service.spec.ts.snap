@@ -65,6 +65,7 @@ ListQuestionsResponse {
         "MedianHelpingTime",
       ],
       "keycloakSub": null,
+      "lastKhourySyncAt": null,
       "lastName": "Person",
       "name": "User Person",
       "nuid": null,

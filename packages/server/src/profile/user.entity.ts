@@ -44,6 +44,11 @@ export class UserModel extends BaseEntity {
   @Exclude()
   keycloakSub: string | null;
 
+  // When the last Khoury Admin sync was claimed (see KhouryAdminSyncService.syncIfDue)
+  @Column({ type: 'timestamptz', nullable: true })
+  @Exclude()
+  lastKhourySyncAt: Date | null;
+
   @Column('text', { nullable: true })
   firstName: string;
 
