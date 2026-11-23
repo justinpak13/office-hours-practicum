@@ -74,23 +74,53 @@ describe('KhouryAdminClient', () => {
       expect(b.courses.length).toBeGreaterThan(0);
       b.courses.forEach((c) => ids.add(c.section_group_id));
     }
-    const a = await client.getSectionGroups('li.edwa@northeastern.edu', sem);
-    a.section_groups.forEach((g) => ids.add(g.id));
+    const names = (dir: string) =>
+      fs.readdirSync(dir).map((f) => f.replace(/\.json$/, ''));
+    for (const e of names(path.join(dataDir, sem, 'instructors'))) {
+      const a = await client.getSectionGroups(e, sem);
+      expect(a.section_groups.length).toBeGreaterThan(0);
+      a.section_groups.forEach((g) => ids.add(g.id));
+    }
     for (const id of ids) {
       expect(id).toMatch(/^sg_\d{18}$/);
       expect(await client.getRoster(id)).not.toBeNull();
     }
-    const rosters = fs
-      .readdirSync(path.join(dataDir, 'rosters'))
-      .map((f) => f.replace(/\.json$/, ''));
+    const rosters = names(path.join(dataDir, 'rosters'));
     for (const r of rosters.filter((r) => !r.endsWith('-updated'))) {
       expect((await client.getRoster(r))?.id).toBe(r);
     }
-    // the -updated variant is served through the stub's rosterSuffix option
+    // the -updated variants are served through the stub's rosterSuffix option
     await point({ rosterSuffix: '-updated' });
-    for (const id of ['sg_120271000000000001']) {
+    for (const r of rosters.filter((r) => r.endsWith('-updated'))) {
+      const id = r.replace(/-updated$/, '');
       expect((await client.getRoster(id))?.id).toBe(id);
     }
+  });
+
+  it('rosterSuffix serves the variant, falls back to base, keeps 404s', async () => {
+    await point({ rosterSuffix: '-updated' });
+    const emails = async (id: string) =>
+      (await client.getRoster(id))?.sections.flatMap((s) =>
+        s.students.map((p) => p.email),
+      );
+    expect(await emails('sg_120271000000000001')).toContain(
+      'm.lee@northeastern.edu',
+    );
+    expect(await emails('sg_120271000000000002')).toEqual([
+      'm.lee@northeastern.edu',
+    ]);
+    expect(await client.getRoster('sg_220271000350000001')).toBeNull();
+  });
+
+  it('A lists the moved CRNs under a set-up group', async () => {
+    await point();
+    const a = await client.getSectionGroups(
+      'li.edwa@northeastern.edu',
+      '202710',
+    );
+    const g = a.section_groups.find((g) => g.crns.includes(20111));
+    expect(g?.id).toMatch(/^sg_1/);
+    expect(g?.crns).toEqual(expect.arrayContaining([20111, 20112]));
   });
 
   it('C returns null for sg_9999', async () => {
