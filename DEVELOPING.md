@@ -69,7 +69,7 @@ These are hardcoded.
 
 ### Server environment variables
 
-The server loads `packages/server/.env`, then `packages/server/.env.development` when `NODE_ENV` isn't `production`. Tests do not read either file; they use `packages/server/.env.test` (see [Testing](#testing)).
+The server loads `packages/server/.env`, then `packages/server/.env.development` when `NODE_ENV` isn't `production`. If both set a variable, the value in `.env` wins. `yarn dev:stub` reads both files too, so `NODE_ENV=production` set there stops the stub. Tests do not read either file; they use `packages/server/.env.test` (see [Testing](#testing)).
 
 | Variable | Used for |
 |---|---|

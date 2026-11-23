@@ -570,6 +570,17 @@ describe('KhouryAdminClient', () => {
       expect(err.message).not.toContain('distinctive-secret-xyz');
     });
 
+    it('turns a null rejection into a KhouryAdminError', async () => {
+      const svc = new HttpService();
+      jest.spyOn(svc, 'get').mockImplementation(() => {
+        throw null;
+      });
+      const c = new KhouryAdminClient(svc, new ConfigService());
+      await expect(c.getRoster('sg_1001')).rejects.toBeInstanceOf(
+        KhouryAdminError,
+      );
+    });
+
     it('the stub trims a padded env token', async () => {
       process.env.KHOURY_ADMIN_TOKEN = '  padded-env  ';
       expect(await raw('Token padded-env')).toBe(200);
