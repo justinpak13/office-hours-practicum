@@ -1,7 +1,8 @@
 import { Strategy as PassportBaseStrategy } from 'passport';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
+import { ConsoleLogger, Injectable } from '@nestjs/common';
 import { Request } from 'express';
+import { KhouryAdminSyncService } from '../khoury-admin/khoury-admin-sync.service';
 import { OidcTokenService } from '../oidc/oidc-token.service';
 import { OidcUserService } from '../oidc/oidc-user.service';
 
@@ -42,9 +43,12 @@ export class JwtStrategy extends PassportStrategy(RequestStrategy, 'jwt') {
   constructor(
     private oidcTokenService: OidcTokenService,
     private oidcUserService: OidcUserService,
+    private khouryAdminSync: KhouryAdminSyncService,
   ) {
     super();
   }
+
+  private readonly logger = new ConsoleLogger(JwtStrategy.name);
 
   async validate(req: Request): Promise<AuthenticatedUser> {
     // Throws 401 if the token is missing or fails any check
@@ -52,6 +56,10 @@ export class JwtStrategy extends PassportStrategy(RequestStrategy, 'jwt') {
       req.headers.authorization,
     );
     const user = await this.oidcUserService.findOrCreate(claims);
+    // Background sync (gated to once a day): login never waits on it or fails from it
+    void this.khouryAdminSync
+      .syncIfDue(user)
+      .catch((e) => this.logger.warn(`Khoury Admin sync failed: ${e}`));
     return { userId: user.id };
   }
 }
