@@ -292,6 +292,39 @@ describe('KhouryAdminClient', () => {
     await expect(c.getRoster('sg_1')).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
+  it('C requires a clean nuid on every person', async () => {
+    const svc = new HttpService();
+    const get = jest.spyOn(svc, 'get');
+    const c = new KhouryAdminClient(svc, new ConfigService());
+    const roster = (person: any) =>
+      of({
+        status: 200,
+        data: {
+          id: 'sg_1',
+          name: 'x',
+          semester: '202710',
+          generated_at: '2026-09-01T12:00:00Z',
+          professors: [person],
+          tas: [],
+          sections: [],
+        },
+      } as any);
+    const p = { email: 'a@northeastern.edu', first_name: 'A', last_name: '' };
+    for (const bad of [
+      p,
+      { ...p, nuid: ' 1' },
+      { ...p, nuid: '' },
+      { ...p, nuid: 4 },
+    ]) {
+      get.mockReturnValue(roster(bad));
+      await expect(c.getRoster('sg_1')).rejects.toBeInstanceOf(
+        KhouryAdminError,
+      );
+    }
+    get.mockReturnValue(roster({ ...p, nuid: '000000004' }));
+    expect((await c.getRoster('sg_1'))?.professors[0].nuid).toBe('000000004');
+  });
+
   it('survives a malformed percent-encoded URL', async () => {
     const { server, port } = await listen();
     servers.push(server);

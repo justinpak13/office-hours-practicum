@@ -1,5 +1,6 @@
 export interface KhouryPerson {
   email: string;
+  nuid: string;
   first_name: string;
   last_name: string;
 }
