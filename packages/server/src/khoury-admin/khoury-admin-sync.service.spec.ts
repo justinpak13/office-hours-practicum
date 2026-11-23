@@ -33,6 +33,7 @@ describe('KhouryAdminSyncService', () => {
     getCourses: jest.fn(),
     getRoster: jest.fn(),
   };
+  const NUID = '001234567';
   const sem = '202710'; // Fall 2026, matches KHOURY_SEMESTER in .env.test
 
   beforeAll(async () => {
@@ -68,7 +69,7 @@ describe('KhouryAdminSyncService', () => {
     const e = normalizeEmail(email);
     const user =
       (await UserModel.findOneBy({ email: e })) ??
-      (await UserFactory.create({ email: e }));
+      (await UserFactory.create({ nuid: NUID, email: e }));
     await service.onSignIn(user);
     return user;
   };
@@ -85,7 +86,10 @@ describe('KhouryAdminSyncService', () => {
   });
 
   it('saves A into ProfSectionGroupsModel; no row for an empty result', async () => {
-    const u = await UserFactory.create({ email: 'p@northeastern.edu' });
+    const u = await UserFactory.create({
+      nuid: NUID,
+      email: 'p@northeastern.edu',
+    });
     await signIn('p@northeastern.edu');
     expect(await ProfSectionGroupsModel.count()).toBe(0);
 
@@ -463,7 +467,10 @@ describe('KhouryAdminSyncService', () => {
       const course = await CourseFactory.create({
         khourySectionGroupId: 'sg_1',
       });
-      const u = await UserFactory.create({ email: 's@northeastern.edu' });
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+      });
       const uc = await UserCourseFactory.create({
         user: u,
         course,
@@ -500,7 +507,10 @@ describe('KhouryAdminSyncService', () => {
 
   it('logs KhouryAdminError from A or B, leaves courses', async () => {
     const course = await CourseFactory.create({ khourySectionGroupId: 'sg_1' });
-    const u = await UserFactory.create({ email: 's@northeastern.edu' });
+    const u = await UserFactory.create({
+      nuid: NUID,
+      email: 's@northeastern.edu',
+    });
     const uc = await UserCourseFactory.create({
       user: u,
       course,
@@ -515,7 +525,10 @@ describe('KhouryAdminSyncService', () => {
   });
 
   it('keeps the A row and still applies B when A fails', async () => {
-    const u = await UserFactory.create({ email: 's@northeastern.edu' });
+    const u = await UserFactory.create({
+      nuid: NUID,
+      email: 's@northeastern.edu',
+    });
     const rows = [{ id: 'sg_old', name: 'Old', crns: [1], semester: sem }];
     await ProfSectionGroupsModel.create({
       profId: u.id,
@@ -538,7 +551,7 @@ describe('KhouryAdminSyncService', () => {
   });
 
   it('starts A and B together, before either resolves', async () => {
-    await UserFactory.create({ email: 's@northeastern.edu' });
+    await UserFactory.create({ nuid: NUID, email: 's@northeastern.edu' });
     let releaseA: () => void;
     client.getSectionGroups.mockReturnValue(
       new Promise((r) => {
@@ -554,7 +567,10 @@ describe('KhouryAdminSyncService', () => {
   });
 
   it('keeps A saved and does not throw when B fails', async () => {
-    const u = await UserFactory.create({ email: 's@northeastern.edu' });
+    const u = await UserFactory.create({
+      nuid: NUID,
+      email: 's@northeastern.edu',
+    });
     client.getSectionGroups.mockResolvedValue({
       semester: sem,
       section_groups: [{ id: 'sg_1', name: 'N', crns: [1] }],
@@ -567,7 +583,10 @@ describe('KhouryAdminSyncService', () => {
   });
 
   it('a KhouryAdminError rejection from A is logged and B is still applied', async () => {
-    const u = await UserFactory.create({ email: 's@northeastern.edu' });
+    const u = await UserFactory.create({
+      nuid: NUID,
+      email: 's@northeastern.edu',
+    });
     const course = await CourseFactory.create({ khourySectionGroupId: 'sg_1' });
     client.getSectionGroups.mockImplementation(async () => {
       throw new KhouryAdminError('bad');
@@ -617,7 +636,10 @@ describe('KhouryAdminSyncService', () => {
       const course = await CourseFactory.create({
         khourySectionGroupId: 'sg_1',
       });
-      const u = await UserFactory.create({ email: 's@northeastern.edu' });
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+      });
       const uc = await UserCourseFactory.create({ user: u, course, ...row });
       client.getCourses.mockResolvedValue({
         semester: sem,
@@ -670,7 +692,10 @@ describe('KhouryAdminSyncService', () => {
       const course = await CourseFactory.create({
         khourySectionGroupId: 'sg_120271000000000001',
       });
-      const u = await UserFactory.create({ email: 's@northeastern.edu' });
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+      });
       const uc = await UserCourseFactory.create({
         user: u,
         course,
@@ -734,7 +759,10 @@ describe('KhouryAdminSyncService', () => {
         semester: sem,
         section_groups: [{ id: 'sg_1', name: 'CS', crns: [1] }],
       });
-      const u = await UserFactory.create({ email: 'p@northeastern.edu' });
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 'p@northeastern.edu',
+      });
       await Promise.all([service.onSignIn(u), service.onSignIn(u)]);
       const rows = await ProfSectionGroupsModel.find();
       expect(rows).toHaveLength(1);
@@ -744,14 +772,14 @@ describe('KhouryAdminSyncService', () => {
     });
 
     it('DB rejects a second legacy user with the same email', async () => {
-      await UserFactory.create({ email: 'dup@northeastern.edu' });
+      await UserFactory.create({ nuid: NUID, email: 'dup@northeastern.edu' });
       await expect(
-        UserFactory.create({ email: 'dup@northeastern.edu' }),
+        UserFactory.create({ nuid: NUID, email: 'dup@northeastern.edu' }),
       ).rejects.toMatchObject({ driverError: { code: '23505' } });
     });
 
     it('concurrent sign-ins create one membership', async () => {
-      await UserFactory.create({ email: 's@northeastern.edu' });
+      await UserFactory.create({ nuid: NUID, email: 's@northeastern.edu' });
       await CourseFactory.create({ khourySectionGroupId: 'sg_1' });
       client.getCourses.mockResolvedValue({
         semester: sem,
@@ -771,7 +799,10 @@ describe('KhouryAdminSyncService', () => {
       (await UserModel.findOneByOrFail({ id: u.id })).lastKhourySyncAt;
 
     it('syncs a never-synced user and records the time', async () => {
-      const u = await UserFactory.create({ email: 's@northeastern.edu' });
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+      });
       await service.syncIfDue(u);
       expect(client.getSectionGroups).toHaveBeenCalledTimes(1);
       expect(client.getCourses).toHaveBeenCalledTimes(1);
@@ -780,6 +811,7 @@ describe('KhouryAdminSyncService', () => {
 
     it('does nothing when synced 1 hour ago', async () => {
       const u = await UserFactory.create({
+        nuid: NUID,
         email: 's@northeastern.edu',
         lastKhourySyncAt: hoursAgo(1),
       });
@@ -790,6 +822,7 @@ describe('KhouryAdminSyncService', () => {
 
     it('syncs when synced 25 hours ago', async () => {
       const u = await UserFactory.create({
+        nuid: NUID,
         email: 's@northeastern.edu',
         lastKhourySyncAt: hoursAgo(25),
       });
@@ -799,16 +832,46 @@ describe('KhouryAdminSyncService', () => {
     });
 
     it('two concurrent calls run one sync', async () => {
-      const u = await UserFactory.create({ email: 's@northeastern.edu' });
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+      });
       await Promise.all([service.syncIfDue(u), service.syncIfDue(u)]);
       expect(client.getSectionGroups).toHaveBeenCalledTimes(1);
+    });
+
+    it('B runs with the NUID; a null NUID skips B and A still runs', async () => {
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+      });
+      await service.syncIfDue(u);
+      expect(client.getCourses).toHaveBeenCalledWith(
+        's@northeastern.edu',
+        sem,
+        NUID,
+      );
+      client.getCourses.mockClear();
+      const v = await UserFactory.create({
+        nuid: null,
+        email: 't@northeastern.edu',
+      });
+      await service.syncIfDue(v);
+      expect(client.getCourses).not.toHaveBeenCalled();
+      expect(client.getSectionGroups).toHaveBeenLastCalledWith(
+        't@northeastern.edu',
+        sem,
+      );
     });
 
     it('client failure keeps memberships, resolves, and keeps the timestamp', async () => {
       const course = await CourseFactory.create({
         khourySectionGroupId: 'sg_1',
       });
-      const u = await UserFactory.create({ email: 's@northeastern.edu' });
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+      });
       await UserCourseFactory.create({ user: u, course, role: Role.TA });
       client.getSectionGroups.mockRejectedValue(new KhouryAdminError('down'));
       client.getCourses.mockRejectedValue(new KhouryAdminError('down'));

@@ -61,9 +61,16 @@ export class KhouryAdminClient {
   async getCourses(
     email: string,
     semester: string,
+    nuid: string | null | undefined,
   ): Promise<UserCoursesResponse> {
+    // NOTE: Khoury Admin looks people up by NUID (Banner can't search by email), so B needs it
+    if (!nuid?.trim()) {
+      throw new KhouryAdminError('getCourses needs a NUID');
+    }
     return this.get(
-      `/api/v1/users/${enc(norm(email))}/courses?semester=${enc(semester)}`,
+      `/api/v1/users/${enc(norm(email))}/courses?semester=${enc(
+        semester,
+      )}&nuid=${enc(nuid)}`,
       (d) =>
         d.semester === semester &&
         every(

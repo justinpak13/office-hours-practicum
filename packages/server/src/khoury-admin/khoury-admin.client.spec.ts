@@ -53,7 +53,11 @@ describe('KhouryAdminClient', () => {
 
   it('B returns [] for an unknown person', async () => {
     await point();
-    const res = await client.getCourses('nobody@northeastern.edu', '202710');
+    const res = await client.getCourses(
+      'nobody@northeastern.edu',
+      '202710',
+      '001234567',
+    );
     expect(res.courses).toEqual([]);
   });
 
@@ -70,7 +74,7 @@ describe('KhouryAdminClient', () => {
       .map((f) => f.replace(/\.json$/, ''));
     const ids = new Set<string>();
     for (const e of emails) {
-      const b = await client.getCourses(e, sem);
+      const b = await client.getCourses(e, sem, '001234567');
       expect(b.courses.length).toBeGreaterThan(0);
       b.courses.forEach((c) => ids.add(c.section_group_id));
     }
@@ -279,7 +283,7 @@ describe('KhouryAdminClient', () => {
   it('throws KhouryAdminError on badshape', async () => {
     await point({ fail: 'badshape' });
     await expect(
-      client.getCourses('liu.sta@northeastern.edu', '202710'),
+      client.getCourses('liu.sta@northeastern.edu', '202710', '000000004'),
     ).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
@@ -332,7 +336,7 @@ describe('KhouryAdminClient', () => {
       } as any),
     );
     await expect(
-      c.getCourses('a@northeastern.edu', '202710'),
+      c.getCourses('a@northeastern.edu', '202710', '001234567'),
     ).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
@@ -368,7 +372,7 @@ describe('KhouryAdminClient', () => {
       } as any),
     );
     await expect(
-      c.getCourses('a@northeastern.edu', '202710'),
+      c.getCourses('a@northeastern.edu', '202710', '001234567'),
     ).rejects.toBeInstanceOf(KhouryAdminError);
     get.mockClear();
     await expect(c.getRoster(bad)).rejects.toBeInstanceOf(KhouryAdminError);
@@ -405,12 +409,16 @@ describe('KhouryAdminClient', () => {
       } as any),
     );
     expect(
-      (await c.getCourses('a@northeastern.edu', '202710')).courses,
+      (await c.getCourses('a@northeastern.edu', '202710', '001234567')).courses,
     ).toHaveLength(1);
   });
 
   it('rejects, not throws, on an email with a lone surrogate', async () => {
-    const p = client.getCourses('a\uD800@northeastern.edu', '202710');
+    const p = client.getCourses(
+      'a\uD800@northeastern.edu',
+      '202710',
+      '001234567',
+    );
     await expect(p).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
@@ -430,7 +438,7 @@ describe('KhouryAdminClient', () => {
       } as any),
     );
     await expect(
-      c.getCourses('a@northeastern.edu', '202710'),
+      c.getCourses('a@northeastern.edu', '202710', '001234567'),
     ).rejects.toBeInstanceOf(KhouryAdminError);
     get.mockReturnValue(
       of({
@@ -514,7 +522,11 @@ describe('KhouryAdminClient', () => {
 
   it('resolves husky.neu.edu aliases case-insensitively', async () => {
     await point();
-    const b = await client.getCourses('Liu.Sta@Husky.NEU.edu', '202710');
+    const b = await client.getCourses(
+      'Liu.Sta@Husky.NEU.edu',
+      '202710',
+      '000000004',
+    );
     expect(b.courses.map((c) => c.section_group_id)).toEqual([
       'sg_120271000000000001',
     ]);
@@ -551,7 +563,7 @@ describe('KhouryAdminClient', () => {
         client.getSectionGroups('x@northeastern.edu', '202710'),
       ).rejects.toBeInstanceOf(KhouryAdminError);
       await expect(
-        client.getCourses('x@northeastern.edu', '202710'),
+        client.getCourses('x@northeastern.edu', '202710', '001234567'),
       ).rejects.toBeInstanceOf(KhouryAdminError);
       await expect(
         client.getRoster('sg_120271000000000009'),
@@ -588,7 +600,7 @@ describe('KhouryAdminClient', () => {
           client.getSectionGroups('x@northeastern.edu', '202710'),
         ).rejects.toBeInstanceOf(KhouryAdminError);
         await expect(
-          client.getCourses('x@northeastern.edu', '202710'),
+          client.getCourses('x@northeastern.edu', '202710', '001234567'),
         ).rejects.toBeInstanceOf(KhouryAdminError);
         await expect(
           client.getRoster('sg_120271000000000009'),
@@ -614,9 +626,40 @@ describe('KhouryAdminClient', () => {
       (rec.address() as AddressInfo).port
     }`;
     await client.getSectionGroups('LIU.STA@HUSKY.NEU.EDU', '202710');
-    await client.getCourses('LIU.STA@HUSKY.NEU.EDU', '202710');
+    await client.getCourses('LIU.STA@HUSKY.NEU.EDU', '202710', '000000004');
     expect(urls).toHaveLength(2);
     urls.forEach((u) => expect(u).toContain('liu.sta%40northeastern.edu'));
+    expect(urls[1]).toContain('&nuid=000000004');
+  });
+
+  it('getCourses without a NUID rejects before any request', async () => {
+    const urls: string[] = [];
+    const rec = http.createServer((req, res) => {
+      urls.push(req.url as string);
+      res.end('{}');
+    });
+    await new Promise<void>((r) => rec.listen(0, '127.0.0.1', r));
+    servers.push(rec);
+    process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${
+      (rec.address() as AddressInfo).port
+    }`;
+    for (const nuid of ['', '  ', null, undefined]) {
+      await expect(
+        client.getCourses('a@northeastern.edu', '202710', nuid),
+      ).rejects.toBeInstanceOf(KhouryAdminError);
+    }
+    expect(urls).toHaveLength(0);
+  });
+
+  it('the fake server answers B without nuid with 400', async () => {
+    const s = await listen();
+    servers.push(s.server);
+    const res = await fetch(
+      `http://127.0.0.1:${s.port}/api/v1/users/liu.sta%40northeastern.edu/courses?semester=202710`,
+      { headers: auth },
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'nuid required' });
   });
 
   it('works when KHOURY_ADMIN_URL has a trailing slash', async () => {
@@ -644,7 +687,7 @@ describe('KhouryAdminClient', () => {
       of({ status: 200, data: { semester: '202730', courses: [] } } as any),
     );
     await expect(
-      c.getCourses('a@northeastern.edu', '202710'),
+      c.getCourses('a@northeastern.edu', '202710', '001234567'),
     ).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
@@ -721,7 +764,9 @@ describe('KhouryAdminClient', () => {
       await client
         .getSectionGroups('a@northeastern.edu', '202710')
         .catch(() => 0);
-      await client.getCourses('a@northeastern.edu', '202710').catch(() => 0);
+      await client
+        .getCourses('a@northeastern.edu', '202710', '001234567')
+        .catch(() => 0);
       await client.getRoster('sg_120271000000000001').catch(() => 0);
       expect(seen).toEqual(Array(3).fill('Token abc123'));
     });

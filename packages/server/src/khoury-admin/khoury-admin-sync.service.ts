@@ -71,7 +71,10 @@ export class KhouryAdminSyncService {
     // NOTE: allSettled so both requests run together without an unhandled rejection
     const [a, b] = await Promise.allSettled([
       this.client.getSectionGroups(norm, semester),
-      this.client.getCourses(norm, semester),
+      // NOTE: B needs the NUID; without one only A runs
+      user.nuid
+        ? this.client.getCourses(norm, semester, user.nuid)
+        : Promise.resolve(null),
     ]);
     try {
       if (a.status === 'rejected') throw a.reason;
@@ -81,6 +84,12 @@ export class KhouryAdminSyncService {
     }
     try {
       if (b.status === 'rejected') throw b.reason;
+      if (b.value === null) {
+        this.logger.warn(
+          `Skipping Khoury Admin B: user ${user.id} has no NUID`,
+        );
+        return;
+      }
       // NOTE: duplicate entries for one group collapse to the highest role
       const best = new Map<string, Role>();
       for (const c of b.value.courses) {
