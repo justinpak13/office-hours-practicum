@@ -93,7 +93,11 @@ describe('KhouryAdminClient', () => {
     await point({ rosterSuffix: '-updated' });
     for (const r of rosters.filter((r) => r.endsWith('-updated'))) {
       const id = r.replace(/-updated$/, '');
-      expect((await client.getRoster(id))?.id).toBe(id);
+      expect(await client.getRoster(id)).toEqual(
+        JSON.parse(
+          fs.readFileSync(path.join(dataDir, 'rosters', `${r}.json`), 'utf8'),
+        ),
+      );
     }
   });
 
@@ -109,6 +113,9 @@ describe('KhouryAdminClient', () => {
     expect(await emails('sg_120271000000000002')).toEqual([
       'm.lee@northeastern.edu',
     ]);
+    expect(await emails('sg_120271000000000001')).not.toContain(
+      'takayama.a@northeastern.edu',
+    );
     expect(await client.getRoster('sg_220271000350000001')).toBeNull();
   });
 
@@ -118,9 +125,14 @@ describe('KhouryAdminClient', () => {
       'li.edwa@northeastern.edu',
       '202710',
     );
-    const g = a.section_groups.find((g) => g.crns.includes(20111));
-    expect(g?.id).toMatch(/^sg_1/);
-    expect(g?.crns).toEqual(expect.arrayContaining([20111, 20112]));
+    for (const crn of [20111, 20112]) {
+      const gs = a.section_groups.filter((g) => g.crns.includes(crn));
+      expect(gs.length).toBeGreaterThan(0);
+      gs.forEach((g) => expect(g.id).toMatch(/^sg_1/));
+    }
+    expect(a.section_groups.map((g) => g.id)).not.toContain(
+      'sg_220271000350000001',
+    );
   });
 
   it('C returns null for sg_9999', async () => {
