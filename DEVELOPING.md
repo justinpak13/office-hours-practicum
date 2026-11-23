@@ -63,7 +63,7 @@ These are hardcoded.
 | 3000 | Dev proxy (`infrastructure/dev/devProxy.js`), which serves the app and the API on one origin |
 | 3001 | Next.js |
 | 3002 | NestJS API |
-| 4100 | Fake Khoury Admin stub (`packages/server/khoury-admin-stub/server.js`), started by `yarn dev` as the `stub` process. Dev only. Override with `KHOURY_STUB_PORT` |
+| 4100 | Fake Khoury Admin stub (`packages/server/khoury-admin-stub/server.js`), started by `yarn dev` as the `stub` process. Dev only. Override with `KHOURY_STUB_PORT`. People and groups: `packages/server/khoury-admin-stub/README.md` |
 | 5432 | Postgres |
 | 6379 | Redis |
 
