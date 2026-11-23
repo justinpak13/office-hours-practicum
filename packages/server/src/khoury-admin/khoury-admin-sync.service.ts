@@ -23,6 +23,9 @@ export function higherRole(a: Role, b: Role): Role {
   return RANK[b] > RANK[a] ? b : a;
 }
 
+// Minimum gap between syncs for one user (a constant on purpose, not config)
+const SYNC_INTERVAL = '24 hours';
+
 @Injectable()
 export class KhouryAdminSyncService {
   private readonly logger = new ConsoleLogger(KhouryAdminSyncService.name);
@@ -45,31 +48,23 @@ export class KhouryAdminSyncService {
     });
   }
 
-  async onSignIn(
-    email: string,
-    name: { first: string; last: string },
-  ): Promise<UserModel> {
-    const norm = normalizeEmail(email);
-    const user = await this.locked('koh:user:' + norm, async (m) => {
-      const find = () =>
-        m
-          .createQueryBuilder(UserModel, 'u')
-          .where('LOWER(u.email) = :email', { email: norm })
-          // NOTE: legacy rows only, a Keycloak user may share this email; T22 replaces this method
-          .andWhere('u."keycloakSub" IS NULL')
-          .getOne();
-      // NOTE: legacy mixed-case rows only match via LOWER(), so look first; orIgnore (ON CONFLICT DO NOTHING) keeps the transaction alive if an exact-email row appears anyway
-      const found = await find();
-      if (found) return found;
-      await m
-        .createQueryBuilder()
-        .insert()
-        .into(UserModel)
-        .values({ email: norm, firstName: name.first, lastName: name.last })
-        .orIgnore()
-        .execute();
-      return (await find())!;
-    });
+  // Runs the sync for a user at most once per 24h. The conditional UPDATE both checks the gate and claims the run, so concurrent requests can't both sync.
+  // NOTE: retry after 24h on failure; shorten if outages matter
+  async syncIfDue(user: UserModel): Promise<void> {
+    const claimed = await UserModel.createQueryBuilder()
+      .update()
+      .set({ lastKhourySyncAt: () => 'now()' })
+      .where(
+        `id = :id AND ("lastKhourySyncAt" IS NULL OR "lastKhourySyncAt" < now() - interval '${SYNC_INTERVAL}')`,
+        { id: user.id },
+      )
+      .execute();
+    if (claimed.affected !== 1) return;
+    await this.onSignIn(user);
+  }
+
+  async onSignIn(user: UserModel): Promise<void> {
+    const norm = normalizeEmail(user.email);
     // NOTE: single semester from env; must be bumped each term and profs can't see next term early; compute from date when going live
     const semester = this.config.get('KHOURY_SEMESTER');
 
@@ -104,7 +99,6 @@ export class KhouryAdminSyncService {
     } catch (e) {
       this.logFailure('B', e);
     }
-    return user;
   }
 
   private async saveSectionGroups(
