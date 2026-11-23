@@ -22,17 +22,9 @@ describe('Can successfully create queues', () => {
                 .wait(250);
 
             // submit and create queue
-            cy.get("[id^=rcDialogTitle]")
-                .contains("Create a new queue")
-                .parent()
-                .parent()
-                .should('have.class', 'ant-modal-content')
-                .within(($content) => {
-                    cy.get("span").contains("Create")
-                        .parent()
-                        .should('have.class', 'ant-btn-primary')
-                        .click();
-                });
+            cy.get("[data-cy=\"queue-create-submit\"]")
+                .should("be.visible")
+                .click();
 
             cy.location("pathname", {timeout: 30000}).should("contain", "/queue");
 
@@ -58,17 +50,11 @@ describe('Can successfully create queues', () => {
 
             cy.percySnapshot("CheckIn Modal Selection Page -- Custom Already Created")
 
-            cy.get("[id^=rcDialogTitle]")
-                .contains("Check into a queue")
-                .parent()
-                .parent()
-                .should('have.class', 'ant-modal-content')
-                .within(($content) => {
-                    cy.get("span").contains("Check In")
-                        .parent()
-                        .should('have.class', 'ant-btn-primary')
-                        .click();
-                });
+            cy.get("[data-cy=\"check-in-modal\"]")
+                .should("contain", "Check into a queue");
+            cy.get("[data-cy=\"check-in-submit\"]")
+                .should("not.be.disabled")
+                .click();
 
             cy.location("pathname", {timeout: 30000}).should("contain", "/queue");
 
@@ -111,8 +97,9 @@ describe('Can successfully create queues', () => {
                 .should("be.visible")
                 .should("not.be.disabled")
                 .click();
-            cy.get("[id^=rcDialogTitle]")
-                .should("contain","Create a new queue");
+            cy.get("[data-cy=\"queue-create-modal\"]")
+                .should("be.visible")
+                .should("contain", "Create a new queue");
 
             // assert the allow TA's checkbox does not exist
             cy.get("[data-cy=\"qc-allowTA\"]")
@@ -147,17 +134,9 @@ describe('Can successfully create queues', () => {
                 .should('have.value','');
 
             // try to submit an empty room name:
-            cy.get("[id^=rcDialogTitle]")
-                .contains("Create a new queue")
-                .parent()
-                .parent()
-                .should('have.class', 'ant-modal-content')
-                .within(($content) => {
-                    cy.get("span").contains("Create")
-                        .parent()
-                        .should('have.class', 'ant-btn-primary')
-                        .click();
-                });
+            cy.get("[data-cy=\"queue-create-submit\"]")
+                .should("be.visible")
+                .click();
 
             // check for alert!
             cy.get("div[role=\"alert\"]")
@@ -181,8 +160,9 @@ describe('Can successfully create queues', () => {
                 .should("be.visible")
                 .should("not.be.disabled")
                 .click();
-            cy.get("[id^=rcDialogTitle]")
-                .should("contain","Create a new queue");
+            cy.get("[data-cy=\"queue-create-modal\"]")
+                .should("be.visible")
+                .should("contain", "Create a new queue");
 
             cy.get("[data-cy=\"qc-allowTA\"]")
                 .should("be.visible");

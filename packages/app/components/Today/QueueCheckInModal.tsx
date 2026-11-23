@@ -3,6 +3,7 @@ import { Modal, Select } from "antd";
 import { ReactElement } from "react";
 import { ReactNode, useEffect, useState } from "react";
 import styled from "styled-components";
+import { buttonDataCy } from "../../utils/buttonDataCy";
 
 interface QueueCheckInModalProps {
   visible: boolean;
@@ -56,7 +57,11 @@ export default function QueueCheckInModal({
         setQueueToCheckInto(-1);
       }}
       okText="Check In"
-      okButtonProps={{ disabled: queueToCheckInto < 0 }}
+      // On the modal's wrapper, which is hidden when the modal closes
+      wrapProps={{ "data-cy": "check-in-modal" }}
+      okButtonProps={buttonDataCy("check-in-submit", {
+        disabled: queueToCheckInto < 0,
+      })}
       onOk={() => onSubmit(queueToCheckInto)}
     >
       <RoomSelectionContainer>
@@ -71,7 +76,9 @@ export default function QueueCheckInModal({
             data-cy="select-existing-queue"
             filterOption={(input, option) => {
               return (
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                String(option.children)
+                  .toLowerCase()
+                  .indexOf(input.toLowerCase()) >= 0
               );
             }}
           >

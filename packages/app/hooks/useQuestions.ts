@@ -2,10 +2,10 @@ import { API } from "@koh/api-client";
 import { ListQuestionsResponse, SSEQueueResponse } from "@koh/common";
 import { plainToClass } from "class-transformer";
 import { useCallback } from "react";
-import useSWR, { mutate, responseInterface } from "swr";
+import useSWR, { mutate, SWRResponse } from "swr";
 import { useEventSource } from "./useEventSource";
 
-type questionsResponse = responseInterface<ListQuestionsResponse, any>;
+type questionsResponse = SWRResponse<ListQuestionsResponse, any>;
 
 interface UseQuestionReturn {
   questions?: questionsResponse["data"];

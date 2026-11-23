@@ -8,7 +8,10 @@ interface EBState {
   hasError: boolean;
 }
 // eslint-disable-next-line @typescript-eslint/ban-types
-export class ErrorBoundary extends React.Component<{}, EBState> {
+export class ErrorBoundary extends React.Component<
+  { children?: ReactNode },
+  EBState
+> {
   constructor(props) {
     super(props);
     this.state = { hasError: false };

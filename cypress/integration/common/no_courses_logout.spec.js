@@ -1,4 +1,4 @@
-const { createAndLoginStudent } = require("../../utils")
+const { createAndLoginStudent, expectLoggedOut } = require("../../utils")
 
 describe("Testing no courses logout", () => {
     it("Creates user with no courses", () => {
@@ -11,8 +11,7 @@ describe("Testing no courses logout", () => {
             cy.get("body").should("contain", "None of your courses are using the Khoury Office Hours App.");
             // execute logout action
             cy.get("[data-cy='logout-button']").click()
-            cy.location("pathname").should("eq", "/login")
-            cy.get("body").should("contain", "You are currently not logged in");
+            expectLoggedOut()
         });
     })
 })

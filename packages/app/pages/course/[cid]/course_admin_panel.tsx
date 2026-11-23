@@ -8,14 +8,20 @@ import NavBar from "../../../components/Nav/NavBar";
 import CourseAdminPanel, {
   CourseAdminOptions,
 } from "../../../components/Settings/CourseAdminPanel";
+import { useProfile } from "../../../hooks/useProfile";
 import { useRoleInCourse } from "../../../hooks/useRoleInCourse";
 
 export default function CourseAdminPanelPage(): ReactElement {
   const router = useRouter();
   const courseId = router.query["cid"];
+  const profile = useProfile();
   const role = useRoleInCourse(Number(courseId));
   const defaultPage = router.query["defaultPage"] as CourseAdminOptions;
 
+  // The role is undefined until the profile loads; wait rather than 404
+  if (!profile) {
+    return null;
+  }
   if (role !== Role.PROFESSOR) {
     return <DefaultErrorPage statusCode={404} />;
   }

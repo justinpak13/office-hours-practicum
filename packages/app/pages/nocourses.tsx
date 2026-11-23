@@ -1,11 +1,25 @@
 import { API } from "@koh/api-client";
 import { Button, Result } from "antd";
-import axios from "axios";
+import { logout } from "../utils/logout";
 import Router from "next/router";
 import { ReactElement } from "react";
 import styled from "styled-components";
 import useSWR from "swr";
 import { useHomePageRedirect } from "../hooks/useHomePageRedirect";
+
+// Defined outside the component: a styled component created during render is
+// a new component type every render, so React replaces the button each time
+// (and Cypress can grab one that's about to be removed).
+const LogoutButton = styled(Button)`
+  background-color: #3684c6;
+  border-radius: 6px;
+  color: white;
+  font-weight: 500;
+  font-size: 14px;
+  width: 200px;
+  margin: 0 auto;
+  display: block;
+`;
 
 export default function NoCourses(): ReactElement {
   useHomePageRedirect();
@@ -13,17 +27,6 @@ export default function NoCourses(): ReactElement {
   const { data } = useSWR("/api/v1/courses/self_enroll_courses", async () =>
     API.course.selfEnrollCourses()
   );
-
-  const LogoutButton = styled(Button)`
-    background-color: #3684c6;
-    border-radius: 6px;
-    color: white;
-    font-weight: 500;
-    font-size: 14px;
-    width: 200px;
-    margin: 0 auto;
-    display: block;
-  `;
 
   return (
     <div>
@@ -54,13 +57,7 @@ export default function NoCourses(): ReactElement {
           </div>
         </div>
       ) : null}
-      <LogoutButton
-        data-cy="logout-button"
-        onClick={async () => {
-          await axios.post("/api/v1/logout");
-          window.location.href = "/login";
-        }}
-      >
+      <LogoutButton data-cy="logout-button" onClick={logout}>
         Logout
       </LogoutButton>
     </div>

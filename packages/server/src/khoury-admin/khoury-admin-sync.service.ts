@@ -34,7 +34,7 @@ export class KhouryAdminSyncService {
     private dataSource: DataSource,
   ) {}
 
-  // NOTE: the advisory lock serializes sync; UNIQUE(email) on user_model is the DB backstop (the old login path is not covered by the lock)
+  // NOTE: the advisory lock serializes sync; the legacy-only unique email index on user_model is the DB backstop (the old login path is not covered by the lock)
   private locked<T>(
     key: string,
     fn: (m: EntityManager) => Promise<T>,
@@ -55,6 +55,8 @@ export class KhouryAdminSyncService {
         m
           .createQueryBuilder(UserModel, 'u')
           .where('LOWER(u.email) = :email', { email: norm })
+          // NOTE: legacy rows only, a Keycloak user may share this email; T22 replaces this method
+          .andWhere('u."keycloakSub" IS NULL')
           .getOne();
       // NOTE: legacy mixed-case rows only match via LOWER(), so look first; orIgnore (ON CONFLICT DO NOTHING) keeps the transaction alive if an exact-email row appears anyway
       const found = await find();

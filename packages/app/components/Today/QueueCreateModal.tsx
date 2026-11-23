@@ -4,6 +4,7 @@ import { FormInstance } from "antd/lib/form";
 import TextArea from "antd/lib/input/TextArea";
 import { ReactElement } from "react";
 import { useState } from "react";
+import { buttonDataCy } from "../../utils/buttonDataCy";
 
 interface QueueCreateModalProps {
   visible: boolean;
@@ -55,6 +56,9 @@ export default function QueueCreateModal({
       onCancel={onCancel}
       okText="Create"
       onOk={() => onSubmit(form)}
+      // On the modal's wrapper, which is hidden when the modal closes
+      wrapProps={{ "data-cy": "queue-create-modal" }}
+      okButtonProps={buttonDataCy("queue-create-submit")}
     >
       <Form form={form} layout="vertical">
         <Form.Item
@@ -68,7 +72,8 @@ export default function QueueCreateModal({
         </Form.Item>
 
         <Form.Item
-          hidden={role === Role.TA}
+          // Professors only, and hidden while the role is still loading
+          hidden={role !== Role.PROFESSOR}
           label={<strong>Configure Queue Permissions</strong>}
           name="allowTA"
           initialValue={true}

@@ -6,12 +6,10 @@ import {
   IsDefined,
   IsEnum,
   IsInt,
-  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
   IsString,
-  ValidateIf,
 } from "class-validator";
 import "reflect-metadata";
 
@@ -69,8 +67,6 @@ export class User {
   desktopNotifsEnabled!: boolean;
   @Type(() => DesktopNotifPartial)
   desktopNotifs!: DesktopNotifPartial[];
-  phoneNotifsEnabled!: boolean;
-  phoneNumber!: string;
   insights!: string[];
 }
 
@@ -323,16 +319,15 @@ export type DesktopNotifBody = {
   name?: string;
 };
 
-export type PhoneNotifBody = {
-  phoneNumber: string;
-};
-
 // =================== API Route Types ===========================
 // On backend, validated with https://docs.nestjs.com/techniques/validation
 // API route Params and Responses
 
 // Office Hours Response Types
-export class GetProfileResponse extends User {}
+export class GetProfileResponse extends User {
+  // True for Keycloak users: their name is copied from the Northeastern account on every request
+  nameManagedByAccount!: boolean;
+}
 
 export class KhouryDataParams {
   @IsString()
@@ -409,19 +404,15 @@ export interface KhouryRedirectResponse {
   redirect: string;
 }
 
+// Where the browser goes after POST /logout
+export interface LogoutResponse {
+  redirect: string;
+}
+
 export class UpdateProfileParams {
   @IsBoolean()
   @IsOptional()
   desktopNotifsEnabled?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  phoneNotifsEnabled?: boolean;
-
-  @ValidateIf((o) => o.phoneNotifsEnabled)
-  @IsString()
-  @IsNotEmpty()
-  phoneNumber?: string;
 
   @IsString()
   @IsOptional()
@@ -737,28 +728,6 @@ export class SSEQueueResponse {
   questions?: ListQuestionsResponse;
 }
 
-export interface TwilioBody {
-  ToCountry: string;
-  ToState: string;
-  SmsMessageSid: string;
-  NumMedia: string;
-  ToCity: string;
-  FromZip: string;
-  SmsSid: string;
-  FromState: string;
-  SmsStatus: string;
-  FromCity: string;
-  Body: string;
-  FromCountry: string;
-  To: string;
-  ToZip: string;
-  NumSegments: string;
-  MessageSid: string;
-  AccountSid: string;
-  From: string;
-  ApiVersion: string;
-}
-
 export interface GetReleaseNotesResponse {
   releaseNotes: unknown;
   lastUpdatedUnixTime: number;
@@ -908,12 +877,6 @@ export const ERROR_MESSAGES = {
     invalidTempJWTToken: "Error occurred while signing a JWT token",
     addUserFromKhoury:
       "Error occurred while translating account from Khoury to Office Hours",
-  },
-  notificationController: {
-    messageNotFromTwilio: "Message not from Twilio",
-  },
-  notificationService: {
-    registerPhone: "phone number invalid",
   },
   questionRoleGuard: {
     questionNotFound: "Question not found",

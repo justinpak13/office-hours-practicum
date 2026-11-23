@@ -603,6 +603,81 @@ describe('Course Integration', () => {
     });
   });
 
+  describe('override with a Keycloak and a legacy user sharing an email', () => {
+    const setup = async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+      const legacy = await UserFactory.create({ email: 'shared@neu.edu' });
+      const keycloak = await UserFactory.create({
+        email: 'shared@neu.edu',
+        keycloakSub: 'sub-shared',
+      });
+      return { course, professor, legacy, keycloak };
+    };
+
+    it('add changes only the Keycloak user', async () => {
+      const { course, professor, legacy, keycloak } = await setup();
+      await supertest({ userId: professor.id })
+        .post(`/courses/${course.id}/update_override`)
+        .send({ email: 'shared@neu.edu', role: Role.TA })
+        .expect(201);
+      expect(await UserCourseModel.countBy({ userId: legacy.id })).toBe(0);
+      const ucm = await UserCourseModel.findOneByOrFail({
+        userId: keycloak.id,
+      });
+      expect(ucm.role).toEqual(Role.TA);
+      expect(ucm.override).toBeTruthy();
+    });
+
+    const del = (professorId: number, courseId: number) =>
+      supertest({ userId: professorId })
+        .delete(`/courses/${courseId}/update_override`)
+        .send({ email: 'shared@neu.edu', role: Role.TA });
+
+    it('delete removes a legacy-only override', async () => {
+      const { course, professor, legacy } = await setup();
+      await UserCourseFactory.create({
+        user: legacy,
+        role: Role.TA,
+        override: true,
+        course,
+      });
+      await del(professor.id, course.id).expect(200);
+      expect(await UserCourseModel.countBy({ userId: legacy.id })).toBe(0);
+    });
+
+    it('delete removes the override from both accounts', async () => {
+      const { course, professor, legacy, keycloak } = await setup();
+      for (const user of [legacy, keycloak])
+        await UserCourseFactory.create({
+          user,
+          role: Role.TA,
+          override: true,
+          course,
+        });
+      await del(professor.id, course.id).expect(200);
+      expect(await UserCourseModel.countBy({ userId: legacy.id })).toBe(0);
+      expect(await UserCourseModel.countBy({ userId: keycloak.id })).toBe(0);
+    });
+
+    it('delete returns 404 when no account has an override', async () => {
+      const { course, professor, legacy } = await setup();
+      await UserCourseFactory.create({
+        user: legacy,
+        role: Role.TA,
+        override: false,
+        course,
+      });
+      await del(professor.id, course.id).expect(404);
+      expect(await UserCourseModel.countBy({ userId: legacy.id })).toBe(1);
+    });
+  });
+
   describe('DELETE /courses/:id/update_override', () => {
     it('tests deleting override using the endpoint', async () => {
       const course = await CourseFactory.create();

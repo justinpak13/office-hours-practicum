@@ -114,7 +114,7 @@ export const UserCourseFactory = defineFactory(UserCourseModel)(async (o) => {
 
 export const QueueFactory = defineFactory(QueueModel)(async (o) => {
   const defaults: DeepPartial<QueueModel> = {
-    room: 'online',
+    room: 'Online',
     allowQuestions: false,
     isProfessorQueue: false,
     isDisabled: false,

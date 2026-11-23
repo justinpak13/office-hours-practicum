@@ -15,7 +15,9 @@ import { useQueue } from "../../hooks/useQueue";
 import { RenderEvery } from "../RenderEvery";
 import { TAStatuses } from "./TAStatuses";
 import { API } from "@koh/api-client";
-import Router from "next/router";
+import Router, { useRouter } from "next/router";
+import { buttonDataCy } from "../../utils/buttonDataCy";
+import { useCourse } from "../../hooks/useCourse";
 
 export const Container = styled.div`
   display: flex;
@@ -147,10 +149,15 @@ export function QueueInfoColumn({
   buttons,
 }: QueueInfoColumnProps): ReactElement {
   const { queue, mutateQueue } = useQueue(queueId);
+  const router = useRouter();
+  const { mutateCourse } = useCourse(Number(router.query.cid));
 
   const disableQueue = async () => {
     await API.queues.disable(queueId);
-    await mutateQueue();
+    // Refresh the course too: the today page we go to next reads the queue
+    // list from it, and SWR would otherwise reuse a copy fetched moments ago
+    // that still lists this queue
+    await Promise.all([mutateQueue(), mutateCourse()]);
     message.success("Successfully disabled queue: " + queue.room);
     await Router.push("/");
   };
@@ -168,6 +175,7 @@ export function QueueInfoColumn({
       style: { whiteSpace: "pre-wrap" },
       content: `Please confirm that you want to disable the queue: ${queue.room}.\n
       This queue will no longer appear in the app, and any students currently in the queue will be removed.`,
+      okButtonProps: buttonDataCy("disable-queue-confirm"),
       onOk() {
         disableQueue();
       },
@@ -229,12 +237,15 @@ export function QueueInfoColumn({
               "Are you sure you want to clear all students from the queue?"
             }
             okText="Yes"
+            okButtonProps={buttonDataCy("clear-queue-confirm")}
             cancelText="No"
             placement="top"
             arrowPointAtCenter={true}
             onConfirm={clearQueue}
           >
-            <ClearQueueButton>Clear Queue</ClearQueueButton>
+            <ClearQueueButton data-cy="clear-queue-button">
+              Clear Queue
+            </ClearQueueButton>
           </Popconfirm>
           <DisableQueueButton
             onClick={confirmDisable}

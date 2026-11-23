@@ -6,17 +6,32 @@ import TAQueueDetailQuestion from "./TAQueueDetailQuestion";
 
 const Container = styled.div``;
 
+// min-height, not height: in a narrow panel the buttons wrap onto more rows,
+// and a fixed height pushed the top row out of view
 export const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 60px;
-  padding: 0 12px;
+  gap: 8px;
+  min-height: 60px;
+  padding: 8px 12px;
   background: #e1e7ec;
+`;
+const Student = styled.div`
+  min-width: 0;
 `;
 const Email = styled.div`
   font-size: 12px;
   color: #8895a6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+const Actions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 8px;
 `;
 
 /**
@@ -36,18 +51,18 @@ export default function TAQueueDetail({
   return (
     <Container>
       <Header>
-        <div>
+        <Student>
           <strong>{question.creator.name}</strong>
-          <Email>{question.creator.email}</Email>
-        </div>
-        <div>
+          <Email title={question.creator.email}>{question.creator.email}</Email>
+        </Student>
+        <Actions>
           <TAQueueDetailButtons
             courseId={courseId}
             queueId={queueId}
             question={question}
             hasUnresolvedRephraseAlert={hasUnresolvedRephraseAlert}
           />
-        </div>
+        </Actions>
       </Header>
       <TAQueueDetailQuestion
         courseId={courseId}

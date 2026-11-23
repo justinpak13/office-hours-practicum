@@ -152,12 +152,21 @@ export default function QuestionForm({
       if (visible) onClickSubmit();
     },
     { enableOnTags: ["TEXTAREA"] },
-    [visible, questionTypeInput, questionText, questionGroupable, router, courseId]
+    [
+      visible,
+      questionTypeInput,
+      questionText,
+      questionGroupable,
+      router,
+      courseId,
+    ]
   );
 
   return (
     <Modal
       visible={visible}
+      // On the modal's wrapper, which is hidden when the modal closes
+      wrapProps={{ "data-cy": "question-form-modal" }}
       closable={true}
       onCancel={() => {
         setStoredQuestion(question);
@@ -167,7 +176,11 @@ export default function QuestionForm({
       footer={
         <div>
           {drafting ? (
-            <FormButton danger onClick={leaveQueue}>
+            <FormButton
+              danger
+              onClick={leaveQueue}
+              data-cy="question-form-leave"
+            >
               Leave Queue
             </FormButton>
           ) : (
@@ -215,14 +228,39 @@ export default function QuestionForm({
           buttonStyle="solid"
           style={{ marginBottom: 48 }}
         >
-          <Radio.Button value={QuestionType.Concept}>Concept</Radio.Button>
-          <Radio.Button value={QuestionType.Clarification}>
+          <Radio.Button
+            value={QuestionType.Concept}
+            data-cy="question-type-Concept"
+          >
+            Concept
+          </Radio.Button>
+          <Radio.Button
+            value={QuestionType.Clarification}
+            data-cy="question-type-Clarification"
+          >
             Clarification
           </Radio.Button>
-          <Radio.Button value={QuestionType.Testing}>Testing</Radio.Button>
-          <Radio.Button value={QuestionType.Bug}>Bug</Radio.Button>
-          <Radio.Button value={QuestionType.Setup}>Setup</Radio.Button>
-          <Radio.Button value={QuestionType.Other}>Other</Radio.Button>
+          <Radio.Button
+            value={QuestionType.Testing}
+            data-cy="question-type-Testing"
+          >
+            Testing
+          </Radio.Button>
+          <Radio.Button value={QuestionType.Bug} data-cy="question-type-Bug">
+            Bug
+          </Radio.Button>
+          <Radio.Button
+            value={QuestionType.Setup}
+            data-cy="question-type-Setup"
+          >
+            Setup
+          </Radio.Button>
+          <Radio.Button
+            value={QuestionType.Other}
+            data-cy="question-type-Other"
+          >
+            Other
+          </Radio.Button>
         </Radio.Group>
 
         <QuestionText>What do you need help with?</QuestionText>
@@ -247,8 +285,12 @@ export default function QuestionForm({
           onChange={onGroupableChange}
           style={{ marginBottom: 5 }}
         >
-          <Radio value={true}>Yes</Radio>
-          <Radio value={false}>No</Radio>
+          <Radio value={true} data-cy="question-groupable-yes">
+            Yes
+          </Radio>
+          <Radio value={false} data-cy="question-groupable-no">
+            No
+          </Radio>
         </Radio.Group>
         <QuestionCaption>
           Clicking Yes may result in a shorter wait time if others have the same

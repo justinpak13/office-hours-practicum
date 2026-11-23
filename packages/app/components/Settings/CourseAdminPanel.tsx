@@ -1,8 +1,4 @@
-import {
-  BellOutlined,
-  EditOutlined,
-  BookOutlined,
-} from "@ant-design/icons";
+import { BellOutlined, EditOutlined, BookOutlined } from "@ant-design/icons";
 import { Col, Menu, Row, Space } from "antd";
 import React, { ReactElement, useState } from "react";
 import styled from "styled-components";
@@ -57,13 +53,25 @@ export default function CourseAdminPanel({
           onClick={(e) => setCurrentSettings(e.key as CourseAdminOptions)}
           style={{ background: "#f8f9fb", paddingTop: "20px" }}
         >
-          <Menu.Item key={CourseAdminOptions.CHECK_IN} icon={<EditOutlined />}>
+          <Menu.Item
+            key={CourseAdminOptions.CHECK_IN}
+            icon={<EditOutlined />}
+            data-cy="admin-menu-check-in"
+          >
             TA Check In/Out Times
           </Menu.Item>
-          <Menu.Item key={CourseAdminOptions.ROSTER} icon={<BellOutlined />}>
+          <Menu.Item
+            key={CourseAdminOptions.ROSTER}
+            icon={<BellOutlined />}
+            data-cy="admin-menu-roster"
+          >
             Course Roster
           </Menu.Item>
-          <Menu.Item key={CourseAdminOptions.INFO} icon={<BookOutlined />}>
+          <Menu.Item
+            key={CourseAdminOptions.INFO}
+            icon={<BookOutlined />}
+            data-cy="admin-menu-info"
+          >
             Course Information
           </Menu.Item>
         </Menu>

@@ -5,7 +5,6 @@ import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { LastRegistrationModel } from 'login/last-registration-model.entity';
 import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
 import { DesktopNotifModel } from 'notification/desktop-notif.entity';
-import { PhoneNotifModel } from 'notification/phone-notif.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { UserModel } from 'profile/user.entity';
@@ -27,6 +26,17 @@ import { QuestionModel } from '../question/question.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { SeedService } from './seed.service';
 
+// Keycloak IDs (`sub`) of the seeded users. They match the users with the
+// same IDs in oauth2-proxy-demo/fake-keycloak/users.json, so picking one of
+// them on the fake Keycloak's login page logs in as that seeded user.
+export const SEED_KEYCLOAK_SUBS = {
+  STUDENT_1: 'f6805507-a879-4a0f-88e5-9278dbecafc9',
+  STUDENT_2: 'ca7e14a6-f00c-4639-adea-8b14cff50243',
+  TA_1: '8c6459fe-aa17-43e4-a392-55cee123e13e',
+  TA_2: 'e17bd22a-3a16-49ac-853f-6664fbf31a87',
+  PROFESSOR: '8df5d97a-b65c-460e-b141-2a56600811c1',
+};
+
 @Controller('seeds')
 @UseGuards(NonProductionGuard)
 export class SeedController {
@@ -45,7 +55,6 @@ export class SeedController {
     await this.seedService.deleteAll(UserCourseModel);
     await this.seedService.deleteAll(EventModel);
     await this.seedService.deleteAll(DesktopNotifModel);
-    await this.seedService.deleteAll(PhoneNotifModel);
     await this.seedService.deleteAll(AlertModel);
     await this.seedService.deleteAll(UserModel);
     await this.seedService.deleteAll(CourseSectionMappingModel);
@@ -96,11 +105,12 @@ export class SeedController {
       where: { name: 'CS 2500' },
     });
 
-    const userExists = await UserModel.find({ take: 1 })[0];
+    const [userExists] = await UserModel.find({ take: 1 });
     if (!userExists) {
       // Student 1
       const user1 = await UserFactory.create({
         email: 'liu.sta@northeastern.edu',
+        keycloakSub: SEED_KEYCLOAK_SUBS.STUDENT_1,
         firstName: 'Stanley',
         lastName: 'Liu',
       });
@@ -113,6 +123,7 @@ export class SeedController {
       // Student 2
       const user2 = await UserFactory.create({
         email: 'takayama.a@northeastern.edu',
+        keycloakSub: SEED_KEYCLOAK_SUBS.STUDENT_2,
         firstName: 'Alex',
         lastName: 'Takayama',
       });
@@ -126,6 +137,7 @@ export class SeedController {
       // TA 1
       const user3 = await UserFactory.create({
         email: 'stenzel.w@northeastern.edu',
+        keycloakSub: SEED_KEYCLOAK_SUBS.TA_1,
         firstName: 'Will',
         lastName: 'Stenzel',
       });
@@ -137,6 +149,7 @@ export class SeedController {
       // TA 2
       const user4 = await UserFactory.create({
         email: 'chu.daj@northeastern.edu',
+        keycloakSub: SEED_KEYCLOAK_SUBS.TA_2,
         firstName: 'Da-Jin',
         lastName: 'Chu',
       });
@@ -148,6 +161,7 @@ export class SeedController {
       // Professor (Snarky!!)
       const user5 = await UserFactory.create({
         email: 'li.edwa@northeastern.edu',
+        keycloakSub: SEED_KEYCLOAK_SUBS.PROFESSOR,
         firstName: 'Eddy',
         lastName: 'Li',
         photoURL:
@@ -166,7 +180,7 @@ export class SeedController {
     }
 
     const queue = await QueueFactory.create({
-      room: 'online',
+      room: 'Online',
       course: course,
       allowQuestions: true,
     });
@@ -238,7 +252,7 @@ export class SeedController {
 
   @Get('fill_queue')
   async fillQueue(): Promise<string> {
-    const queue = await QueueModel.find({ take: 1 })[0];
+    const [queue] = await QueueModel.find({ take: 1 });
 
     await QuestionFactory.create({
       queue: queue,
@@ -256,20 +270,54 @@ export class SeedController {
     return 'Data successfully seeded';
   }
 
+  // With `user`, the user is the one with that Keycloak `sub` (created if
+  // needed), so logging in as that fake Keycloak user through oauth2-proxy
+  // logs in as them. Their profile is set to match Keycloak's, because every
+  // request copies it from the token.
   @Post('createUser')
   async createUser(
-    @Body() body: { role: Role; courseId: number },
+    @Body()
+    body: {
+      role: Role;
+      courseId: number;
+      user?: {
+        keycloakSub: string;
+        email: string;
+        firstName?: string;
+        lastName?: string;
+        nuid?: string;
+      };
+    },
   ): Promise<UserCourseModel> {
-    let ta: UserCourseModel;
+    const options: DeepPartial<UserCourseModel> = { role: body.role };
     if (body.courseId) {
-      const course = await CourseModel.findOneOrFail({
+      options.course = await CourseModel.findOneOrFail({
         where: { id: body.courseId },
       });
-      ta = await UserCourseFactory.create({ role: body.role, course: course });
-    } else {
-      ta = await UserCourseFactory.create({ role: body.role });
     }
-    return ta;
+    if (body.user) {
+      const profile = {
+        email: body.user.email.toLowerCase(),
+        firstName: body.user.firstName ?? null,
+        lastName: body.user.lastName ?? null,
+        nuid: body.user.nuid ?? null,
+      };
+      const existing = await UserModel.findOne({
+        where: { keycloakSub: body.user.keycloakSub },
+      });
+      if (existing) {
+        await UserModel.update(existing.id, profile);
+        options.user = await UserModel.findOneOrFail({
+          where: { id: existing.id },
+        });
+      } else {
+        options.user = await UserFactory.create({
+          ...profile,
+          keycloakSub: body.user.keycloakSub,
+        });
+      }
+    }
+    return UserCourseFactory.create(options);
   }
 
   @Post('createQueue')

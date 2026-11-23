@@ -4,7 +4,7 @@
 
 | Tool | Version |
 |---|---|
-| [Node](https://nodejs.org/en/download/) | 20.x, matching CI ([nvm](https://github.com/nvm-sh/nvm) can install it) |
+| [Node](https://nodejs.org/en/download/) | 22.x (run `nvm use` in the repo root; [nvm](https://github.com/nvm-sh/nvm) reads `.nvmrc`) |
 | [Yarn](https://classic.yarnpkg.com/en/docs/install) | 1.x. Yarn 2+ does not work with this repo |
 | [Docker](https://docs.docker.com/get-docker/) | Runs Postgres 11.5 and Redis for development |
 
@@ -23,6 +23,8 @@
    PRIVATEKEY=<vapid private key>
    EMAIL=mailto:you@example.com
    ADMIN_SESSION_SECRET=dev-only-not-a-secret
+   OIDC_ISSUER_URL=http://localhost:8180/realms/staging
+   OIDC_CLIENT_ID=dev-officehours
    ```
 
    This file is not committed. Use your own VAPID keypair here, not the test keypair in `.env.test` (see [Testing](#testing)).
@@ -70,6 +72,7 @@ The server loads `packages/server/.env`, then `packages/server/.env.development`
 | `DOMAIN` | Base URL for redirects. An `https://` value makes the auth cookie `secure`. The app treats itself as production only when this is `https://officehours.khoury.northeastern.edu` |
 | `DB_URL` | Postgres connection string |
 | `JWT_SECRET` | Signs the `auth_token` cookie |
+| `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` | The Keycloak realm and client whose ID tokens the API accepts from oauth2-proxy. For the fake Keycloak in `oauth2-proxy-demo`: `http://localhost:8180/realms/staging` and `dev-officehours` |
 | `PUBLICKEY`, `PRIVATEKEY`, `EMAIL` | VAPID keypair and contact (`mailto:` or `https:` URL) for web push. The server does not start without them |
 | `UPLOAD_LOCATION` | Folder for profile photos and course calendar files, relative to `packages/server` |
 | `ADMIN_SESSION_SECRET` | Signs admin panel sessions |
@@ -80,7 +83,7 @@ The server loads `packages/server/.env`, then `packages/server/.env.development`
 | `KHOURY_STUB_FAIL` | Makes the stub fail every request: `500`, `slow` or `badshape`. Read by the stub, not the server |
 | `SENTRY_APM_DSN`, `SERVICE_VERSION` | Optional Sentry setup |
 
-User emails are now `UNIQUE`, so a local dev database that already holds duplicate emails will fail `synchronize` at boot. Remove the duplicates or run `yarn dev:db:reset`.
+User emails are unique only among legacy rows (`keycloakSub IS NULL`, index `IDX_user_model_email_legacy`), so a Keycloak user can share an email with a legacy row. A local dev database that already holds duplicate legacy emails will fail `synchronize` at boot. Remove the duplicates or run `yarn dev:db:reset`, which wipes all local data.
 
 **When you add a required variable**, add it to your `.env.development`, to this table, and to `packages/server/.env.test` with a test-only value. Otherwise tests will pass on machines that have the variable and fail in CI.
 
@@ -174,8 +177,11 @@ Tests read their environment from **`packages/server/.env.test`**, which is comm
 
 #### End to end tests
 
-End to end (E2E) tests are in the `cypress` folder and run against http://localhost:3000, so `yarn dev` has to be running. They use the `/api/v1/seeds/*` and `/api/v1/login/dev` endpoints.
+End to end (E2E) tests are in the `cypress` folder and run through oauth2-proxy at https://localhost:4443, so `yarn dev` and the containers in `oauth2-proxy-demo` (`docker compose up -d`) both have to be running. They use the `/api/v1/seeds/*` endpoints to create test data.
+Before each test, the `proxyLogin` command logs in to oauth2-proxy as the fake Keycloak user in the `OAUTH_PROXY_USER` setting in `cypress.json`, so the seed requests get through. Each user a test creates (`createAndLoginTA` and so on in `cypress/utils.js`) is linked to the next `cypress.*` user in `oauth2-proxy-demo/fake-keycloak/users.json`, so tests never change the roles of the dev seed users, and the test logs in as them through the fake Keycloak. A test that needs more users than that file has fails with a message saying to add some.
 To run them headlessly, do `yarn cypress:run`. To watch them run interactively, use `yarn cypress:open`.
+To run them against the app directly, without the proxy, set `CYPRESS_BASE_URL=http://localhost:3000 CYPRESS_OAUTH_PROXY=false`. Users then log in with `/api/v1/login/dev` instead.
+`.github/workflows/cypress.yml` runs them the same way as locally: it starts the containers in `oauth2-proxy-demo` (creating `.env` from `.env.example` and a self-signed certificate with `init-secrets.sh`), then runs `yarn ci:start` and the tests through https://localhost:4443. If they fail only in CI, the workflow prints the containers' logs at the end.
 
 ### Installing new packages
 

@@ -5,25 +5,44 @@ import {
   BaseEntity,
   Column,
   Entity,
+  Index,
   ManyToMany,
   OneToMany,
-  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { DesktopNotifModel } from '../notification/desktop-notif.entity';
-import { PhoneNotifModel } from '../notification/phone-notif.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { EventModel } from './event-model.entity';
 import { UserCourseModel } from './user-course.entity';
 import { AlertModel } from '../alerts/alerts.entity';
 
+// NOTE: emails are unique only among legacy rows (no Keycloak sub); a Keycloak user may share an email with one
+@Index('IDX_user_model_email_legacy', ['email'], {
+  unique: true,
+  where: '"keycloakSub" IS NULL',
+})
 @Entity('user_model')
 export class UserModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column('text', { unique: true })
+  @Column('text')
   email: string;
+
+  // The user's Northeastern ID, from the Keycloak token's `nuid` claim. Null
+  // for users created by the Khoury Admin Portal login, or whose token has none.
+  // Excluded from responses: it's a student ID, and users are serialized into
+  // responses other users see (queues, staff lists).
+  @Column('text', { nullable: true })
+  @Exclude()
+  nuid: string | null;
+
+  // The user's permanent Keycloak ID (the ID token's `sub`). Null for users
+  // created by the Khoury Admin Portal login, which are not linked to Keycloak.
+  @Index('IDX_user_model_keycloakSub', { unique: true })
+  @Column('text', { nullable: true })
+  @Exclude()
+  keycloakSub: string | null;
 
   @Column('text', { nullable: true })
   firstName: string;
@@ -48,17 +67,9 @@ export class UserModel extends BaseEntity {
   @Exclude()
   desktopNotifsEnabled: boolean; // Does user want notifications sent to their desktops?
 
-  @Column({ type: 'boolean', default: false })
-  @Exclude()
-  phoneNotifsEnabled: boolean; // Does user want notifications sent to their phone?
-
   @OneToMany((type) => DesktopNotifModel, (notif) => notif.user)
   @Exclude()
   desktopNotifs: DesktopNotifModel[];
-
-  @OneToOne((type) => PhoneNotifModel, (notif) => notif.user)
-  @Exclude()
-  phoneNotif: PhoneNotifModel;
 
   @Exclude()
   @ManyToMany((type) => QueueModel, (queue) => queue.staffList)

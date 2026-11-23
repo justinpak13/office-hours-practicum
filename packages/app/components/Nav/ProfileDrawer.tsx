@@ -1,5 +1,4 @@
 import {
-  FileTextOutlined,
   LogoutOutlined,
   MacCommandOutlined,
   QuestionCircleOutlined,
@@ -7,7 +6,7 @@ import {
   SettingOutlined,
 } from "@ant-design/icons";
 import { Menu, Modal, Popover, Typography, Space } from "antd";
-import axios from "axios";
+import { logout } from "../../utils/logout";
 import Link from "next/link";
 import React, { ReactElement, ReactNode, useState } from "react";
 import styled from "styled-components";
@@ -83,62 +82,57 @@ export default function ProfileDrawer({
     <>
       <NoPaddingPopover
         content={
-          isPopoverOpen && (
-            <Menu mode="inline">
-              <Menu.Item icon={<SettingOutlined />}>
-                <Link
-                  href={{ pathname: "/settings", query: { cid: courseId } }}
-                >
-                  <a>Settings</a>
-                </Link>
-              </Menu.Item>
-              <Menu.Item
-                icon={<MacCommandOutlined />}
-                onClick={() => {
-                  Modal.info({
-                    title: "Queue Page Keyboard Shortcuts",
-                    content: shortcutInfoContent(role),
-                  });
-                  setIsPopoverOpen(false);
-                }}
-              >
-                Keyboard Shortcuts
-              </Menu.Item>
-              <Menu.Item
-                key="1"
-                icon={<QuestionCircleOutlined />}
-                onClick={() => {
-                  window.open("https://sandboxnu.notion.site/Khoury-Office-Hours-App-6eb1ee9f338f4b859cd89054f6503f43");
-                  setIsPopoverOpen(false);
-                }}
-              >
-                Help Guide
-              </Menu.Item>
-              <Menu.Item key="3" icon={<ReadOutlined />}>
-                <Link href={"/about"}>
-                  <a>About Us</a>
-                </Link>
-              </Menu.Item>
-              <Menu.Item key="4" icon={<LogoutOutlined />}>
-                <a
-                  data-cy="logout-button"
-                  onClick={async () => {
-                    await axios.post("/api/v1/logout");
-                    window.location.href = "/login";
-                  }}
-                >
-                  Logout
-                </a>
-              </Menu.Item>
-            </Menu>
-          )
+          <Menu mode="inline">
+            <Menu.Item icon={<SettingOutlined />}>
+              <Link href={{ pathname: "/settings", query: { cid: courseId } }}>
+                <a>Settings</a>
+              </Link>
+            </Menu.Item>
+            <Menu.Item
+              icon={<MacCommandOutlined />}
+              onClick={() => {
+                Modal.info({
+                  title: "Queue Page Keyboard Shortcuts",
+                  content: shortcutInfoContent(role),
+                });
+                setIsPopoverOpen(false);
+              }}
+            >
+              Keyboard Shortcuts
+            </Menu.Item>
+            <Menu.Item
+              key="1"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => {
+                window.open(
+                  "https://sandboxnu.notion.site/Khoury-Office-Hours-App-6eb1ee9f338f4b859cd89054f6503f43"
+                );
+                setIsPopoverOpen(false);
+              }}
+            >
+              Help Guide
+            </Menu.Item>
+            <Menu.Item key="3" icon={<ReadOutlined />}>
+              <Link href={"/about"}>
+                <a>About Us</a>
+              </Link>
+            </Menu.Item>
+            <Menu.Item
+              key="4"
+              icon={<LogoutOutlined />}
+              data-cy="logout-button"
+              onClick={() => logout()}
+            >
+              Logout
+            </Menu.Item>
+          </Menu>
         }
         placement="bottomRight"
         trigger="click"
         visible={isPopoverOpen}
         onVisibleChange={setIsPopoverOpen}
       >
-        <AvatarButton>
+        <AvatarButton data-cy="avatar-button">
           <SelfAvatar size={40} />
         </AvatarButton>
       </NoPaddingPopover>

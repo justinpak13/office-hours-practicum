@@ -2,6 +2,9 @@
   "name": "node-fullstack-websocket",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "postinstall": "rimraf node_modules/@types/react-native",
     "cypress:run": "npx cypress run",
@@ -26,7 +29,9 @@
     "packages": [
       "packages/*"
     ],
-    "nohoist": ["@koh/server/@nestjs/cache-manager"]
+    "nohoist": [
+      "@koh/server/@nestjs/cache-manager"
+    ]
   },
   "devDependencies": {
     "@babel/cli": "^7.12.1",
@@ -35,10 +40,8 @@
     "@babel/plugin-proposal-decorators": "^7.12.1",
     "@babel/preset-env": "^7.12.1",
     "@babel/preset-typescript": "^7.12.1",
-    "@percy/cli": "^1.32.12",
-    "@percy/cypress": "^3.1.9",
-    "@typescript-eslint/eslint-plugin": "8.0.0",
-    "@typescript-eslint/parser": "8.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
     "concurrently": "^5.2.0",
     "cypress": "8.7.0",
     "eslint": "^8.57.0",
@@ -49,7 +52,7 @@
     "http-proxy-cli": "^2.1.0",
     "http-proxy-middleware": "^1.0.3",
     "husky": "^7.0.4",
-    "prettier": "^2.1.2",
+    "prettier": "^2.8.8",
     "pretty-quick": "^3.1.0"
   },
   "lint-staged": {
@@ -58,58 +61,49 @@
       "eslint --fix"
     ]
   },
-"jest": {
-  "moduleFileExtensions": [
-    "js",
-    "json",
-    "ts"
-  ],
-  "rootDir": "src",
-  "testRegex": ".spec.ts$",
-  "transformIgnorePatterns": [
-    "node_modules/(?!(@nestjs/cache-manager|config|@babel/code-frame)/)"
-  ],
-  "transform": {
-    "^.+\\.ts$": [
-      "ts-jest",
-      {
-        "tsconfig": "tsconfig.json"
-      }
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
     ],
-    "^.+\\.js$": [
-      "babel-jest",
-      {
-        "rootMode": "upward"
-      }
+    "rootDir": "src",
+    "testRegex": ".spec.ts$",
+    "transformIgnorePatterns": [
+      "node_modules/(?!(@nestjs/cache-manager|config|@babel/code-frame)/)"
+    ],
+    "transform": {
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "tsconfig": "tsconfig.json"
+        }
+      ],
+      "^.+\\.js$": [
+        "babel-jest",
+        {
+          "rootMode": "upward"
+        }
+      ]
+    },
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node",
+    "moduleDirectories": [
+      "node_modules",
+      "<rootDir>/../node_modules",
+      "<rootDir>/../../../../node_modules",
+      "<rootDir>"
     ]
   },
-  "coverageDirectory": "../coverage",
-  "testEnvironment": "node",
-  "moduleDirectories": [
-    "node_modules",
-    "<rootDir>/../node_modules",
-    "<rootDir>/../../../../node_modules",
-    "<rootDir>"
-  ]
-},
   "dependencies": {
     "lint-staged": "^11.2.6",
     "pm2": "^4.4.0",
     "rimraf": "^3.0.2"
   },
-  "percy": {
-    "snapshot": {
-      "widths": [
-        1280,
-        1920
-      ]
-    },
-    "agent": {
-      "network-idle-timeout": 250,
-      "cache-responses": true
-    }
-  },
   "resolutions": {
-    "webpack": "^5.4.0"
+    "webpack": "^5.4.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "rc-trigger": "^5.3.4"
   }
 }

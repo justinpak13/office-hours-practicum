@@ -1,19 +1,51 @@
 import { API } from "@koh/api-client";
 import { UpdateProfileParams } from "@koh/common";
-import { Button, Form, Input, message, Row } from "antd";
-import { pick } from "lodash";
-import { useIsMobile } from "../../hooks/useIsMobile";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { isEqual, pick } from "lodash";
 import { HeaderTitle } from "./Styled";
-import styled from "styled-components";
-import React, { ReactElement } from "react";
+import React, { ReactElement, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import useSWR from "swr";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+
+// Same rule as the antd form: required, no trimming
+const schema = z.object({
+  firstName: z.string().min(1, "Your name can't be empty!"),
+  lastName: z.string().min(1, "Your name can't be empty!"),
+});
+type ProfileForm = z.infer<typeof schema>;
 
 export default function ProfileSettings(): ReactElement {
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
     API.profile.index()
   );
-  const isMobile = useIsMobile();
-  const [form] = Form.useForm();
+  const form = useForm<ProfileForm>({
+    resolver: zodResolver(schema),
+    defaultValues: { firstName: "", lastName: "" },
+  });
+
+  // Fill the form when the profile loads or changes (e.g. after a photo
+  // upload), but never over what the user is typing. Names can be null.
+  const { isDirty } = form.formState;
+  useEffect(() => {
+    if (profile && !isDirty) {
+      form.reset({
+        firstName: profile.firstName ?? "",
+        lastName: profile.lastName ?? "",
+      });
+    }
+  }, [profile, isDirty, form]);
 
   const editProfile = async (updateProfile: UpdateProfileParams) => {
     const newProfile = { ...profile, ...updateProfile };
@@ -23,62 +55,89 @@ export default function ProfileSettings(): ReactElement {
     return newProfile;
   };
 
-  const handleOk = async () => {
-    const value = await form.validateFields();
-    const newProfile = await editProfile(value);
-    form.setFieldsValue(newProfile);
-    message.success("Your profile settings have been successfully updated");
-  };
+  // NOTE: Keycloak users' names are overwritten from the token on every request, so edits would vanish
+  const nameLocked = profile?.nameManagedByAccount ?? false;
 
-  const ResponsiveFormRow = styled(Row)`
-    flexdirection: ${isMobile ? "column" : "row"};
-  `;
+  const onSubmit = async (values: ProfileForm) => {
+    if (nameLocked) return;
+    const previous = profile;
+    try {
+      await editProfile(values);
+      const latest = form.getValues(); // includes edits made during the save
+      form.reset(values); // saved: the form is clean again
+      // Put back anything changed while the save was in flight, still unsaved
+      for (const k of Object.keys(values) as (keyof ProfileForm)[])
+        if (!isEqual(latest[k], values[k]))
+          form.setValue(k, latest[k], { shouldDirty: true });
+      toast.success("Your profile settings have been successfully updated");
+    } catch (e) {
+      // Undo the optimistic update, even if the refetch can't reach the server
+      mutate(previous, false);
+      mutate();
+      toast.error("Your profile couldn't be saved. Please try again.");
+    }
+  };
 
   return profile ? (
     <div>
       <HeaderTitle>
         <h1>Personal Information</h1>
       </HeaderTitle>
-      <Form wrapperCol={{ span: 18 }} form={form} initialValues={profile}>
-        <ResponsiveFormRow>
-          <Form.Item
-            label="First Name"
-            name="firstName"
-            data-cy="firstNameInput"
-            rules={[
-              {
-                required: true,
-                message: "Your name can't be empty!",
-              },
-            ]}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="mb-4 space-y-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <FormField
+              control={form.control}
+              name="firstName"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormLabel>First Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      data-cy="firstNameInput"
+                      disabled={nameLocked}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="lastName"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormLabel>Last Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      data-cy="lastNameInput"
+                      disabled={nameLocked}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          {nameLocked && (
+            <p
+              data-cy="nameManagedHint"
+              className="text-muted-foreground text-sm"
+            >
+              Your name comes from your Northeastern account.
+            </p>
+          )}
+          <Button
+            type="submit"
+            data-cy="saveButton"
+            disabled={form.formState.isSubmitting || nameLocked}
           >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            style={{ marginLeft: isMobile ? "0" : "10px" }}
-            label="Last Name"
-            name="lastName"
-            data-cy="lastNameInput"
-            rules={[
-              {
-                required: true,
-                message: "Your name can't be empty!",
-              },
-            ]}
-          >
-            <Input />
-          </Form.Item>
-        </ResponsiveFormRow>
+            Save
+          </Button>
+        </form>
       </Form>
-      <Button
-        key="submit"
-        type="primary"
-        data-cy="saveButton"
-        onClick={handleOk}
-        style={{ marginBottom: "15px" }}
-      >
-        Save
-      </Button>
     </div>
   ) : null;
 }

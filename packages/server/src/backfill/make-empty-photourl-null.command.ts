@@ -9,18 +9,14 @@ export class BackfillMakeEmptyPhotoURLNull {
     describe: 'changes empty string photoURLs to null',
   })
   async fix(): Promise<void> {
-    let countOfChanged = 0;
-
-    const users = await UserModel.find({ take: 1 })[0];
+    // Load and save only the rows with an empty photoURL, not the whole table
+    const users = await UserModel.find({ where: { photoURL: '' } });
     users.forEach((user) => {
-      if (user.photoURL === '') {
-        user.photoURL = null;
-        countOfChanged += 1;
-      }
+      user.photoURL = null;
     });
 
     await UserModel.save(users);
 
-    console.log(`Updated names for ${countOfChanged} users`);
+    console.log(`Updated photo URLs for ${users.length} users`);
   }
 }
