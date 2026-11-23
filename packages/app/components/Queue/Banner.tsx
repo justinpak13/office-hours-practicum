@@ -1,5 +1,5 @@
 import { Button } from "antd";
-import { ReactElement, ReactNode } from "react";
+import React, { ReactElement, ReactNode } from "react";
 import styled from "styled-components";
 
 const BannerContainer = styled.div`
@@ -64,9 +64,13 @@ export default function Banner(props: BannerProps): ReactElement {
   );
 }
 
-export function CircleButton({ ...props }: CircleButtonProps): ReactElement {
-  return <Button size="large" shape="circle" {...props} />;
-}
+// forwardRef so shadcn Tooltip / AlertDialog triggers (asChild) can wrap
+// these buttons; antd's own Tooltip and Popconfirm keep working as before
+export const CircleButton = React.forwardRef<HTMLElement, CircleButtonProps>(
+  function CircleButton(props, ref) {
+    return <Button ref={ref} size="large" shape="circle" {...props} />;
+  }
+);
 
 /**
  * Buttons to be used in the banner

@@ -1,24 +1,26 @@
 import { Question } from "@koh/common";
-import { Card, Col } from "antd";
 import { ReactElement } from "react";
 import styled from "styled-components";
 import { getWaitTime } from "../../../utils/TimeUtil";
-import { CenterRow, Text } from "../QueueCardSharedComponents";
+import { Text } from "../QueueCardSharedComponents";
 import { truncate } from "../QueueUtils";
 import { RenderEvery } from "../../RenderEvery";
 
-const HorizontalStudentCard = styled(Card)`
+// Same box as the old antd Card: 1px border, 24px body padding (plus 8px sides)
+const HorizontalStudentCard = styled.div`
   margin-bottom: 8px;
   box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
   background: #ffffff;
+  border: 1px solid #f0f0f0;
   border-radius: 6px;
-  padding-left: 8px;
-  padding-right: 8px;
+  padding: 24px 32px;
   color: #595959;
 `;
 
-const bodyStyle = {
+// The old card dropped its border when highlighted (bordered={false})
+const highlightedStyle = {
   backgroundColor: "#F6FFED",
+  border: "none",
 };
 
 interface StudentQueueCardProps {
@@ -36,24 +38,21 @@ export default function StudentQueueCard({
   highlighted,
 }: StudentQueueCardProps): ReactElement {
   return (
-    <HorizontalStudentCard
-      style={highlighted ? bodyStyle : {}}
-      bordered={!highlighted}
-    >
-      <CenterRow>
-        <Col flex="0 0 64px">
+    <HorizontalStudentCard style={highlighted ? highlightedStyle : {}}>
+      <div className="flex flex-wrap items-center">
+        <div className="shrink-0 grow-0 basis-16">
           <Text>{rank}</Text>
-        </Col>
-        <Col flex="1 1">
+        </div>
+        <div className="min-w-0 flex-1">
           <Text>{truncate(question.text, 150)}</Text>
-        </Col>
-        <Col flex="0 0 80px">
+        </div>
+        <div className="shrink-0 grow-0 basis-20">
           <RenderEvery
             render={() => <Text>{getWaitTime(question)}</Text>}
             interval={60 * 1000}
           />
-        </Col>
-      </CenterRow>
+        </div>
+      </div>
     </HorizontalStudentCard>
   );
 }
