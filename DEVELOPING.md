@@ -78,6 +78,7 @@ The server loads `packages/server/.env`, then `packages/server/.env.development`
 | `UPLOAD_LOCATION` | Folder for profile photos and course calendar files, relative to `packages/server` |
 | `ADMIN_SESSION_SECRET` | Signs admin panel sessions |
 | `KHOURY_ADMIN_URL` | Base URL of the Khoury Admin API that OH calls for course data. In dev this is the stub. `.env.development` is local and untracked, so add `KHOURY_ADMIN_URL=http://localhost:4100` yourself |
+| `KHOURY_ADMIN_TOKEN` | Application token sent as `Authorization: Token <key>` on every Khoury Admin call. There is no default: if it is empty, calls fail before any request is sent. Add `KHOURY_ADMIN_TOKEN=dev-khoury-admin-token` to your `.env.development`. The stub expects this same value unless its own `KHOURY_ADMIN_TOKEN` env var says otherwise, and answers 401 to anything else |
 | `KHOURY_SEMESTER` | Semester code the server asks Khoury Admin about, such as `202710` (Fall 2026). Add `KHOURY_SEMESTER=202710` to your `.env.development`. This is the single term used by sign-in sync, so bump it each term |
 | `KHOURY_STUB_PORT` | Port for the fake Khoury Admin stub (default 4100). Read by the stub, not the server |
 | `KHOURY_STUB_FAIL` | Makes the stub fail every request: `500`, `slow` or `badshape`. Read by the stub, not the server |
