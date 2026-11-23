@@ -23,10 +23,10 @@ All emails are `@northeastern.edu`, and NUIDs match `oauth2-proxy-demo/fake-keyc
 
 ## Groups
 
-| Id                              | Name              | Purpose                                                                                                                                   |
-| ------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `sg_120271000000000001`         | CS 2500 Fundies 1 | Mirrors the seed (CRNs 10234, 10235)                                                                                                      |
-| `sg_120271000000000001-updated` | CS 2500 Fundies 1 | Roster variant for roster-sync tests: Takayama dropped, Lee added. Served when the stub runs with `rosterSuffix: '-updated'` (tests only) |
-| `sg_120271000000000002`         | CS 3500 OOD       | Set-up group that received CRNs 20111, 20112 from a course group                                                                          |
-| `sg_220271000180000002`         | CS 1800 London    | Course group; Rivera in two lists, Kim with an empty last name                                                                            |
-| `sg_220271000350000001`         | CS 3500 Boston    | Moved: no roster file, so C answers 404. Its CRNs are now listed under `sg_120271000000000002` in Eddy Li's endpoint A file               |
+| Id                              | Name              | Purpose                                                                                                                                                                                                 |
+| ------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sg_120271000000000001`         | CS 2500 Fundies 1 | Shaped like the seed's CS 2500 (CRNs 10234, 10235); the seed course is Fall 2020 with no CRN mappings, so it does not link by CRN as-is                                                                 |
+| `sg_120271000000000001-updated` | CS 2500 Fundies 1 | Roster variant for roster-sync tests: Takayama dropped, Lee added. Served when the stub runs with `rosterSuffix: '-updated'` (tests only); groups without a variant file fall back to their base roster |
+| `sg_120271000000000002`         | CS 3500 OOD       | Set-up group that received CRNs 20111, 20112 from a course group                                                                                                                                        |
+| `sg_220271000180000002`         | CS 1800 London    | Course group; Rivera in two lists, Kim with an empty last name                                                                                                                                          |
+| `sg_220271000350000001`         | CS 3500 Boston    | Moved: no roster file, so C answers 404. Its CRNs are now listed under `sg_120271000000000002` in Eddy Li's endpoint A file                                                                             |
