@@ -60,8 +60,8 @@ describe('KhouryAdminSyncService', () => {
   const fall2026 = () => SemesterFactory.create({ season: 'Fall', year: 2026 });
 
   it('normalizeEmail, roles and higherRole', () => {
-    expect(normalizeEmail('Doe.J@Husky.NEU.edu')).toBe(
-      'doe.j@northeastern.edu',
+    expect(normalizeEmail('Rivera.Jo@Husky.NEU.edu')).toBe(
+      'rivera.jo@northeastern.edu',
     );
     expect(khouryRoleToRole('TA')).toBe(Role.TA);
     expect(higherRole(Role.TA, Role.STUDENT)).toBe(Role.TA);
@@ -69,8 +69,8 @@ describe('KhouryAdminSyncService', () => {
   });
 
   it('matches an existing user case-insensitively; creates a new one', async () => {
-    const u = await UserFactory.create({ email: 'Doe.J@Northeastern.edu' });
-    const same = await service.onSignIn('doe.j@HUSKY.neu.edu', name);
+    const u = await UserFactory.create({ email: 'Rivera.Jo@Northeastern.edu' });
+    const same = await service.onSignIn('rivera.jo@HUSKY.neu.edu', name);
     expect(same.id).toBe(u.id);
     expect(await UserModel.count()).toBe(1);
 
