@@ -630,6 +630,8 @@ describe('KhouryAdminClient', () => {
     expect(urls).toHaveLength(2);
     urls.forEach((u) => expect(u).toContain('liu.sta%40northeastern.edu'));
     expect(urls[1]).toContain('&nuid=000000004');
+    await client.getCourses('a@northeastern.edu', '202710', ' 001234567 ');
+    expect(urls[2]).toContain('&nuid=001234567');
   });
 
   it('getCourses without a NUID rejects before any request', async () => {

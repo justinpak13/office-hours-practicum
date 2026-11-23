@@ -1,5 +1,4 @@
 import { Role } from '@koh/common';
-import { ConsoleLogger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
@@ -50,8 +49,16 @@ describe('KhouryAdminSyncService', () => {
     conn = module.get(DataSource);
   });
   afterAll(() => conn.destroy());
+  let error: jest.SpyInstance;
+  let warn: jest.SpyInstance;
   afterEach(() => jest.restoreAllMocks());
   beforeEach(async () => {
+    error = jest
+      .spyOn((service as any).logger, 'error')
+      .mockImplementation(() => undefined);
+    warn = jest
+      .spyOn((service as any).logger, 'warn')
+      .mockImplementation(() => undefined);
     await conn.synchronize(true);
     client.getSectionGroups.mockReset().mockResolvedValue({
       semester: sem,
@@ -180,7 +187,6 @@ describe('KhouryAdminSyncService', () => {
               );
             return c;
           });
-        const warn = jest.spyOn(ConsoleLogger.prototype, 'warn');
         await signIn('p@northeastern.edu');
         expect(warn).toHaveBeenCalledWith(
           expect.stringContaining(`Course ${course.id}: group id changed`),
@@ -215,7 +221,6 @@ describe('KhouryAdminSyncService', () => {
               );
             return c;
           });
-        const warn = jest.spyOn(ConsoleLogger.prototype, 'warn');
         await signIn('p@northeastern.edu');
         expect(warn).toHaveBeenCalledWith(
           expect.stringContaining(`Course ${a.id}: group id changed`),
@@ -247,7 +252,6 @@ describe('KhouryAdminSyncService', () => {
               );
             return c;
           });
-        const warn = jest.spyOn(ConsoleLogger.prototype, 'warn');
         await signIn('p@northeastern.edu');
         expect(client.getRoster).toHaveBeenCalledWith(sg2);
         expect(warn).toHaveBeenCalledWith(
@@ -349,7 +353,6 @@ describe('KhouryAdminSyncService', () => {
       });
 
       it('C throws: unchanged, warns, A is still saved', async () => {
-        const warn = jest.spyOn(ConsoleLogger.prototype, 'warn');
         client.getRoster.mockRejectedValue(new KhouryAdminError('down'));
         const c = await run(sg2, sg1);
         expect(c.khourySectionGroupId).toBe(sg2);
@@ -362,7 +365,6 @@ describe('KhouryAdminSyncService', () => {
       });
 
       it('C is called once per old id and warns once, across groups', async () => {
-        const warn = jest.spyOn(ConsoleLogger.prototype, 'warn');
         client.getRoster.mockRejectedValue(new KhouryAdminError('down'));
         const course = await mapped({ khourySectionGroupId: sg2 });
         await CourseSectionMappingModel.create({
@@ -609,7 +611,6 @@ describe('KhouryAdminSyncService', () => {
     });
     const y = await CourseFactory.create({ semester: x.semester });
     await CourseSectionMappingModel.create({ crn: 7, courseId: y.id }).save();
-    const warn = jest.spyOn(ConsoleLogger.prototype, 'warn');
     client.getSectionGroups.mockResolvedValue({
       semester: sem,
       section_groups: [{ id: 'sg_120271000000000001', name: 'CS', crns: [7] }],
@@ -920,7 +921,10 @@ describe('KhouryAdminSyncService', () => {
         .spyOn(ProfSectionGroupsModel, 'upsert')
         .mockRejectedValue(new Error('db down'));
       try {
-        await expect(service.syncIfDue(u)).rejects.toThrow('db down');
+        await expect(service.syncIfDue(u)).rejects.toMatchObject({
+          message: 'Khoury Admin A failed',
+          cause: { message: 'db down' },
+        });
       } finally {
         spy.mockRestore();
       }
@@ -928,6 +932,93 @@ describe('KhouryAdminSyncService', () => {
         (await UserCourseModel.findOneBy({ userId: u.id, courseId: course.id }))
           .role,
       ).toBe(Role.TA);
+    });
+
+    it('a falsy rejection from A still makes syncIfDue reject', async () => {
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+      });
+      client.getSectionGroups.mockRejectedValue(undefined);
+      await expect(service.syncIfDue(u)).rejects.toMatchObject({
+        message: 'Khoury Admin A failed',
+      });
+    });
+
+    it('an unexpected B failure keeps the saved A row and rethrows', async () => {
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+      });
+      client.getSectionGroups.mockResolvedValue({
+        semester: sem,
+        section_groups: [{ id: 'sg_1', name: 'N', crns: [1] }],
+      });
+      const boom = new Error('b boom');
+      client.getCourses.mockRejectedValue(boom);
+      await expect(service.syncIfDue(u)).rejects.toMatchObject({
+        message: 'Khoury Admin B failed',
+        cause: boom,
+      });
+      expect(
+        (await ProfSectionGroupsModel.findOneBy({ profId: u.id }))
+          .sectionGroups,
+      ).toHaveLength(1);
+    });
+
+    it('a blank email skips both A and B with a warning', async () => {
+      const u = await UserFactory.create({ nuid: NUID, email: '  ' });
+      await service.syncIfDue(u);
+      expect(client.getSectionGroups).not.toHaveBeenCalled();
+      expect(client.getCourses).not.toHaveBeenCalled(); // no email to ask with
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('no email'));
+      expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('no NUID'));
+    });
+
+    it('logging: unexpected errors are not logged by the service; a KhouryAdminError warns once', async () => {
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+      });
+      client.getSectionGroups.mockRejectedValue(undefined);
+      client.getCourses.mockRejectedValue(new Error('b boom'));
+      const err = await service.onSignIn(u).catch((e) => e);
+      expect(err).toBeInstanceOf(Error);
+      expect(err.errors.map((x) => x.message)).toEqual([
+        'Khoury Admin A failed',
+        'Khoury Admin B failed',
+      ]);
+      expect(err.errors[0].cause).toBeUndefined();
+      expect(err.errors[1].cause.message).toBe('b boom');
+      expect(error).not.toHaveBeenCalled();
+      expect(warn).not.toHaveBeenCalled();
+
+      client.getSectionGroups.mockResolvedValue({
+        semester: sem,
+        section_groups: [],
+      });
+      client.getCourses.mockRejectedValue(new KhouryAdminError('down'));
+      await expect(service.onSignIn(u)).resolves.toBeUndefined();
+      expect(error).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('a throwing claim UPDATE rejects syncIfDue and calls no client', async () => {
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+      });
+      const spy = jest
+        .spyOn(UserModel, 'createQueryBuilder')
+        .mockImplementation(() => {
+          throw new Error('db down');
+        });
+      try {
+        await expect(service.syncIfDue(u)).rejects.toThrow('db down');
+      } finally {
+        spy.mockRestore();
+      }
+      expect(client.getSectionGroups).not.toHaveBeenCalled();
     });
 
     it('client failure keeps memberships, resolves, and keeps the timestamp', async () => {

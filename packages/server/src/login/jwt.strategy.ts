@@ -31,6 +31,25 @@ class RequestStrategy extends PassportBaseStrategy {
   }
 }
 
+// NOTE: not util.inspect: a QueryFailedError carries the query, parameters and driver detail (user emails). Prints only messages and stacks, following `cause` and `errors`.
+function describeError(e: unknown, depth = 0): string {
+  let text: string;
+  try {
+    text =
+      e instanceof Error && e.stack
+        ? e.stack
+        : String((e as any)?.message ?? String(e));
+  } catch {
+    text = 'unknown error';
+  }
+  if (depth >= 4 || e === null || typeof e !== 'object') return text;
+  const kids = [
+    ...('cause' in e ? [(e as any).cause] : []),
+    ...(Array.isArray((e as any).errors) ? (e as any).errors : []),
+  ];
+  return [text, ...kids.map((k) => describeError(k, depth + 1))].join('\n  ');
+}
+
 export interface AuthenticatedUser {
   userId: number;
 }
@@ -57,9 +76,22 @@ export class JwtStrategy extends PassportStrategy(RequestStrategy, 'jwt') {
     );
     const user = await this.oidcUserService.findOrCreate(claims);
     // Background sync (gated to once a day): login never waits on it or fails from it
-    void this.khouryAdminSync
-      .syncIfDue(user)
-      .catch((e) => this.logger.warn(`Khoury Admin sync failed: ${e}`));
+    // NOTE: wrapped so a sync that throws synchronously or returns a non-promise can't fail login
+    void Promise.resolve()
+      .then(() => this.khouryAdminSync.syncIfDue(user))
+      // NOTE: the one place unexpected sync errors are logged (one log call per failed sync, via describeError)
+      .catch((e) => {
+        try {
+          this.logger.error(`Khoury Admin sync failed: ${describeError(e)}`);
+        } catch {
+          // NOTE: logging must never fail login
+          try {
+            this.logger.error('Khoury Admin sync failed (unprintable error)');
+          } catch {
+            // nothing left to try
+          }
+        }
+      });
     return { userId: user.id };
   }
 }
