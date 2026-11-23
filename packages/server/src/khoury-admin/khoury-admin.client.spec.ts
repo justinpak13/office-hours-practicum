@@ -9,7 +9,7 @@ import { of } from 'rxjs';
 import { KhouryAdminClient } from './khoury-admin.client';
 import { KhouryAdminError } from './khoury-admin.types';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
 const { createStubServer } = require('../../khoury-admin-stub/server');
 const dataDir = path.join(__dirname, '../../khoury-admin-stub/data');
 
