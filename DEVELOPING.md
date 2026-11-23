@@ -54,6 +54,8 @@
 
 Users log in through oauth2-proxy and Keycloak. oauth2-proxy forwards each request with the user's ID token in `Authorization: Bearer …`, and the API verifies it and finds the user by their Keycloak `sub` (`packages/server/src/login/jwt.strategy.ts` and `packages/server/src/oidc`). Signing out goes to `/oauth2/sign_out?rd=/signed-out`. The `/dev` page and the `/api/v1/seeds/*` endpoints only work when `DOMAIN` is not the production URL.
 
+Keycloak users get their courses from Khoury Admin: when a Keycloak request resolves a user, the API starts a background sync for them (section groups by email, memberships by email and NUID), at most once every 24 hours per user (`UserModel.lastKhourySyncAt`). The request never waits on it, and a failed sync is logged and retried 24 hours later. Users without a NUID get section groups only.
+
 ### Ports
 
 These are hardcoded.
