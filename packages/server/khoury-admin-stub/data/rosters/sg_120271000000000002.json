@@ -1,0 +1,32 @@
+{
+  "id": "sg_120271000000000002",
+  "name": "CS 3500 OOD",
+  "semester": "202710",
+  "generated_at": "2026-09-01T12:00:00Z",
+  "professors": [
+    {
+      "email": "li.edwa@northeastern.edu",
+      "nuid": "000000008",
+      "first_name": "Eddy",
+      "last_name": "Li"
+    }
+  ],
+  "tas": [],
+  "sections": [
+    {
+      "crn": 20111,
+      "students": [
+        {
+          "email": "m.lee@northeastern.edu",
+          "nuid": "000000003",
+          "first_name": "Morgan",
+          "last_name": "Lee"
+        }
+      ]
+    },
+    {
+      "crn": 20112,
+      "students": []
+    }
+  ]
+}
