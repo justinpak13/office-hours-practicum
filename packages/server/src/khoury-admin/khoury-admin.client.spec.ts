@@ -22,6 +22,9 @@ async function listen(opts?: Record<string, string>, dir = dataDir) {
 describe('KhouryAdminClient', () => {
   const client = new KhouryAdminClient(new HttpService(), new ConfigService());
   const servers: any[] = [];
+  beforeEach(() => {
+    process.env.KHOURY_ADMIN_TOKEN = 'dev-khoury-admin-token';
+  });
   const point = async (opts?: Record<string, string>) => {
     const s = await listen(opts);
     servers.push(s.server);
@@ -473,5 +476,55 @@ describe('KhouryAdminClient', () => {
     await expect(
       client.getSectionGroups('prof.a@northeastern.edu', '202710'),
     ).rejects.toBeInstanceOf(KhouryAdminError);
+  });
+
+  describe('token', () => {
+    const record = async () => {
+      const seen: (string | undefined)[] = [];
+      const srv = http.createServer((req, res) => {
+        seen.push(req.headers.authorization);
+        res.statusCode = 500;
+        res.end('{}');
+      });
+      await new Promise<void>((r) => srv.listen(0, '127.0.0.1', r));
+      servers.push(srv);
+      process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${
+        (srv.address() as AddressInfo).port
+      }`;
+      return seen;
+    };
+
+    it('sends Authorization: Token <key> on A, B and C', async () => {
+      const seen = await record();
+      process.env.KHOURY_ADMIN_TOKEN = 'abc123';
+      await client
+        .getSectionGroups('a@northeastern.edu', '202710')
+        .catch(() => 0);
+      await client.getCourses('a@northeastern.edu', '202710').catch(() => 0);
+      await client.getRoster('sg_1001').catch(() => 0);
+      expect(seen).toEqual(Array(3).fill('Token abc123'));
+    });
+
+    it.each(['', undefined])(
+      'fails without sending a request when the token is %p',
+      async (v) => {
+        const seen = await record();
+        if (v === undefined) delete process.env.KHOURY_ADMIN_TOKEN;
+        else process.env.KHOURY_ADMIN_TOKEN = v;
+        await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
+          KhouryAdminError,
+        );
+        expect(seen).toEqual([]);
+      },
+    );
+
+    it('reads the token on every call', async () => {
+      const seen = await record();
+      process.env.KHOURY_ADMIN_TOKEN = 'one';
+      await client.getRoster('sg_1001').catch(() => 0);
+      process.env.KHOURY_ADMIN_TOKEN = 'two';
+      await client.getRoster('sg_1001').catch(() => 0);
+      expect(seen).toEqual(['Token one', 'Token two']);
+    });
   });
 });

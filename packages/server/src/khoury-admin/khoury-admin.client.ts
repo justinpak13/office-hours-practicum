@@ -104,10 +104,16 @@ export class KhouryAdminClient {
     // read on every call, never cached
     const url =
       String(this.config.get('KHOURY_ADMIN_URL')).replace(/\/+$/, '') + path;
+    // NOTE: no default; an unset token must fail before any request is sent. The token is never put in a message.
+    const token = String(this.config.get('KHOURY_ADMIN_TOKEN') ?? '');
+    if (!token) {
+      throw new KhouryAdminError('KHOURY_ADMIN_TOKEN is not configured');
+    }
     let res;
     try {
       res = await firstValueFrom(
         this.http.get(url, {
+          headers: { Authorization: `Token ${token}` },
           timeout: 5000,
           maxRedirects: 0,
           validateStatus: () => true,
