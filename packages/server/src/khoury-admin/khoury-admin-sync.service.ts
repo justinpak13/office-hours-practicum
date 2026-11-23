@@ -123,28 +123,84 @@ export class KhouryAdminSyncService {
       'profId',
     ]);
 
+    const cOld = new Map<string, 'gone' | 'kept' | 'error'>(); // C result per old id: one call and one warn per sign-in
     for (const g of groups) {
+      const courses: CourseModel[] = [];
       for (const crn of g.crns) {
-        const course = await this.loginCourse.courseCRNToCourse(crn, semester);
-        if (!course) continue;
-        if (course.khourySectionGroupId === g.id) break;
-        // NOTE: conditional update; the unique index turns "another course holds this id" (or a race) into a 23505 we skip
+        const c = await this.loginCourse.courseCRNToCourse(crn, semester);
+        if (c) courses.push(c);
+      }
+      if (courses.some((c) => c.khourySectionGroupId === g.id)) continue;
+      // NOTE: conditional update; the unique index turns "another course holds this id" (or a race) into a 23505 we skip.
+      // Alex's move rule: a course group's (sg_2) sections can move into a set-up group (sg_1), and the old id 404s once empty.
+      // So sg_2 -> sg_1 re-links only once the old id is gone: first absent from this A response (cheap filter), then
+      // confirmed by C returning 404 (empty everywhere). A alone isn't enough: a co-taught course's other sections may
+      // still sit in the sg_2 group for another professor. A partial move waits until the last section moves.
+      // Nothing else moves a linked course.
+      // Re-link clears the stamp (it came from another group); the first link (null id) keeps it.
+      // Only one course can hold an id, so if one sg_1 group's CRNs map to two sg_2-linked courses, only the first is re-linked.
+      // A held course (C returned a roster, or failed) blocks the whole group, whatever the CRN order, so its sg_1 id stays
+      // free for it and no sibling takes it. It blocks every sg_1 group with one of its CRNs until its old group empties;
+      // that resolves on the next sign-in after the move completes.
+      // A still listing the old id is a partial move: held without calling C. getRoster errors are always
+      // KhouryAdminError (the client wraps everything), so any other throw is a bug and aborts A's save by design.
+      let held = false;
+      for (const c of courses) {
+        const old = c.khourySectionGroupId;
+        if (!old?.startsWith('sg_2') || !g.id.startsWith('sg_1')) continue;
+        held =
+          groups.some((x) => x.id === old) ||
+          (await this.oldGroupState(old, cOld)) !== 'gone';
+        if (held) break;
+      }
+      if (held) continue;
+      for (const course of courses) {
         try {
           const res = await CourseModel.createQueryBuilder()
             .update()
-            .set({ khourySectionGroupId: g.id })
-            .where('id = :id AND "khourySectionGroupId" IS NULL', {
-              id: course.id,
+            .set({
+              khourySectionGroupId: g.id,
+              khouryRosterGeneratedAt: () =>
+                'CASE WHEN "khourySectionGroupId" IS NULL THEN "khouryRosterGeneratedAt" ELSE NULL END',
             })
+            .where(
+              'id = :id AND ("khourySectionGroupId" IS NULL OR ("khourySectionGroupId" LIKE \'sg\\_2%\' AND :newId LIKE \'sg\\_1%\' AND "khourySectionGroupId" NOT IN (:...currentIds)))',
+              {
+                id: course.id,
+                newId: g.id,
+                currentIds: groups.map((x) => x.id),
+              },
+            )
             .execute();
           if (res.affected === 1) break;
           // 0 rows: this course belongs to another group, try the next CRN
         } catch (e) {
           if (e?.driverError?.code !== '23505') throw e;
+          this.logger.warn(
+            `Course ${course.id}: ${g.id} already held by another course, link skipped`,
+          );
           break;
         }
       }
     }
+  }
+
+  private async oldGroupState(
+    id: string,
+    cache: Map<string, 'gone' | 'kept' | 'error'>,
+  ) {
+    if (!cache.has(id)) {
+      try {
+        cache.set(id, (await this.client.getRoster(id)) ? 'kept' : 'gone');
+      } catch (e) {
+        if (!(e instanceof KhouryAdminError)) throw e;
+        this.logger.warn(
+          `Khoury Admin C ${id} failed, not re-linking: ${e.message}`,
+        );
+        cache.set(id, 'error');
+      }
+    }
+    return cache.get(id);
   }
 
   private upsertMembership(userId: number, courseId: number, role: Role) {
