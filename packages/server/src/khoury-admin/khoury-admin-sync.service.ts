@@ -24,7 +24,7 @@ export function higherRole(a: Role, b: Role): Role {
 }
 
 // Minimum gap between syncs for one user (a constant on purpose, not config)
-const SYNC_INTERVAL = '24 hours';
+const SYNC_HOURS = 24;
 
 @Injectable()
 export class KhouryAdminSyncService {
@@ -37,7 +37,7 @@ export class KhouryAdminSyncService {
     private dataSource: DataSource,
   ) {}
 
-  // NOTE: the advisory lock serializes sync; the legacy-only unique email index on user_model is the DB backstop (the old login path is not covered by the lock)
+  // NOTE: the advisory lock only serializes membership upserts per user and course; the sync itself is claimed by the conditional UPDATE in syncIfDue
   private locked<T>(
     key: string,
     fn: (m: EntityManager) => Promise<T>,
@@ -50,12 +50,19 @@ export class KhouryAdminSyncService {
 
   // Runs the sync for a user at most once per 24h. The conditional UPDATE both checks the gate and claims the run, so concurrent requests can't both sync.
   // NOTE: retry after 24h on failure; shorten if outages matter
+  // NOTE: a user whose first sync ran without a NUID gets B on the next due sync (up to 24h later), and a stale save() of a user loaded before the claim can null the stamp and cause one extra (idempotent) sync; both accepted
   async syncIfDue(user: UserModel): Promise<void> {
+    // Cheap in-memory check; the UPDATE below stays the race-safe claim
+    if (
+      user.lastKhourySyncAt &&
+      Date.now() - user.lastKhourySyncAt.getTime() < SYNC_HOURS * 3600_000
+    )
+      return;
     const claimed = await UserModel.createQueryBuilder()
       .update()
       .set({ lastKhourySyncAt: () => 'now()' })
       .where(
-        `id = :id AND ("lastKhourySyncAt" IS NULL OR "lastKhourySyncAt" < now() - interval '${SYNC_INTERVAL}')`,
+        `id = :id AND ("lastKhourySyncAt" IS NULL OR "lastKhourySyncAt" < now() - interval '${SYNC_HOURS} hours')`,
         { id: user.id },
       )
       .execute();
@@ -67,20 +74,23 @@ export class KhouryAdminSyncService {
     const norm = normalizeEmail(user.email);
     // NOTE: single semester from env; must be bumped each term and profs can't see next term early; compute from date when going live
     const semester = this.config.get('KHOURY_SEMESTER');
+    const nuid = user.nuid?.trim();
 
     // NOTE: allSettled so both requests run together without an unhandled rejection
     const [a, b] = await Promise.allSettled([
       this.client.getSectionGroups(norm, semester),
       // NOTE: B needs the NUID; without one only A runs
-      user.nuid
-        ? this.client.getCourses(norm, semester, user.nuid)
+      nuid
+        ? this.client.getCourses(norm, semester, nuid)
         : Promise.resolve(null),
     ]);
+    // NOTE: A and B are independent; an unexpected error (not KhouryAdminError) in one is logged, B still runs, and it is rethrown at the end
+    let bug: unknown;
     try {
       if (a.status === 'rejected') throw a.reason;
       await this.saveSectionGroups(user, a.value.section_groups, semester);
     } catch (e) {
-      this.logFailure('A', e);
+      bug ??= this.logFailure('A', e);
     }
     try {
       if (b.status === 'rejected') throw b.reason;
@@ -88,26 +98,27 @@ export class KhouryAdminSyncService {
         this.logger.warn(
           `Skipping Khoury Admin B: user ${user.id} has no NUID`,
         );
-        return;
-      }
-      // NOTE: duplicate entries for one group collapse to the highest role
-      const best = new Map<string, Role>();
-      for (const c of b.value.courses) {
-        const r = khouryRoleToRole(c.role);
-        const prev = best.get(c.section_group_id);
-        best.set(c.section_group_id, prev ? higherRole(prev, r) : r);
-      }
-      for (const [groupId, role] of best) {
-        const course = await CourseModel.findOne({
-          where: { khourySectionGroupId: groupId },
-        });
-        if (course?.enabled) {
-          await this.upsertMembership(user.id, course.id, role);
+      } else {
+        // NOTE: duplicate entries for one group collapse to the highest role
+        const best = new Map<string, Role>();
+        for (const c of b.value.courses) {
+          const r = khouryRoleToRole(c.role);
+          const prev = best.get(c.section_group_id);
+          best.set(c.section_group_id, prev ? higherRole(prev, r) : r);
+        }
+        for (const [groupId, role] of best) {
+          const course = await CourseModel.findOne({
+            where: { khourySectionGroupId: groupId },
+          });
+          if (course?.enabled) {
+            await this.upsertMembership(user.id, course.id, role);
+          }
         }
       }
     } catch (e) {
-      this.logFailure('B', e);
+      bug ??= this.logFailure('B', e);
     }
+    if (bug) throw bug;
   }
 
   private async saveSectionGroups(
@@ -245,9 +256,16 @@ export class KhouryAdminSyncService {
     });
   }
 
-  // A failed call keeps what OH already has; anything else is a real bug
-  private logFailure(which: string, e: unknown) {
-    if (!(e instanceof KhouryAdminError)) throw e;
-    this.logger.warn(`Khoury Admin ${which} failed: ${e.message}`);
+  // A failed call keeps what OH already has. Returns the error when it is a real bug (already logged with its stack) so the caller can rethrow it later
+  private logFailure(which: string, e: any): unknown {
+    if (e instanceof KhouryAdminError) {
+      this.logger.warn(`Khoury Admin ${which} failed: ${e.message}`);
+      return undefined;
+    }
+    this.logger.error(
+      `Khoury Admin ${which} failed unexpectedly: ${e?.message}`,
+      e?.stack,
+    );
+    return e;
   }
 }

@@ -864,6 +864,72 @@ describe('KhouryAdminSyncService', () => {
       );
     });
 
+    it('a recent in-memory stamp returns early without touching the DB', async () => {
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+        lastKhourySyncAt: hoursAgo(1),
+      });
+      const spy = jest.spyOn(UserModel, 'createQueryBuilder');
+      try {
+        await service.syncIfDue(u);
+        expect(spy).not.toHaveBeenCalled();
+      } finally {
+        spy.mockRestore();
+      }
+      expect(client.getSectionGroups).not.toHaveBeenCalled();
+    });
+
+    it('a spaces-only NUID skips B; a padded NUID is sent trimmed', async () => {
+      const blank = await UserFactory.create({
+        nuid: '   ',
+        email: 'b@northeastern.edu',
+      });
+      await service.syncIfDue(blank);
+      expect(client.getSectionGroups).toHaveBeenCalledTimes(1);
+      expect(client.getCourses).not.toHaveBeenCalled();
+      const padded = await UserFactory.create({
+        nuid: ` ${NUID} `,
+        email: 'p@northeastern.edu',
+      });
+      await service.syncIfDue(padded);
+      expect(client.getCourses).toHaveBeenCalledWith(
+        'p@northeastern.edu',
+        sem,
+        NUID,
+      );
+    });
+
+    it('an unexpected error saving A does not stop B, and is rethrown', async () => {
+      const course = await CourseFactory.create({
+        khourySectionGroupId: 'sg_1',
+      });
+      const u = await UserFactory.create({
+        nuid: NUID,
+        email: 's@northeastern.edu',
+      });
+      client.getSectionGroups.mockResolvedValue({
+        semester: sem,
+        section_groups: [{ id: 'sg_9', name: 'N', crns: [1] }],
+      });
+      client.getCourses.mockResolvedValue({
+        semester: sem,
+        courses: [{ section_group_id: 'sg_1', role: 'TA' }],
+      });
+      const spy = jest
+        .spyOn(ProfSectionGroupsModel, 'upsert')
+        .mockRejectedValue(new Error('db down'));
+      try {
+        await expect(service.syncIfDue(u)).rejects.toThrow('db down');
+      } finally {
+        spy.mockRestore();
+      }
+      expect(
+        (await UserCourseModel.findOneBy({ userId: u.id, courseId: course.id }))
+          .role,
+      ).toBe(Role.TA);
+    });
+
     it('client failure keeps memberships, resolves, and keeps the timestamp', async () => {
       const course = await CourseFactory.create({
         khourySectionGroupId: 'sg_1',
