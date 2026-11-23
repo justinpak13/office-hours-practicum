@@ -26,6 +26,12 @@ function createStubServer(dataDir, opts = {}) {
     e.toLowerCase().replace(/@husky\.neu\.edu$/, '@northeastern.edu');
 
   return http.createServer((req, res) => {
+    // NOTE: checked before any route or file lookup; opts.token lets tests use a token other than the env one
+    const expected =
+      opts.token || process.env.KHOURY_ADMIN_TOKEN || 'dev-khoury-admin-token';
+    if (req.headers.authorization !== `Token ${expected}`) {
+      return send(res, 401, { error: 'unauthorized' });
+    }
     let url, kind, key, leaf;
     // NOTE: exact route from the raw path (before any URL normalization), static segments undecoded
     const m =

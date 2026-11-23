@@ -20,6 +20,7 @@ async function listen(opts?: Record<string, string>, dir = dataDir) {
 }
 
 describe('KhouryAdminClient', () => {
+  const auth = { Authorization: 'Token dev-khoury-admin-token' };
   const client = new KhouryAdminClient(new HttpService(), new ConfigService());
   const servers: any[] = [];
   beforeEach(() => {
@@ -103,7 +104,7 @@ describe('KhouryAdminClient', () => {
     const r = await new Promise<any>((resolve) =>
       http
         .request(
-          { host: '127.0.0.1', port: s.port, method, path: p },
+          { host: '127.0.0.1', port: s.port, method, path: p, headers: auth },
           (res) => {
             let b = '';
             res.on('data', (c) => (b += c));
@@ -143,6 +144,7 @@ describe('KhouryAdminClient', () => {
           host: '127.0.0.1',
           port: s.port,
           path: '/api/v1/users/doe.j@northeastern.edu/courses?semester=%E0%A4%A',
+          headers: auth,
         },
         (res) => {
           res.resume();
@@ -296,7 +298,12 @@ describe('KhouryAdminClient', () => {
     const bad = await new Promise<number>((resolve, reject) =>
       http
         .get(
-          { host: '127.0.0.1', port, path: '/api/v1/users/%E0%A4%A/courses' },
+          {
+            host: '127.0.0.1',
+            port,
+            path: '/api/v1/users/%E0%A4%A/courses',
+            headers: auth,
+          },
           (r) => {
             r.resume();
             resolve(r.statusCode as number);
@@ -517,6 +524,29 @@ describe('KhouryAdminClient', () => {
         expect(seen).toEqual([]);
       },
     );
+
+    it('a wrong token gets 401 from the stub and fails', async () => {
+      await point({ token: 'right' });
+      process.env.KHOURY_ADMIN_TOKEN = 'wrong';
+      const err = await client
+        .getSectionGroups('prof.a@northeastern.edu', '202710')
+        .catch((e) => e);
+      expect(err).toBeInstanceOf(KhouryAdminError);
+      expect(err.message).toContain('401');
+      expect(err.message).not.toContain('wrong');
+    });
+
+    it('the stub rejects a missing header with 401 before any route', async () => {
+      const s = await listen();
+      servers.push(s.server);
+      const status = await new Promise((r) =>
+        http.get(`http://127.0.0.1:${s.port}/nope`, (res) => {
+          res.resume();
+          r(res.statusCode);
+        }),
+      );
+      expect(status).toBe(401);
+    });
 
     it('reads the token on every call', async () => {
       const seen = await record();
