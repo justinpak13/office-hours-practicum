@@ -558,11 +558,21 @@ describe('KhouryAdminClient', () => {
     });
 
     it('does not leak the token in a transport failure message', async () => {
-      process.env.KHOURY_ADMIN_URL = 'http://127.0.0.1:1';
       process.env.KHOURY_ADMIN_TOKEN = 'distinctive-secret-xyz';
-      const err = await client.getRoster('sg_1001').catch((e) => e);
+      const svc = new HttpService();
+      jest.spyOn(svc, 'get').mockImplementation(() => {
+        throw new Error('boom Token distinctive-secret-xyz boom');
+      });
+      const c = new KhouryAdminClient(svc, new ConfigService());
+      const err = await c.getRoster('sg_1001').catch((e) => e);
       expect(err).toBeInstanceOf(KhouryAdminError);
+      expect(err.message).toContain('boom');
       expect(err.message).not.toContain('distinctive-secret-xyz');
+    });
+
+    it('the stub trims a padded env token', async () => {
+      process.env.KHOURY_ADMIN_TOKEN = '  padded-env  ';
+      expect(await raw('Token padded-env')).toBe(200);
     });
 
     const raw = async (authorization: string) => {

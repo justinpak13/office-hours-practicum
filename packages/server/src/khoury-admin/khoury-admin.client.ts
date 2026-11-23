@@ -120,7 +120,9 @@ export class KhouryAdminClient {
         }),
       );
     } catch (e) {
-      throw new KhouryAdminError(`Khoury Admin request failed: ${e.message}`);
+      // NOTE: never let the token reach an error message, whatever the transport put in it
+      const msg = String(e.message).split(token).join('[redacted]');
+      throw new KhouryAdminError(`Khoury Admin request failed: ${msg}`);
     }
     // NOTE: only the agreed not-found body means "group gone"; any other 404 is a failure
     const d404 = res.data;

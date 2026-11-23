@@ -27,8 +27,10 @@ function createStubServer(dataDir, opts = {}) {
 
   return http.createServer((req, res) => {
     // NOTE: checked before any route or file lookup; opts.token lets tests use a token other than the env one
+    // NOTE: trimmed like the client trims its token, so a padded env value still matches
     const expected =
-      opts.token || process.env.KHOURY_ADMIN_TOKEN || 'dev-khoury-admin-token';
+      String(opts.token || process.env.KHOURY_ADMIN_TOKEN || '').trim() ||
+      'dev-khoury-admin-token';
     if (req.headers.authorization !== `Token ${expected}`) {
       return send(res, 401, { error: 'unauthorized' });
     }
