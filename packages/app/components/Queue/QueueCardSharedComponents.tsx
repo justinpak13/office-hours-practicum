@@ -1,18 +1,8 @@
 import { QuestionStatus, QuestionStatusKeys } from "@koh/common";
-import { Card, Row, Tag } from "antd";
 import styled from "styled-components";
 
-export const HorizontalTACard = styled(Card)`
-  margin-bottom: 8px;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
-  background: #ffffff;
-  border-radius: 6px;
-  color: #595959;
-
-  &:hover {
-    cursor: pointer;
-  }
-`;
+// The antd-based HorizontalTACard, StatusTag and CenterRow were removed in
+// SH-05: nothing imported them.
 
 export const Rank = styled.div`
   font-size: 14px;
@@ -25,20 +15,6 @@ export const Text = styled.div`
   font-size: 14px;
   line-height: 22px;
   color: #595959;
-`;
-
-export const StatusTag = styled(Tag)`
-  width: 96px;
-  text-align: center;
-  float: right;
-  margin-right: 0;
-  border: 1px solid;
-  box-sizing: border-box;
-  border-radius: 4px;
-`;
-
-export const CenterRow = styled(Row)`
-  align-items: center;
 `;
 
 export function questionStatusToColor(status: QuestionStatus): string {

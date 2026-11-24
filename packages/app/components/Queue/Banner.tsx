@@ -1,6 +1,6 @@
-import { Button } from "antd";
 import React, { ReactElement, ReactNode } from "react";
 import styled from "styled-components";
+import { antdButtonBase } from "./antdButtonCss";
 
 const BannerContainer = styled.div`
   width: 100%;
@@ -44,9 +44,30 @@ interface BannerProps {
   buttons?: ReactNode;
 }
 
-interface CircleButtonProps {
-  [x: string]: any;
-}
+type CircleButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  icon?: ReactNode;
+  /** antd prop from the TA screens; these buttons are always circles */
+  shape?: string;
+  "data-cy"?: string;
+};
+
+// antd's large circle icon button (40px), without antd
+const CircleButtonBase = styled.button`
+  ${antdButtonBase}
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 4.9px 0;
+  font-size: 18px;
+  border-radius: 50%;
+
+  /* the TA screens still pass antd icons: keep them centred as antd did */
+  & > .anticon {
+    display: flex;
+    justify-content: center;
+    line-height: 1;
+  }
+`;
 /**
  * Presentation-only component
  */
@@ -66,11 +87,26 @@ export default function Banner(props: BannerProps): ReactElement {
 
 // forwardRef so shadcn Tooltip / AlertDialog triggers (asChild) can wrap
 // these buttons; antd's own Tooltip and Popconfirm keep working as before
-export const CircleButton = React.forwardRef<HTMLElement, CircleButtonProps>(
-  function CircleButton(props, ref) {
-    return <Button ref={ref} size="large" shape="circle" {...props} />;
-  }
-);
+export const CircleButton = React.forwardRef<
+  HTMLButtonElement,
+  CircleButtonProps
+>(function CircleButton(
+  // shape is antd's; these buttons are always circles, so drop it
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  { icon, shape, type, children, ...props }: CircleButtonProps,
+  ref: React.ForwardedRef<HTMLButtonElement>
+) {
+  return (
+    <CircleButtonBase ref={ref} type={type ?? "button"} {...props}>
+      {icon}
+      {children}
+    </CircleButtonBase>
+  );
+});
+// antd's Tooltip only shows on a disabled button it recognises as its own
+// (it wraps it in a span). The TA screens rely on that ("You must check in to
+// help students!"), so keep the flag until SH-06 replaces their antd Tooltips.
+(CircleButton as unknown as { __ANT_BUTTON: boolean }).__ANT_BUTTON = true;
 
 /**
  * Buttons to be used in the banner
