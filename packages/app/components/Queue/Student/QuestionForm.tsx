@@ -212,7 +212,10 @@ export default function QuestionForm({
     if (textArea.current) resizeTextArea(textArea.current);
   }, [questionText]);
 
-  const closeAndKeepDraft = () => {
+  // Esc, the X and an outside click reset the saved draft to the server copy
+  // (as the antd modal's onCancel did); the Cancel button doesn't. That
+  // difference predates the shadcn switch and has its own follow-up ticket.
+  const closeAndDiscardDraft = () => {
     setStoredQuestion(question);
     cancel();
   };
@@ -220,12 +223,12 @@ export default function QuestionForm({
   return (
     <Dialog
       open={visible}
-      onOpenChange={(open) => !open && closeAndKeepDraft()}
+      onOpenChange={(open) => !open && closeAndDiscardDraft()}
     >
       {/* Taller than a short screen: scroll inside, so the title stays reachable */}
       <DialogContent
         data-cy="question-form-modal"
-        className="max-h-[calc(100dvh-2rem)] max-w-[520px] overflow-y-auto"
+        className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[520px] overflow-y-auto rounded-lg"
       >
         <DialogHeader>
           <DialogTitle>
@@ -345,7 +348,8 @@ export default function QuestionForm({
             same question as you.
           </QuestionCaption>
         </Container>
-        <DialogFooter>
+        {/* Stacked on phones: keep a gap between the buttons */}
+        <DialogFooter className="max-sm:gap-2">
           {drafting ? (
             <Button
               variant="destructive"

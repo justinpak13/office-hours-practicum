@@ -95,11 +95,16 @@ export default function StudentBanner({
           buttons={
             <>
               <WithTooltip title="Delete Draft">
-                <BannerButton icon={icon(ListX)} onClick={leaveQueue} />
+                <BannerButton
+                  aria-label="Delete Draft"
+                  icon={icon(ListX)}
+                  onClick={leaveQueue}
+                />
               </WithTooltip>
               <WithTooltip title="Finish Draft">
                 <BannerButton
                   data-cy="edit-question"
+                  aria-label="Finish Draft"
                   icon={icon(Pencil)}
                   onClick={async () => {
                     editQuestion();
@@ -128,6 +133,7 @@ export default function StudentBanner({
               <WithTooltip title="Edit Question">
                 <BannerButton
                   data-cy="edit-question"
+                  aria-label="Edit Question"
                   icon={icon(Pencil)}
                   onClick={editQuestion}
                 />
@@ -154,6 +160,7 @@ export default function StudentBanner({
               {isQueueOnline && (
                 <WithTooltip title="Open Teams DM">
                   <BannerButton
+                    aria-label="Open Teams DM"
                     icon={icon(Users)}
                     onClick={() => {
                       window.open(
@@ -233,6 +240,7 @@ export default function StudentBanner({
               <WithTooltip title="Edit Question">
                 <BannerButton
                   data-cy="edit-question"
+                  aria-label="Edit Question"
                   icon={icon(Pencil)}
                   onClick={editQuestion}
                 />
