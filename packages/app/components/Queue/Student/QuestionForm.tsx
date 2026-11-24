@@ -1,5 +1,4 @@
 import { OpenQuestionStatus, Question, QuestionType } from "@koh/common";
-import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
 import { CircleCheck, Info } from "lucide-react";
 import { NextRouter, useRouter } from "next/router";
 import {
@@ -262,31 +261,37 @@ export default function QuestionForm({
           <QuestionText id="question-category">
             What category does your question fall under?
           </QuestionText>
-          {/* Joined buttons like antd's solid Radio.Button group. Each option is
-              a <label> around its radio, so clicking the text selects it
-              (Cypress: cy.get("label").contains("Concept")) */}
-          <RadioGroupPrimitive.Root
-            value={questionTypeInput ?? ""}
-            onValueChange={(v) => onCategoryChange(v as QuestionType)}
+          {/* Joined buttons like antd's solid Radio.Button group. Each is a
+              <label> around a real, visually hidden radio input, as in antd,
+              so the data-cy is on something that can be "checked"
+              (Cypress: question-type-… .should("be.checked")) */}
+          <div
+            role="radiogroup"
             aria-labelledby="question-category"
-            orientation="horizontal"
             className="mb-12 flex flex-wrap"
           >
             {CATEGORIES.map(([value, label]) => (
               <label
                 key={value}
-                data-cy={`question-type-${value}`}
                 className={cn(
                   "-ml-px flex h-8 cursor-pointer select-none items-center border border-[#d9d9d9] bg-white px-[15px] text-sm text-[rgba(0,0,0,0.85)] transition-colors first:ml-0 first:rounded-l-[2px] last:rounded-r-[2px] hover:text-primary has-[:focus-visible]:relative has-[:focus-visible]:z-10 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
                   questionTypeInput === value &&
                     "relative z-[1] border-primary bg-primary text-primary-foreground hover:text-primary-foreground"
                 )}
               >
-                <RadioGroupPrimitive.Item value={value} className="sr-only" />
+                <input
+                  type="radio"
+                  name="question-category"
+                  value={value}
+                  data-cy={`question-type-${value}`}
+                  checked={questionTypeInput === value}
+                  onChange={() => onCategoryChange(value)}
+                  className="sr-only"
+                />
                 {label}
               </label>
             ))}
-          </RadioGroupPrimitive.Root>
+          </div>
 
           <QuestionText>What do you need help with?</QuestionText>
           <Textarea
