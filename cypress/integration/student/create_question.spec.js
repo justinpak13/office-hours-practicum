@@ -38,7 +38,8 @@ describe("Student can create a question", () => {
         // Click Submit
         cy.get("[data-cy='finishQuestion']").click();
 
-        cy.get("[data-cy='question-form-modal']").should("not.be.visible");
+        // The form closed (a closed shadcn dialog is removed from the page)
+        cy.get("[data-cy='question-form-modal']").should("not.exist");
         cy.percySnapshot("Student Queue Page - Non Empty Student Queue");
 
         // See that the question shows in the queue list

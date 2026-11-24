@@ -1,6 +1,13 @@
-import { Button } from "antd";
-import Modal from "antd/lib/modal/Modal";
 import { ReactElement } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type CantFindModalProps = {
   visible: boolean;
@@ -10,31 +17,34 @@ type CantFindModalProps = {
 
 export default function CantFindModal(props: CantFindModalProps): ReactElement {
   return (
-    <Modal
-      visible={props.visible}
-      footer={[
-        <Button
-          key="leave"
-          danger
-          data-cy="cant-find-leave"
-          onClick={props.leaveQueue}
-        >
-          Leave Queue
-        </Button>,
-        <Button
-          type="primary"
-          key="rejoin"
-          data-cy="cant-find-rejoin"
-          onClick={props.rejoinQueue}
-        >
-          Rejoin Queue
-        </Button>,
-      ]}
-      closable={false}
-      title="You couldn't be found!"
-    >
-      A TA tried to help you, but couldn&apos;t reach you. Are you still in the
-      queue? If you are, make sure you have Teams open, and rejoin the queue.
-    </Modal>
+    <Dialog open={props.visible}>
+      {/* closable={false}: no close X, and Esc / outside clicks do nothing */}
+      <DialogContent
+        hideClose
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle>You couldn&apos;t be found!</DialogTitle>
+          <DialogDescription className="text-foreground">
+            A TA tried to help you, but couldn&apos;t reach you. Are you still
+            in the queue? If you are, make sure you have Teams open, and rejoin
+            the queue.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            variant="destructive"
+            data-cy="cant-find-leave"
+            onClick={props.leaveQueue}
+          >
+            Leave Queue
+          </Button>
+          <Button data-cy="cant-find-rejoin" onClick={props.rejoinQueue}>
+            Rejoin Queue
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
