@@ -64,7 +64,6 @@ jobs:
           # Settings the server needs to start. CI has no .env.development.
           # Test-only values, the same as packages/server/.env.test.
           DOMAIN: http://localhost:3000
-          JWT_SECRET: test-only-not-a-secret
           UPLOAD_LOCATION: uploads
           ADMIN_SESSION_SECRET: test-only-not-a-secret
           EMAIL: mailto:test@example.com
