@@ -10,7 +10,7 @@ import { API } from "@koh/api-client";
 import Router, { useRouter } from "next/router";
 import { toast } from "sonner";
 import { useCourse } from "../../hooks/useCourse";
-import { antdButtonBase, antdButtonPrimary } from "./antdButtonCss";
+import { queueButtonBase, queueButtonPrimary } from "./queueButtonStyles";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,8 +60,8 @@ const InfoColumnContainer = styled.div`
 
 // antd's large block button (size="large" block), without antd
 const QueueInfoColumnButtonStyle = styled.button<{ $primary?: boolean }>`
-  ${antdButtonBase}
-  ${({ $primary }) => $primary && antdButtonPrimary}
+  ${queueButtonBase}
+  ${({ $primary }) => $primary && queueButtonPrimary}
   display: block;
   width: 100%;
   height: 40px;

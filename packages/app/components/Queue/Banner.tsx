@@ -1,6 +1,6 @@
 import React, { ReactElement, ReactNode } from "react";
 import styled from "styled-components";
-import { antdButtonBase } from "./antdButtonCss";
+import { queueButtonBase } from "./queueButtonStyles";
 
 const BannerContainer = styled.div`
   width: 100%;
@@ -53,7 +53,7 @@ type CircleButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 // antd's large circle icon button (40px), without antd
 const CircleButtonBase = styled.button`
-  ${antdButtonBase}
+  ${queueButtonBase}
   width: 40px;
   min-width: 40px;
   height: 40px;
