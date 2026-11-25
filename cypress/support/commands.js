@@ -56,6 +56,16 @@ Cypress.Commands.add(
         return res.redirectedToUrl;
       });
 
+    // Leave any app page first. While the session switches, its API calls
+    // get 401s, and the app answers a 401 by reloading, which oauth2-proxy
+    // sends to Keycloak (another origin, so Cypress fails). /signed-out
+    // doesn't call the API and the proxy serves it without a session.
+    cy.location("pathname", { log: false }).then((pathname) => {
+      if (pathname !== "blank" && pathname !== "/signed-out") {
+        cy.visit("/signed-out", { log: false });
+      }
+    });
+
     // Start from no proxy session, so nothing from the previous user (such as
     // a leftover piece of a split session cookie) can outlive the switch
     clearProxyCookies(() => true);

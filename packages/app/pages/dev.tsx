@@ -14,20 +14,12 @@ const Container = styled.div`
   }
 `;
 
-const LoginContainer = styled.div`
-  margin-left: auto;
-  margin-right: auto;
-  text-align: center;
-
-  padding-top: 100px;
-`;
-
 const SeedingContainer = styled.div`
   margin-left: auto;
   margin-right: auto;
   text-align: center;
 
-  padding-top: 20px;
+  padding-top: 100px;
 `;
 
 const PageHeader = styled.div`
@@ -47,15 +39,6 @@ function SectionDivider({ children }: { children: React.ReactNode }) {
   );
 }
 
-const DEV_LOGINS = [
-  { userId: 1, label: "Student 1" },
-  { userId: 2, label: "Student 2" },
-  { userId: 3, label: "TA" },
-  { userId: 4, label: "TA 2" },
-  { userId: 5, label: "Professor " },
-  { userId: 6, label: "No Course User" },
-];
-
 export default function DevPanel(): ReactElement {
   if (isProd()) {
     return <DefaultErrorPage statusCode={404} />;
@@ -65,26 +48,6 @@ export default function DevPanel(): ReactElement {
       <h1>
         <PageHeader>[ For Development Use Only ]</PageHeader>
       </h1>
-      <LoginContainer>
-        <SectionDivider>
-          <h3>Login</h3>
-        </SectionDivider>
-        {DEV_LOGINS.map(({ userId, label }) => (
-          <Button
-            key={userId}
-            asChild
-            variant="outline"
-            className="mr-[15px] text-foreground"
-          >
-            <a href={`/api/v1/login/dev?userId=${userId}`}>
-              {/* one child, so the button's icon gap doesn't split the text */}
-              <span>
-                Login as <b> {label}</b>
-              </span>
-            </a>
-          </Button>
-        ))}
-      </LoginContainer>
       <SeedingContainer>
         <SectionDivider>
           <h3>Seed</h3>

@@ -133,33 +133,4 @@ describe('Keycloak login (oauth2-proxy)', () => {
     await getProfile('forged').expect(401);
     await supertest().get('/profile').expect(401);
   });
-
-  it('lets the dev login cookie win over the Keycloak token', async () => {
-    const devUser = await UserFactory.create();
-    const res = await supertest({ userId: devUser.id })
-      .get('/profile')
-      .set('Authorization', 'Bearer jordan')
-      .expect(200);
-    expect(res.body.id).toEqual(devUser.id);
-    expect(await UserModel.count()).toEqual(1);
-  });
-
-  it('keeps POST /khoury_login away from Keycloak users', async () => {
-    await getProfile('jordan').expect(200);
-    await supertest()
-      .post('/khoury_login')
-      .send({
-        email: 'rivera.jo@northeastern.edu',
-        campus: 1,
-        first_name: 'Jordan',
-        last_name: 'Rivera',
-        courses: [],
-      })
-      .expect(201);
-
-    const users = await UserModel.find({
-      where: { email: 'rivera.jo@northeastern.edu' },
-    });
-    expect(users.map((u) => u.keycloakSub).sort()).toEqual([jordan.sub, null]);
-  });
 });

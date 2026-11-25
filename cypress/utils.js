@@ -59,11 +59,6 @@ const takeKeycloakUser = () => {
   return user;
 };
 
-/**
- * Logs the browser in as the given user: through oauth2-proxy as their fake
- * Keycloak user, or with /api/v1/login/dev when testing without the proxy.
- * @param {object} userCourse - a userCourse aliased by createUserAndLogin.
- */
 // The fake Keycloak user the browser is logged in to oauth2-proxy as.
 // support/index.js logs in as OAUTH_PROXY_USER before each test.
 let currentKeycloakUsername;
@@ -76,13 +71,11 @@ const proxyLoginAs = (username) =>
     currentKeycloakUsername = username;
   });
 
-const logInAs = (userCourse) => {
-  if (Cypress.env("OAUTH_PROXY")) {
-    proxyLoginAs(userCourse.keycloakUsername);
-  } else {
-    cy.request(`/api/v1/login/dev?userId=${userCourse.user.id}`);
-  }
-};
+/**
+ * Logs the browser in to oauth2-proxy as the given user's fake Keycloak user.
+ * @param {object} userCourse - a userCourse aliased by createUserAndLogin.
+ */
+const logInAs = (userCourse) => proxyLoginAs(userCourse.keycloakUsername);
 
 /**
  * Logs in a user with the given identifier alias for cypress.
@@ -132,13 +125,7 @@ const createUserAndLogin = ({ role, courseId, identifier }) => {
         // log them in
         logInAs(userCourse);
         cy.visit(`/course/${userCourse.courseId}/today`);
-        // save their cookies in case they're needed for future requests
-        cy.getCookies()
-          .then((cookies) => ({
-            ...userCourse,
-            cookie: cookies.map((c) => `${c.name}=${c.value}`).join("; "),
-          }))
-          .as(identifier);
+        cy.wrap(userCourse).as(identifier);
       });
   };
 
@@ -265,22 +252,23 @@ export const checkInTA = ({ ta = "ta", queue = "queue" } = {}) => {
   cy.get(`@${ta}`).then((ta) => {
     cy.get(`@${queue}`).then((queue) => {
       const url = `/api/v1/courses/${queue.courseId}/ta_location/${queue.room}`;
-      if (!Cypress.env("OAUTH_PROXY")) {
-        // as the TA, even if another user is logged in now
-        cy.request({ method: "POST", url, headers: { Cookie: ta.cookie } });
-        return;
-      }
-      // Behind the proxy, log in as the TA for this request, then switch
-      // back. (A Cookie header doesn't work: Cypress adds the browser's own
+      // Log in as the TA for this request, then switch back. (A Cookie header doesn't work: Cypress adds the browser's own
       // cookies to it, so the request would carry two proxy sessions.)
       const previous = currentKeycloakUsername;
-      if (previous !== ta.keycloakUsername) {
+      if (previous === ta.keycloakUsername) {
+        cy.request({ method: "POST", url });
+        return;
+      }
+      // Switching users leaves the open page (see proxyLogin), so reopen
+      // it afterwards for tests that keep using it
+      cy.location().then(({ pathname, search }) => {
         proxyLoginAs(ta.keycloakUsername);
-      }
-      cy.request({ method: "POST", url });
-      if (previous !== ta.keycloakUsername) {
+        cy.request({ method: "POST", url });
         proxyLoginAs(previous);
-      }
+        if (pathname !== "blank" && pathname !== "/signed-out") {
+          cy.visit(pathname + search);
+        }
+      });
     });
   });
 };
@@ -296,18 +284,12 @@ export const clickVisible = (dataCy, options) =>
   cy.get(`[data-cy="${dataCy}"]:visible`).click(options);
 
 /**
- * Checks that the browser ended up logged out. Behind oauth2-proxy the app's
- * logout also signs out of the proxy and lands on /signed-out; without the
- * proxy it goes to /login.
+ * Checks that the browser ended up logged out: the app's logout signs out of
+ * oauth2-proxy and lands on /signed-out.
  */
 export const expectLoggedOut = () => {
-  if (Cypress.env("OAUTH_PROXY")) {
-    cy.location("pathname").should("eq", "/signed-out");
-    cy.get("body").should("contain", "You have signed out");
-  } else {
-    cy.location("pathname").should("eq", "/login");
-    cy.get("body").should("contain", "You are currently not logged in");
-  }
+  cy.location("pathname").should("eq", "/signed-out");
+  cy.get("body").should("contain", "You have signed out");
 };
 
 /**

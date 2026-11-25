@@ -43,8 +43,7 @@ export class OidcTokenService {
   // Keycloak's public signing keys as PEM, by key ID (`kid`)
   private keys = new Map<string, string>();
   // Private instance with no default secret: every verify passes Keycloak's
-  // public key, so a token signed with JWT_SECRET can never pass here. Not
-  // injected, so LoginModule's JwtService stays the only one in the app.
+  // public key explicitly.
   private jwtService = new JwtService({});
 
   constructor(private configService: ConfigService) {}

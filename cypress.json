@@ -10,7 +10,6 @@
   "env": {
     "USE_LIVE_API": false,
     "UPDATE_FIXTURES": false,
-    "OAUTH_PROXY": true,
     "OAUTH_PROXY_USER": "rivera.jo@northeastern.edu"
   }
 }

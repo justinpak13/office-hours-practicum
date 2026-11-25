@@ -1,6 +1,5 @@
 import { API } from "@koh/api-client";
 import { CircleAlert } from "lucide-react";
-import Router from "next/router";
 import { ReactElement } from "react";
 import useSWR from "swr";
 import { logout } from "../utils/logout";
@@ -44,7 +43,8 @@ export default function NoCourses(): ReactElement {
                   variant="outline"
                   onClick={async () => {
                     await API.course.createSelfEnrollOverride(course.id);
-                    Router.push("/login");
+                    // Reload so the profile includes the new course
+                    window.location.href = "/";
                   }}
                 >
                   {course.name}

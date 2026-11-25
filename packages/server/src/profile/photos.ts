@@ -1,13 +1,10 @@
 import * as fs from 'fs';
-import * as http from 'http';
-import * as https from 'https';
 import * as path from 'path';
 // sharp's types declare a default export, but its CJS build exports the
 // function itself, and this tsconfig has no esModuleInterop.
 // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
 const sharp: typeof import('sharp').default = require('sharp');
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const MAX_PHOTO_WIDTH = 512;
 
 export function uploadDir(): string {
@@ -17,17 +14,13 @@ export function uploadDir(): string {
   return dir;
 }
 
-export function khouryPhotoFileName(userId: number): string {
-  return `u${userId}-khoury.jpg`;
-}
-
 export function customPhotoFileName(userId: number): string {
   return (
     `u${userId}-custom-` + Math.random().toString(36).substring(2, 15) + '.jpg'
   );
 }
 
-// Custom (user-uploaded) photos always win over Khoury-synced ones
+// Custom (user-uploaded) photos, as opposed to older Khoury-synced ones
 export function isCustomPhoto(fileName: string): boolean {
   return fileName.includes('-custom-');
 }
@@ -62,48 +55,4 @@ export async function savePhotoBuffer(
     .resize({ width: MAX_PHOTO_WIDTH, withoutEnlargement: true })
     .jpeg({ quality: 85 })
     .toFile(path.join(uploadDir(), fileName));
-}
-
-/**
- * Download a URL to a Buffer with a timeout, size cap, and redirect
- * following. Used for the expiring Khoury photo-service URLs.
- */
-export function fetchPhoto(url: string, redirectsLeft = 3): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const lib = url.startsWith('https:') ? https : http;
-    const req = lib.get(url, { timeout: 10000 }, (res) => {
-      if (
-        res.statusCode >= 300 &&
-        res.statusCode < 400 &&
-        res.headers.location
-      ) {
-        res.resume();
-        if (redirectsLeft <= 0) {
-          reject(new Error('Too many redirects fetching photo'));
-        } else {
-          resolve(fetchPhoto(res.headers.location, redirectsLeft - 1));
-        }
-        return;
-      }
-      if (res.statusCode !== 200) {
-        res.resume();
-        reject(new Error(`Photo fetch failed with status ${res.statusCode}`));
-        return;
-      }
-      const chunks: Buffer[] = [];
-      let size = 0;
-      res.on('data', (chunk: Buffer) => {
-        size += chunk.length;
-        if (size > MAX_PHOTO_BYTES) {
-          req.destroy(new Error('Photo response too large'));
-          return;
-        }
-        chunks.push(chunk);
-      });
-      res.on('end', () => resolve(Buffer.concat(chunks)));
-      res.on('error', reject);
-    });
-    req.on('timeout', () => req.destroy(new Error('Photo fetch timed out')));
-    req.on('error', reject);
-  });
 }
