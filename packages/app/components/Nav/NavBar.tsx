@@ -1,6 +1,5 @@
-import { DownOutlined } from "@ant-design/icons";
 import { Role } from "@koh/common";
-import { Button, Drawer, Dropdown, Menu } from "antd";
+import { ChevronDown, Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { ReactElement, useState } from "react";
@@ -12,6 +11,19 @@ import { useRoleInCourse } from "../../hooks/useRoleInCourse";
 import AlertsContainer from "./AlertsContainer";
 import NavBarTabs, { NavBarTabsItem } from "./NavBarTabs";
 import ProfileDrawer from "./ProfileDrawer";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 const Nav = styled.nav`
   padding: 0px 0px;
@@ -67,47 +79,6 @@ const RightMenu = styled.div`
   }
 `;
 
-const BarsMenu = styled(Button)`
-  height: 32px;
-  padding: 6px;
-  margin-top: 8px;
-  display: none;
-  background: none;
-
-  @media (max-width: 650px) {
-    display: inline-block;
-  }
-`;
-
-const BarsButton = styled.span`
-  display: block;
-  width: 20px;
-  height: 2px;
-  background: #1890ff;
-  position: relative;
-
-  &:after,
-  :before {
-    content: attr(x);
-    width: 20px;
-    position: absolute;
-    top: -6px;
-    left: 0;
-    height: 2px;
-    background: #1890ff;
-  }
-
-  &:after {
-    top: auto;
-    bottom: -6px;
-  }
-`;
-
-const CoursesMenuItem = styled(Menu.Item)`
-  z-index: 1;
-  background: #ffffff;
-`;
-
 interface NavBarProps {
   courseId: number;
 }
@@ -128,28 +99,6 @@ export default function NavBar({ courseId }: NavBarProps): ReactElement {
   const role = useRoleInCourse(courseId);
 
   const openQueues = course?.queues?.filter((queue) => queue.isOpen);
-
-  const showDrawer = () => {
-    setVisible(true);
-  };
-  const onClose = () => {
-    setVisible(false);
-  };
-
-  const courseSelector = (
-    <Menu>
-      {profile?.courses?.map((c) => (
-        <CoursesMenuItem
-          key={c.course.id}
-          onClick={() => setDefaultCourse(c.course)}
-        >
-          <Link href="/course/[cid]/today" as={`/course/${c.course.id}/today`}>
-            <a>{c.course.name}</a>
-          </Link>
-        </CoursesMenuItem>
-      ))}
-    </Menu>
-  );
 
   const tabs: NavBarTabsItem[] = [
     {
@@ -195,24 +144,36 @@ export default function NavBar({ courseId }: NavBarProps): ReactElement {
       <Nav>
         <LogoContainer>
           {profile?.courses.length > 1 ? (
-            <Dropdown
-              overlay={courseSelector}
-              trigger={["click"]}
-              placement="bottomLeft"
-            >
-              <a>
-                <Logo>
-                  <span>{course?.name}</span>
-                  <DownOutlined
-                    style={{
-                      fontSize: "16px",
-                      verticalAlign: "-0.125em",
-                      marginLeft: "5px",
-                    }}
-                  />
-                </Logo>
-              </a>
-            </Dropdown>
+            // Course picker (was antd Dropdown): click the course name
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="flex">
+                  <Logo className="flex items-center">
+                    <span>{course?.name}</span>
+                    <ChevronDown className="ml-[5px] size-4" aria-hidden />
+                  </Logo>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {profile?.courses?.map((c) => (
+                  <Link
+                    key={c.course.id}
+                    href="/course/[cid]/today"
+                    as={`/course/${c.course.id}/today`}
+                    passHref
+                  >
+                    <DropdownMenuItem
+                      asChild
+                      onSelect={() => setDefaultCourse(c.course)}
+                    >
+                      <a className="cursor-pointer text-foreground">
+                        {c.course.name}
+                      </a>
+                    </DropdownMenuItem>
+                  </Link>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Logo>
               <span>{course?.name}</span>
@@ -227,20 +188,33 @@ export default function NavBar({ courseId }: NavBarProps): ReactElement {
             <ProfileDrawer courseId={courseId} />
           </RightMenu>
         </MenuCon>
-        <BarsMenu type="primary" onClick={showDrawer}>
-          <BarsButton />
-        </BarsMenu>
-        <Drawer
-          title="Course"
-          placement="right"
-          visible={visible}
-          closable={false}
-          onClose={onClose}
-          bodyStyle={{ padding: "12px" }}
+        {/* Phone menu button, 650px and narrower (was antd Button + 3 bars) */}
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Open menu"
+          className="mt-2 inline-flex h-8 w-[34px] border-primary bg-transparent text-primary min-[651px]:hidden"
+          onClick={() => setVisible(true)}
         >
-          <NavBarTabs currentHref={pathname} tabs={tabs} />
-          <ProfileDrawer courseId={courseId} />
-        </Drawer>
+          <MenuIcon className="size-5" aria-hidden />
+        </Button>
+        {/* Phone menu (was antd Drawer): the tabs and the profile menu */}
+        <Sheet open={visible} onOpenChange={setVisible}>
+          <SheetContent
+            side="right"
+            className="w-[378px] max-w-full gap-0 p-0 sm:max-w-full"
+          >
+            <SheetHeader className="border-b px-6 py-4 text-left">
+              <SheetTitle className="m-0 text-base font-medium">
+                Course
+              </SheetTitle>
+            </SheetHeader>
+            <div className="p-3">
+              <NavBarTabs currentHref={pathname} tabs={tabs} />
+              <ProfileDrawer courseId={courseId} />
+            </div>
+          </SheetContent>
+        </Sheet>
       </Nav>
     </>
   ) : null;
