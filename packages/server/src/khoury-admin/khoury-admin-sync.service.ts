@@ -136,7 +136,8 @@ export class KhouryAdminSyncService {
       // So sg_2 -> sg_1 re-links only once the old id is gone: first absent from this A response (cheap filter), then
       // confirmed by C returning 404 (empty everywhere). A alone isn't enough: a co-taught course's other sections may
       // still sit in the sg_2 group for another professor. A partial move waits until the last section moves.
-      // Nothing else moves a linked course.
+      // Nothing else moves a linked course. Eligibility is decided in JS from the id read; the update only
+      // applies if the id is still that value, so a concurrent link can't slip a course past the C check.
       // Re-link clears the stamp (it came from another group); the first link (null id) keeps it.
       // Only one course can hold an id, so if one sg_1 group's CRNs map to two sg_2-linked courses, only the first is re-linked.
       // A held course (C returned a roster, or failed) blocks the whole group, whatever the CRN order, so its sg_1 id stays
@@ -145,17 +146,24 @@ export class KhouryAdminSyncService {
       // A still listing the old id is a partial move: held without calling C. getRoster errors are always
       // KhouryAdminError (the client wraps everything), so any other throw is a bug and
       // stops the rest of A's save (the sections row and links already written stay).
+      const currentIds = groups.map((x) => x.id);
+      const movable = (old: string | null) =>
+        !!old?.startsWith('sg_2') && g.id.startsWith('sg_1');
       let held = false;
       for (const c of courses) {
         const old = c.khourySectionGroupId;
-        if (!old?.startsWith('sg_2') || !g.id.startsWith('sg_1')) continue;
+        if (!movable(old)) continue;
         held =
-          groups.some((x) => x.id === old) ||
+          currentIds.includes(old) ||
           (await this.oldGroupState(old, cOld)) !== 'gone';
         if (held) break;
       }
       if (held) continue;
       for (const course of courses) {
+        const old = course.khourySectionGroupId;
+        const eligible =
+          old === null || (movable(old) && !currentIds.includes(old));
+        if (!eligible) continue; // belongs to another group, try the next CRN
         try {
           const res = await CourseModel.createQueryBuilder()
             .update()
@@ -165,16 +173,16 @@ export class KhouryAdminSyncService {
                 'CASE WHEN "khourySectionGroupId" IS NULL THEN "khouryRosterGeneratedAt" ELSE NULL END',
             })
             .where(
-              'id = :id AND ("khourySectionGroupId" IS NULL OR ("khourySectionGroupId" LIKE \'sg\\_2%\' AND :newId LIKE \'sg\\_1%\' AND "khourySectionGroupId" NOT IN (:...currentIds)))',
-              {
-                id: course.id,
-                newId: g.id,
-                currentIds: groups.map((x) => x.id),
-              },
+              'id = :id AND "khourySectionGroupId" IS NOT DISTINCT FROM CAST(:old AS text)',
+              { id: course.id, old },
             )
             .execute();
-          if (res.affected === 1) break;
-          // 0 rows: this course belongs to another group, try the next CRN
+          // Success or a lost race both stop the group, so no sibling takes the id; a lost race resolves on the next sign-in.
+          if (res.affected !== 1)
+            this.logger.warn(
+              `Course ${course.id}: group id changed during sign-in, ${g.id} not linked`,
+            );
+          break;
         } catch (e) {
           if (e?.driverError?.code !== '23505') throw e;
           this.logger.warn(

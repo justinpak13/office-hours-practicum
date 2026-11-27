@@ -163,6 +163,101 @@ describe('KhouryAdminSyncService', () => {
         expect(c.khouryRosterGeneratedAt).toBeNull();
       });
 
+      it('does not re-link when the id changed to sg_2 after the read', async () => {
+        const course = await mapped({ khouryRosterGeneratedAt: stamp });
+        client.getSectionGroups.mockResolvedValue(groups(sg1));
+        // Seam: the course is read (null id) inside courseCRNToCourse; a concurrent sign-in links it to sg_2 right after.
+        const loginCourse = (service as any).loginCourse;
+        const real = loginCourse.courseCRNToCourse.bind(loginCourse);
+        jest
+          .spyOn(loginCourse, 'courseCRNToCourse')
+          .mockImplementation(async (...args: any[]) => {
+            const c = await (real as any)(...args);
+            if (c)
+              await CourseModel.update(
+                { id: course.id },
+                { khourySectionGroupId: sg2 },
+              );
+            return c;
+          });
+        const warn = jest.spyOn(ConsoleLogger.prototype, 'warn');
+        await service.onSignIn('p@northeastern.edu', name);
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining(`Course ${course.id}: group id changed`),
+        );
+        const c = await CourseModel.findOneBy({ id: course.id });
+        expect(c.khourySectionGroupId).toBe(sg2);
+        expect(c.khouryRosterGeneratedAt).toEqual(stamp);
+        expect(client.getRoster).not.toHaveBeenCalled();
+      });
+
+      it('race: a sibling CRN does not take the sg_1 id when the first course moved to sg_2', async () => {
+        const b = await mapped({ khouryRosterGeneratedAt: stamp });
+        const a = await CourseFactory.create({
+          semester: b.semester,
+          khouryRosterGeneratedAt: stamp,
+        });
+        await CourseSectionMappingModel.create({
+          crn: 11,
+          courseId: a.id,
+        }).save();
+        client.getSectionGroups.mockResolvedValue(groups(sg1));
+        const loginCourse = (service as any).loginCourse;
+        const real = loginCourse.courseCRNToCourse.bind(loginCourse);
+        jest
+          .spyOn(loginCourse, 'courseCRNToCourse')
+          .mockImplementation(async (...args: any[]) => {
+            const c = await (real as any)(...args);
+            if (c?.id === a.id)
+              await CourseModel.update(
+                { id: a.id },
+                { khourySectionGroupId: sg2 },
+              );
+            return c;
+          });
+        const warn = jest.spyOn(ConsoleLogger.prototype, 'warn');
+        await service.onSignIn('p@northeastern.edu', name);
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining(`Course ${a.id}: group id changed`),
+        );
+        const ca = await CourseModel.findOneBy({ id: a.id });
+        const cb = await CourseModel.findOneBy({ id: b.id });
+        expect(ca.khourySectionGroupId).toBe(sg2);
+        expect(ca.khouryRosterGeneratedAt).toEqual(stamp);
+        expect(cb.khourySectionGroupId).toBeNull();
+        expect(cb.khouryRosterGeneratedAt).toEqual(stamp);
+      });
+
+      it('race: an sg_2 course (old id gone) whose id changes before the update is not re-linked', async () => {
+        const course = await mapped({
+          khourySectionGroupId: sg2,
+          khouryRosterGeneratedAt: stamp,
+        });
+        client.getSectionGroups.mockResolvedValue(groups(sg1));
+        const loginCourse = (service as any).loginCourse;
+        const real = loginCourse.courseCRNToCourse.bind(loginCourse);
+        jest
+          .spyOn(loginCourse, 'courseCRNToCourse')
+          .mockImplementation(async (...args: any[]) => {
+            const c = await (real as any)(...args);
+            if (c)
+              await CourseModel.update(
+                { id: course.id },
+                { khourySectionGroupId: sg1b },
+              );
+            return c;
+          });
+        const warn = jest.spyOn(ConsoleLogger.prototype, 'warn');
+        await service.onSignIn('p@northeastern.edu', name);
+        expect(client.getRoster).toHaveBeenCalledWith(sg2);
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining(`Course ${course.id}: group id changed`),
+        );
+        const c = await CourseModel.findOneBy({ id: course.id });
+        expect(c.khourySectionGroupId).toBe(sg1b);
+        expect(c.khouryRosterGeneratedAt).toEqual(stamp);
+      });
+
       it('sg_1 -> other sg_1 is unchanged', async () => {
         const c = await run(sg1, sg1b);
         expect(c.khourySectionGroupId).toBe(sg1);
