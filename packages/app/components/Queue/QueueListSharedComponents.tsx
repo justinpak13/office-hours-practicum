@@ -1,12 +1,4 @@
-import {
-  CloudSyncOutlined,
-  ExclamationCircleOutlined,
-  FrownOutlined,
-  NotificationOutlined,
-  StopOutlined,
-} from "@ant-design/icons";
-import { Button, message, Modal, Popconfirm, Tag, Tooltip } from "antd";
-import { ButtonProps } from "antd/lib/button";
+import { Ban, CircleAlert, Frown, Megaphone, RefreshCw } from "lucide-react";
 import Linkify from "react-linkify";
 import moment from "moment";
 import React, { ReactElement, ReactNode, useState } from "react";
@@ -16,8 +8,25 @@ import { RenderEvery } from "../RenderEvery";
 import { TAStatuses } from "./TAStatuses";
 import { API } from "@koh/api-client";
 import Router, { useRouter } from "next/router";
-import { buttonDataCy } from "../../utils/buttonDataCy";
+import { toast } from "sonner";
 import { useCourse } from "../../hooks/useCourse";
+import { queueButtonBase, queueButtonPrimary } from "./queueButtonStyles";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const Container = styled.div`
   display: flex;
@@ -49,7 +58,14 @@ const InfoColumnContainer = styled.div`
   }
 `;
 
-const QueueInfoColumnButtonStyle = styled(Button)`
+// antd's large block button (size="large" block), without antd
+const QueueInfoColumnButtonStyle = styled.button<{ $primary?: boolean }>`
+  ${queueButtonBase}
+  ${({ $primary }) => $primary && queueButtonPrimary}
+  display: block;
+  width: 100%;
+  height: 40px;
+  padding: 6.4px 15px;
   font-weight: 500;
   font-size: 14px;
   border: 1px solid #cfd6de;
@@ -57,11 +73,48 @@ const QueueInfoColumnButtonStyle = styled(Button)`
   margin-bottom: 12px;
 `;
 
-const { confirm } = Modal;
+type QueueInfoColumnButtonProps = Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "type"
+> & {
+  /** antd's button type: "primary" is the filled blue button */
+  type?: "primary" | "default";
+  "data-cy"?: string;
+};
 
-export const QueueInfoColumnButton = (props: ButtonProps): ReactElement => (
-  <QueueInfoColumnButtonStyle size="large" block {...props} />
-);
+export const QueueInfoColumnButton = React.forwardRef<
+  HTMLButtonElement,
+  QueueInfoColumnButtonProps
+>(function QueueInfoColumnButton(
+  { type, children, ...props }: QueueInfoColumnButtonProps,
+  ref: React.ForwardedRef<HTMLButtonElement>
+) {
+  return (
+    <QueueInfoColumnButtonStyle
+      ref={ref}
+      type="button"
+      $primary={type === "primary"}
+      {...props}
+    >
+      <span>{children}</span>
+    </QueueInfoColumnButtonStyle>
+  );
+});
+
+// antd's blue Tag
+const ProfessorQueueTag = styled.span`
+  display: inline-block;
+  height: auto;
+  margin-right: 8px;
+  padding: 0 7px;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
+  color: #096dd9;
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 2px;
+`;
 
 const QueuePropertyRow = styled.div`
   display: flex;
@@ -158,28 +211,14 @@ export function QueueInfoColumn({
     // list from it, and SWR would otherwise reuse a copy fetched moments ago
     // that still lists this queue
     await Promise.all([mutateQueue(), mutateCourse()]);
-    message.success("Successfully disabled queue: " + queue.room);
+    toast.success("Successfully disabled queue: " + queue.room);
     await Router.push("/");
   };
 
   const clearQueue = async () => {
     await API.queues.clean(queueId);
     await mutateQueue();
-    message.success("Successfully cleaned queue: " + queue.room);
-  };
-
-  const confirmDisable = () => {
-    confirm({
-      title: `Please Confirm!`,
-      icon: <ExclamationCircleOutlined />,
-      style: { whiteSpace: "pre-wrap" },
-      content: `Please confirm that you want to disable the queue: ${queue.room}.\n
-      This queue will no longer appear in the app, and any students currently in the queue will be removed.`,
-      okButtonProps: buttonDataCy("disable-queue-confirm"),
-      onOk() {
-        disableQueue();
-      },
-    });
+    toast.success("Successfully cleaned queue: " + queue.room);
   };
 
   return (
@@ -190,24 +229,33 @@ export function QueueInfoColumn({
             {queue?.room} {queue?.isDisabled && <b>(disabled)</b>}
           </QueueTitle>
           {!queue.allowQuestions && (
-            <Tooltip title="This queue is no longer accepting questions">
-              <StopOutlined
-                data-cy="stopQuestions"
-                style={{ color: "red", fontSize: "24px", marginLeft: "8px" }}
-              />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  data-cy="stopQuestions"
+                  tabIndex={0}
+                  aria-label="This queue is no longer accepting questions"
+                  className="ml-2 inline-flex text-[red]"
+                >
+                  <Ban className="size-6" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                This queue is no longer accepting questions
+              </TooltipContent>
             </Tooltip>
           )}
         </QueueRoomGroup>
 
         {queue?.isProfessorQueue && (
           <QueuePropertyRow>
-            <Tag color="blue">Professor Queue</Tag>
+            <ProfessorQueueTag>Professor Queue</ProfessorQueueTag>
           </QueuePropertyRow>
         )}
       </QueueInfo>
       {queue?.notes && (
         <QueuePropertyRow>
-          <NotificationOutlined />
+          <Megaphone className="size-5 shrink-0" />
           <QueueText>
             <Linkify
               componentDecorator={(decoratedHref, decoratedText, key) => (
@@ -232,28 +280,60 @@ export function QueueInfoColumn({
       <TAStatuses queueId={queueId} />
       {isStaff && (
         <QueueManagementBox>
-          <Popconfirm
-            title={
-              "Are you sure you want to clear all students from the queue?"
-            }
-            okText="Yes"
-            okButtonProps={buttonDataCy("clear-queue-confirm")}
-            cancelText="No"
-            placement="top"
-            arrowPointAtCenter={true}
-            onConfirm={clearQueue}
-          >
-            <ClearQueueButton data-cy="clear-queue-button">
-              Clear Queue
-            </ClearQueueButton>
-          </Popconfirm>
-          <DisableQueueButton
-            onClick={confirmDisable}
-            data-cy="queue-disable-button"
-            disabled={queue?.isDisabled}
-          >
-            {queue?.isDisabled ? `Queue deleted` : `Delete Queue`}
-          </DisableQueueButton>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <ClearQueueButton data-cy="clear-queue-button">
+                Clear Queue
+              </ClearQueueButton>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-sm font-normal">
+                  Are you sure you want to clear all students from the queue?
+                </AlertDialogTitle>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>No</AlertDialogCancel>
+                <AlertDialogAction
+                  data-cy="clear-queue-confirm"
+                  onClick={clearQueue}
+                >
+                  Yes
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <DisableQueueButton
+                data-cy="queue-disable-button"
+                disabled={queue?.isDisabled}
+              >
+                {queue?.isDisabled ? `Queue deleted` : `Delete Queue`}
+              </DisableQueueButton>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <CircleAlert className="size-5 shrink-0 text-[#faad14]" />
+                  Please Confirm!
+                </AlertDialogTitle>
+                <AlertDialogDescription className="whitespace-pre-wrap text-foreground">
+                  {`Please confirm that you want to disable the queue: ${queue?.room}.\n
+      This queue will no longer appear in the app, and any students currently in the queue will be removed.`}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  data-cy="disable-queue-confirm"
+                  onClick={() => disableQueue()}
+                >
+                  OK
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </QueueManagementBox>
       )}
     </InfoColumnContainer>
@@ -265,7 +345,11 @@ function QueueUpToDateInfo({ queueId }: { queueId: number }): ReactElement {
   const { isLive } = useQueue(queueId, setLastUpdated);
   return (
     <QueuePropertyRow className="hide-in-percy">
-      {isLive || lastUpdated ? <CloudSyncOutlined /> : <FrownOutlined />}
+      {isLive || lastUpdated ? (
+        <RefreshCw className="size-5 shrink-0" />
+      ) : (
+        <Frown className="size-5 shrink-0" />
+      )}
       <QueuePropertyText className="hide-in-percy">
         {isLive ? (
           "Queue up to date"
