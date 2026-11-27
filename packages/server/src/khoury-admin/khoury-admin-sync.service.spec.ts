@@ -60,8 +60,8 @@ describe('KhouryAdminSyncService', () => {
   const fall2026 = () => SemesterFactory.create({ season: 'Fall', year: 2026 });
 
   it('normalizeEmail, roles and higherRole', () => {
-    expect(normalizeEmail('Doe.J@Husky.NEU.edu')).toBe(
-      'doe.j@northeastern.edu',
+    expect(normalizeEmail('Rivera.Jo@Husky.NEU.edu')).toBe(
+      'rivera.jo@northeastern.edu',
     );
     expect(khouryRoleToRole('TA')).toBe(Role.TA);
     expect(higherRole(Role.TA, Role.STUDENT)).toBe(Role.TA);
@@ -69,8 +69,8 @@ describe('KhouryAdminSyncService', () => {
   });
 
   it('matches an existing user case-insensitively; creates a new one', async () => {
-    const u = await UserFactory.create({ email: 'Doe.J@Northeastern.edu' });
-    const same = await service.onSignIn('doe.j@HUSKY.neu.edu', name);
+    const u = await UserFactory.create({ email: 'Rivera.Jo@Northeastern.edu' });
+    const same = await service.onSignIn('rivera.jo@HUSKY.neu.edu', name);
     expect(same.id).toBe(u.id);
     expect(await UserModel.count()).toBe(1);
 
@@ -283,13 +283,13 @@ describe('KhouryAdminSyncService', () => {
   it('swallows the unique violation when linking a held id', async () => {
     const x = await CourseFactory.create({
       semester: await fall2026(),
-      khourySectionGroupId: 'sg_1001',
+      khourySectionGroupId: 'sg_120271000000000001',
     });
     const y = await CourseFactory.create({ semester: x.semester });
     await CourseSectionMappingModel.create({ crn: 7, courseId: y.id }).save();
     client.getSectionGroups.mockResolvedValue({
       semester: sem,
-      section_groups: [{ id: 'sg_1001', name: 'CS', crns: [7] }],
+      section_groups: [{ id: 'sg_120271000000000001', name: 'CS', crns: [7] }],
     });
     await expect(
       service.onSignIn('p@northeastern.edu', name),
@@ -299,7 +299,7 @@ describe('KhouryAdminSyncService', () => {
     ).toBeNull();
     expect(
       (await CourseModel.findOneBy({ id: x.id })).khourySectionGroupId,
-    ).toBe('sg_1001');
+    ).toBe('sg_120271000000000001');
   });
 
   describe('override and expires rows', () => {
@@ -361,7 +361,7 @@ describe('KhouryAdminSyncService', () => {
 
     it('duplicate B entries on a manual pin: role and flag unchanged', async () => {
       const course = await CourseFactory.create({
-        khourySectionGroupId: 'sg_1001',
+        khourySectionGroupId: 'sg_120271000000000001',
       });
       const u = await UserFactory.create({ email: 's@northeastern.edu' });
       const uc = await UserCourseFactory.create({
@@ -373,8 +373,8 @@ describe('KhouryAdminSyncService', () => {
       client.getCourses.mockResolvedValue({
         semester: sem,
         courses: [
-          { section_group_id: 'sg_1001', role: 'Student' },
-          { section_group_id: 'sg_1001', role: 'TA' },
+          { section_group_id: 'sg_120271000000000001', role: 'Student' },
+          { section_group_id: 'sg_120271000000000001', role: 'TA' },
         ],
       });
       await service.onSignIn('s@northeastern.edu', name);
@@ -383,12 +383,14 @@ describe('KhouryAdminSyncService', () => {
     });
 
     it('duplicate B entries with no row: one TA membership', async () => {
-      await CourseFactory.create({ khourySectionGroupId: 'sg_1001' });
+      await CourseFactory.create({
+        khourySectionGroupId: 'sg_120271000000000001',
+      });
       client.getCourses.mockResolvedValue({
         semester: sem,
         courses: [
-          { section_group_id: 'sg_1001', role: 'Student' },
-          { section_group_id: 'sg_1001', role: 'TA' },
+          { section_group_id: 'sg_120271000000000001', role: 'Student' },
+          { section_group_id: 'sg_120271000000000001', role: 'TA' },
         ],
       });
       await service.onSignIn('s@northeastern.edu', name);

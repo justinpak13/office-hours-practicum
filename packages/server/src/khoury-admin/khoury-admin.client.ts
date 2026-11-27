@@ -25,7 +25,11 @@ const isStr = (x: any) => typeof x === 'string';
 const isId = (x: any) => isStr(x) && x !== '' && x === x.trim();
 const every = (a: any, f: (x: any) => boolean) => isArr(a) && a.every(f);
 const isPerson = (p: any) =>
-  !!p && isStr(p.email) && isStr(p.first_name) && isStr(p.last_name);
+  !!p &&
+  isStr(p.email) &&
+  isId(p.nuid) &&
+  isStr(p.first_name) &&
+  isStr(p.last_name);
 
 @Injectable()
 export class KhouryAdminClient {

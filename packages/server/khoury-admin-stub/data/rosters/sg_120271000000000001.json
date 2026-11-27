@@ -1,0 +1,52 @@
+{
+  "id": "sg_120271000000000001",
+  "name": "CS 2500 Fundies 1",
+  "semester": "202710",
+  "generated_at": "2026-09-01T12:00:00Z",
+  "professors": [
+    {
+      "email": "li.edwa@northeastern.edu",
+      "nuid": "000000008",
+      "first_name": "Eddy",
+      "last_name": "Li"
+    }
+  ],
+  "tas": [
+    {
+      "email": "stenzel.w@northeastern.edu",
+      "nuid": "000000006",
+      "first_name": "Will",
+      "last_name": "Stenzel"
+    },
+    {
+      "email": "chu.daj@northeastern.edu",
+      "nuid": "000000007",
+      "first_name": "Da-Jin",
+      "last_name": "Chu"
+    }
+  ],
+  "sections": [
+    {
+      "crn": 10234,
+      "students": [
+        {
+          "email": "liu.sta@northeastern.edu",
+          "nuid": "000000004",
+          "first_name": "Stanley",
+          "last_name": "Liu"
+        }
+      ]
+    },
+    {
+      "crn": 10235,
+      "students": [
+        {
+          "email": "takayama.a@northeastern.edu",
+          "nuid": "000000005",
+          "first_name": "Alex",
+          "last_name": "Takayama"
+        }
+      ]
+    }
+  ]
+}

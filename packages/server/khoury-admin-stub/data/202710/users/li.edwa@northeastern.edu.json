@@ -1,0 +1,17 @@
+{
+  "semester": "202710",
+  "courses": [
+    {
+      "section_group_id": "sg_120271000000000001",
+      "role": "Professor"
+    },
+    {
+      "section_group_id": "sg_120271000000000002",
+      "role": "Professor"
+    },
+    {
+      "section_group_id": "sg_220271000180000002",
+      "role": "Professor"
+    }
+  ]
+}

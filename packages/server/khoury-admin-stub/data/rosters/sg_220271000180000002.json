@@ -1,0 +1,41 @@
+{
+  "id": "sg_220271000180000002",
+  "name": "CS 1800 London",
+  "semester": "202710",
+  "generated_at": "2026-09-01T12:00:00Z",
+  "professors": [
+    {
+      "email": "li.edwa@northeastern.edu",
+      "nuid": "000000008",
+      "first_name": "Eddy",
+      "last_name": "Li"
+    }
+  ],
+  "tas": [
+    {
+      "email": "rivera.jo@northeastern.edu",
+      "nuid": "000000001",
+      "first_name": "Jordan",
+      "last_name": "Rivera"
+    }
+  ],
+  "sections": [
+    {
+      "crn": 30111,
+      "students": [
+        {
+          "email": "rivera.jo@northeastern.edu",
+          "nuid": "000000001",
+          "first_name": "Jordan",
+          "last_name": "Rivera"
+        },
+        {
+          "email": "kim.ca@northeastern.edu",
+          "nuid": "000000002",
+          "first_name": "Casey",
+          "last_name": ""
+        }
+      ]
+    }
+  ]
+}

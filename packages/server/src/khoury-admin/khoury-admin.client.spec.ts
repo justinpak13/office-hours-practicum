@@ -38,19 +38,101 @@ describe('KhouryAdminClient', () => {
     }),
   );
 
-  it('A returns section groups for prof.a', async () => {
+  it('A returns section groups for li.edwa', async () => {
     await point();
     const res = await client.getSectionGroups(
-      'prof.a@northeastern.edu',
+      'li.edwa@northeastern.edu',
       '202710',
     );
-    expect(res.section_groups.map((g) => g.id)).toEqual(['sg_1001', 'sg_1002']);
+    expect(res.section_groups.map((g) => g.id)).toEqual([
+      'sg_120271000000000001',
+      'sg_120271000000000002',
+      'sg_220271000180000002',
+    ]);
   });
 
   it('B returns [] for an unknown person', async () => {
     await point();
     const res = await client.getCourses('nobody@northeastern.edu', '202710');
     expect(res.courses).toEqual([]);
+  });
+
+  it('C returns null for the moved course group', async () => {
+    await point();
+    expect(await client.getRoster('sg_220271000350000001')).toBeNull();
+  });
+
+  it('every data file loads through the client', async () => {
+    await point();
+    const sem = '202710';
+    const emails = fs
+      .readdirSync(path.join(dataDir, sem, 'users'))
+      .map((f) => f.replace(/\.json$/, ''));
+    const ids = new Set<string>();
+    for (const e of emails) {
+      const b = await client.getCourses(e, sem);
+      expect(b.courses.length).toBeGreaterThan(0);
+      b.courses.forEach((c) => ids.add(c.section_group_id));
+    }
+    const names = (dir: string) =>
+      fs.readdirSync(dir).map((f) => f.replace(/\.json$/, ''));
+    for (const e of names(path.join(dataDir, sem, 'instructors'))) {
+      const a = await client.getSectionGroups(e, sem);
+      expect(a.section_groups.length).toBeGreaterThan(0);
+      a.section_groups.forEach((g) => ids.add(g.id));
+    }
+    for (const id of ids) {
+      expect(id).toMatch(/^sg_\d{18}$/);
+      expect(await client.getRoster(id)).not.toBeNull();
+    }
+    const rosters = names(path.join(dataDir, 'rosters'));
+    for (const r of rosters.filter((r) => !r.endsWith('-updated'))) {
+      expect((await client.getRoster(r))?.id).toBe(r);
+    }
+    // the -updated variants are served through the stub's rosterSuffix option
+    await point({ rosterSuffix: '-updated' });
+    for (const r of rosters.filter((r) => r.endsWith('-updated'))) {
+      const id = r.replace(/-updated$/, '');
+      expect(await client.getRoster(id)).toEqual(
+        JSON.parse(
+          fs.readFileSync(path.join(dataDir, 'rosters', `${r}.json`), 'utf8'),
+        ),
+      );
+    }
+  });
+
+  it('rosterSuffix serves the variant, falls back to base, keeps 404s', async () => {
+    await point({ rosterSuffix: '-updated' });
+    const emails = async (id: string) =>
+      (await client.getRoster(id))?.sections.flatMap((s) =>
+        s.students.map((p) => p.email),
+      );
+    expect(await emails('sg_120271000000000001')).toContain(
+      'm.lee@northeastern.edu',
+    );
+    expect(await emails('sg_120271000000000002')).toEqual([
+      'm.lee@northeastern.edu',
+    ]);
+    expect(await emails('sg_120271000000000001')).not.toContain(
+      'takayama.a@northeastern.edu',
+    );
+    expect(await client.getRoster('sg_220271000350000001')).toBeNull();
+  });
+
+  it('A lists the moved CRNs under a set-up group', async () => {
+    await point();
+    const a = await client.getSectionGroups(
+      'li.edwa@northeastern.edu',
+      '202710',
+    );
+    for (const crn of [20111, 20112]) {
+      const gs = a.section_groups.filter((g) => g.crns.includes(crn));
+      expect(gs.length).toBeGreaterThan(0);
+      gs.forEach((g) => expect(g.id).toMatch(/^sg_1/));
+    }
+    expect(a.section_groups.map((g) => g.id)).not.toContain(
+      'sg_220271000350000001',
+    );
   });
 
   it('C returns null for sg_9999', async () => {
@@ -68,17 +150,17 @@ describe('KhouryAdminClient', () => {
     process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${
       (srv.address() as AddressInfo).port
     }`;
-    await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
-      KhouryAdminError,
-    );
+    await expect(
+      client.getRoster('sg_120271000000000001'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
   it('C throws when the base URL path is wrong', async () => {
     await point();
     process.env.KHOURY_ADMIN_URL += '/wrong';
-    await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
-      KhouryAdminError,
-    );
+    await expect(
+      client.getRoster('sg_120271000000000001'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
   it('C throws on an empty id', async () => {
@@ -87,17 +169,17 @@ describe('KhouryAdminClient', () => {
   });
 
   it.each([
-    ['GET', '/oops/v0/users/doe.j@northeastern.edu/courses?semester=202710'],
-    ['GET', '/api/v1/users/doe.j@northeastern.edu/courses/?semester=202710'],
-    ['GET', '//api/v1/users/doe.j@northeastern.edu/courses?semester=202710'],
-    ['GET', '/api//v1/users/doe.j@northeastern.edu/courses?semester=202710'],
-    ['GET', '/api/v1/section-groups//sg_1001/roster'],
-    ['POST', '/api/v1/users/doe.j@northeastern.edu/courses?semester=202710'],
+    ['GET', '/oops/v0/users/liu.sta@northeastern.edu/courses?semester=202710'],
+    ['GET', '/api/v1/users/liu.sta@northeastern.edu/courses/?semester=202710'],
+    ['GET', '//api/v1/users/liu.sta@northeastern.edu/courses?semester=202710'],
+    ['GET', '/api//v1/users/liu.sta@northeastern.edu/courses?semester=202710'],
+    ['GET', '/api/v1/section-groups//sg_120271000000000001/roster'],
+    ['POST', '/api/v1/users/liu.sta@northeastern.edu/courses?semester=202710'],
     ['GET', '/api/v1/users/x/roster'],
     ['GET', '/api/v1/instructors/x/courses'],
     ['GET', '/wrong/../api/v1/section-groups/sg_9999/roster'],
     ['GET', '/api/v1/section-groups/sg_9999/roster#extra'],
-    ['GET', '/api/v1/%75sers/doe.j@northeastern.edu/courses?semester=202710'],
+    ['GET', '/api/v1/%75sers/liu.sta@northeastern.edu/courses?semester=202710'],
   ])('stub answers no such route for %s %s', async (method, p) => {
     const s = await listen();
     servers.push(s.server);
@@ -130,9 +212,9 @@ describe('KhouryAdminClient', () => {
     process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${
       (srv.address() as AddressInfo).port
     }`;
-    await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
-      KhouryAdminError,
-    );
+    await expect(
+      client.getRoster('sg_120271000000000001'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
   it('stub answers 400 for a malformed percent escape in the query', async () => {
@@ -143,7 +225,7 @@ describe('KhouryAdminClient', () => {
         {
           host: '127.0.0.1',
           port: s.port,
-          path: '/api/v1/users/doe.j@northeastern.edu/courses?semester=%E0%A4%A',
+          path: '/api/v1/users/liu.sta@northeastern.edu/courses?semester=%E0%A4%A',
           headers: auth,
         },
         (res) => {
@@ -169,16 +251,16 @@ describe('KhouryAdminClient', () => {
     process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${
       (redir.address() as AddressInfo).port
     }`;
-    await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
-      KhouryAdminError,
-    );
+    await expect(
+      client.getRoster('sg_120271000000000001'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
   it('times out on a slow server with KhouryAdminError', async () => {
     await point({ fail: 'slow' });
-    await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
-      KhouryAdminError,
-    );
+    await expect(
+      client.getRoster('sg_120271000000000001'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
   }, 10000);
 
   it('C throws on a whitespace-only id', async () => {
@@ -189,15 +271,15 @@ describe('KhouryAdminClient', () => {
 
   it('throws KhouryAdminError on fail 500', async () => {
     await point({ fail: '500' });
-    await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
-      KhouryAdminError,
-    );
+    await expect(
+      client.getRoster('sg_120271000000000001'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
   it('throws KhouryAdminError on badshape', async () => {
     await point({ fail: 'badshape' });
     await expect(
-      client.getCourses('doe.j@northeastern.edu', '202710'),
+      client.getCourses('liu.sta@northeastern.edu', '202710'),
     ).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
@@ -208,7 +290,7 @@ describe('KhouryAdminClient', () => {
       of({
         status: 200,
         data: {
-          id: 'sg_1001',
+          id: 'sg_120271000000000001',
           name: 'x',
           semester: '202710',
           generated_at: 'not-a-date',
@@ -219,7 +301,7 @@ describe('KhouryAdminClient', () => {
       } as any),
     );
     const c = new KhouryAdminClient(svc, new ConfigService());
-    await expect(c.getRoster('sg_1001')).rejects.toBeInstanceOf(
+    await expect(c.getRoster('sg_120271000000000001')).rejects.toBeInstanceOf(
       KhouryAdminError,
     );
   });
@@ -292,6 +374,39 @@ describe('KhouryAdminClient', () => {
     await expect(c.getRoster('sg_1')).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
+  it('C requires a clean nuid on every person', async () => {
+    const svc = new HttpService();
+    const get = jest.spyOn(svc, 'get');
+    const c = new KhouryAdminClient(svc, new ConfigService());
+    const roster = (person: any) =>
+      of({
+        status: 200,
+        data: {
+          id: 'sg_1',
+          name: 'x',
+          semester: '202710',
+          generated_at: '2026-09-01T12:00:00Z',
+          professors: [person],
+          tas: [],
+          sections: [],
+        },
+      } as any);
+    const p = { email: 'a@northeastern.edu', first_name: 'A', last_name: '' };
+    for (const bad of [
+      p,
+      { ...p, nuid: ' 1' },
+      { ...p, nuid: '' },
+      { ...p, nuid: 4 },
+    ]) {
+      get.mockReturnValue(roster(bad));
+      await expect(c.getRoster('sg_1')).rejects.toBeInstanceOf(
+        KhouryAdminError,
+      );
+    }
+    get.mockReturnValue(roster({ ...p, nuid: '000000004' }));
+    expect((await c.getRoster('sg_1'))?.professors[0].nuid).toBe('000000004');
+  });
+
   it('survives a malformed percent-encoded URL', async () => {
     const { server, port } = await listen();
     servers.push(server);
@@ -313,15 +428,23 @@ describe('KhouryAdminClient', () => {
     );
     expect(bad).toBe(400);
     process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${port}`;
-    expect((await client.getRoster('sg_1001'))?.id).toBe('sg_1001');
+    expect((await client.getRoster('sg_120271000000000001'))?.id).toBe(
+      'sg_120271000000000001',
+    );
   });
 
   it('resolves husky.neu.edu aliases case-insensitively', async () => {
     await point();
-    const b = await client.getCourses('Doe.J@Husky.NEU.edu', '202710');
-    expect(b.courses.map((c) => c.section_group_id)).toEqual(['sg_1001']);
-    const a = await client.getSectionGroups('PROF.A@husky.neu.edu', '202710');
-    expect(a.section_groups.map((g) => g.id)).toEqual(['sg_1001', 'sg_1002']);
+    const b = await client.getCourses('Liu.Sta@Husky.NEU.edu', '202710');
+    expect(b.courses.map((c) => c.section_group_id)).toEqual([
+      'sg_120271000000000001',
+    ]);
+    const a = await client.getSectionGroups('LI.EDWA@husky.neu.edu', '202710');
+    expect(a.section_groups.map((g) => g.id)).toEqual([
+      'sg_120271000000000001',
+      'sg_120271000000000002',
+      'sg_220271000180000002',
+    ]);
   });
 
   it('answers 500 for corrupt fixtures instead of treating them as absent', async () => {
@@ -405,16 +528,18 @@ describe('KhouryAdminClient', () => {
     process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${
       (rec.address() as AddressInfo).port
     }`;
-    await client.getSectionGroups('DOE.J@HUSKY.NEU.EDU', '202710');
-    await client.getCourses('DOE.J@HUSKY.NEU.EDU', '202710');
+    await client.getSectionGroups('LIU.STA@HUSKY.NEU.EDU', '202710');
+    await client.getCourses('LIU.STA@HUSKY.NEU.EDU', '202710');
     expect(urls).toHaveLength(2);
-    urls.forEach((u) => expect(u).toContain('doe.j%40northeastern.edu'));
+    urls.forEach((u) => expect(u).toContain('liu.sta%40northeastern.edu'));
   });
 
   it('works when KHOURY_ADMIN_URL has a trailing slash', async () => {
     await point();
     process.env.KHOURY_ADMIN_URL += '//';
-    expect((await client.getRoster('sg_1001'))?.id).toBe('sg_1001');
+    expect((await client.getRoster('sg_120271000000000001'))?.id).toBe(
+      'sg_120271000000000001',
+    );
   });
 
   it('rejects a response whose semester differs from the request', async () => {
@@ -455,7 +580,9 @@ describe('KhouryAdminClient', () => {
       } as any),
     );
     await expect(
-      new KhouryAdminClient(svc, new ConfigService()).getRoster('sg_1001'),
+      new KhouryAdminClient(svc, new ConfigService()).getRoster(
+        'sg_120271000000000001',
+      ),
     ).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
@@ -463,7 +590,9 @@ describe('KhouryAdminClient', () => {
     const svc = new HttpService();
     const get = jest.spyOn(svc, 'get');
     await expect(
-      new KhouryAdminClient(svc, new ConfigService()).getRoster(' sg_1001'),
+      new KhouryAdminClient(svc, new ConfigService()).getRoster(
+        ' sg_120271000000000001',
+      ),
     ).rejects.toBeInstanceOf(KhouryAdminError);
     expect(get).not.toHaveBeenCalled();
   });
@@ -481,7 +610,7 @@ describe('KhouryAdminClient', () => {
   it('throws KhouryAdminError when the server is down', async () => {
     process.env.KHOURY_ADMIN_URL = 'http://127.0.0.1:1';
     await expect(
-      client.getSectionGroups('prof.a@northeastern.edu', '202710'),
+      client.getSectionGroups('li.edwa@northeastern.edu', '202710'),
     ).rejects.toBeInstanceOf(KhouryAdminError);
   });
 
@@ -508,7 +637,7 @@ describe('KhouryAdminClient', () => {
         .getSectionGroups('a@northeastern.edu', '202710')
         .catch(() => 0);
       await client.getCourses('a@northeastern.edu', '202710').catch(() => 0);
-      await client.getRoster('sg_1001').catch(() => 0);
+      await client.getRoster('sg_120271000000000001').catch(() => 0);
       expect(seen).toEqual(Array(3).fill('Token abc123'));
     });
 
@@ -518,7 +647,7 @@ describe('KhouryAdminClient', () => {
         const seen = await record();
         if (v === undefined) delete process.env.KHOURY_ADMIN_TOKEN;
         else process.env.KHOURY_ADMIN_TOKEN = v;
-        await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
+        await expect(client.getRoster('sg_120271000000000001')).rejects.toBeInstanceOf(
           KhouryAdminError,
         );
         expect(seen).toEqual([]);
@@ -529,7 +658,7 @@ describe('KhouryAdminClient', () => {
       await point({ token: 'right' });
       process.env.KHOURY_ADMIN_TOKEN = 'wrong';
       const err = await client
-        .getSectionGroups('prof.a@northeastern.edu', '202710')
+        .getSectionGroups('li.edwa@northeastern.edu', '202710')
         .catch((e) => e);
       expect(err).toBeInstanceOf(KhouryAdminError);
       expect(err.message).toContain('401');
@@ -553,7 +682,7 @@ describe('KhouryAdminClient', () => {
     it('sends a padded token trimmed', async () => {
       const seen = await record();
       process.env.KHOURY_ADMIN_TOKEN = '  padded  ';
-      await client.getRoster('sg_1001').catch(() => 0);
+      await client.getRoster('sg_120271000000000001').catch(() => 0);
       expect(seen).toEqual(['Token padded']);
     });
 
@@ -564,7 +693,7 @@ describe('KhouryAdminClient', () => {
         throw new Error('boom Token distinctive-secret-xyz boom');
       });
       const c = new KhouryAdminClient(svc, new ConfigService());
-      const err = await c.getRoster('sg_1001').catch((e) => e);
+      const err = await c.getRoster('sg_120271000000000001').catch((e) => e);
       expect(err).toBeInstanceOf(KhouryAdminError);
       expect(err.message).toContain('boom');
       expect(err.message).not.toContain('distinctive-secret-xyz');
@@ -576,7 +705,7 @@ describe('KhouryAdminClient', () => {
         throw null;
       });
       const c = new KhouryAdminClient(svc, new ConfigService());
-      await expect(c.getRoster('sg_1001')).rejects.toBeInstanceOf(
+      await expect(c.getRoster('sg_120271000000000001')).rejects.toBeInstanceOf(
         KhouryAdminError,
       );
     });
@@ -591,7 +720,7 @@ describe('KhouryAdminClient', () => {
       servers.push(s.server);
       return new Promise<number>((r) =>
         http.get(
-          `http://127.0.0.1:${s.port}/api/v1/section-groups/sg_1001/roster`,
+          `http://127.0.0.1:${s.port}/api/v1/section-groups/sg_120271000000000001/roster`,
           { headers: { Authorization: authorization } },
           (res) => {
             res.resume();
@@ -615,9 +744,9 @@ describe('KhouryAdminClient', () => {
     it('reads the token on every call', async () => {
       const seen = await record();
       process.env.KHOURY_ADMIN_TOKEN = 'one';
-      await client.getRoster('sg_1001').catch(() => 0);
+      await client.getRoster('sg_120271000000000001').catch(() => 0);
       process.env.KHOURY_ADMIN_TOKEN = 'two';
-      await client.getRoster('sg_1001').catch(() => 0);
+      await client.getRoster('sg_120271000000000001').catch(() => 0);
       expect(seen).toEqual(['Token one', 'Token two']);
     });
   });

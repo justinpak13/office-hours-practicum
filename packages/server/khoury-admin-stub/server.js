@@ -104,7 +104,10 @@ function createStubServer(dataDir, opts = {}) {
         return send(res, 200, d === MISSING ? { semester, courses: [] } : d);
       }
       if (kind === 'section-groups' && leaf === 'roster' && safe(key)) {
-        const d = readJson('rosters', `${key}${opts.rosterSuffix || ''}.json`);
+        const suffix = opts.rosterSuffix || '';
+        let d = readJson('rosters', `${key}${suffix}.json`);
+        // NOTE: groups without a variant file keep their base roster
+        if (d === MISSING && suffix) d = readJson('rosters', `${key}.json`);
         return d === MISSING
           ? send(res, 404, { error: 'not found' })
           : send(res, 200, d);
