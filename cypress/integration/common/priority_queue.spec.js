@@ -73,7 +73,8 @@ describe("TA Priority Queue", () => {
           );
 
           cy.get('[data-cy="cant-find-rejoin"]').click();
-          cy.get('[data-cy="cant-find-rejoin"]').should("not.be.visible");
+          // The dialog closed (a closed shadcn dialog is removed from the page)
+          cy.get('[data-cy="cant-find-rejoin"]').should("not.exist");
           cy.contains(
             `You are now in a priority queue, you will be helped soon. You were last helped by ${this.ta.user.firstName} ${this.ta.user.lastName}.`
           );

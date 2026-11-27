@@ -85,7 +85,7 @@ describe('Keycloak login (oauth2-proxy)', () => {
     expect(await UserModel.count()).toEqual(1);
   });
 
-  it('updates email and name from the token', async () => {
+  it('updates email but not name from the token', async () => {
     await getProfile('jordan').expect(200);
     tokens.jordan = {
       ...jordan,
@@ -95,9 +95,20 @@ describe('Keycloak login (oauth2-proxy)', () => {
     const res = await getProfile('jordan').expect(200);
     expect(res.body).toMatchObject({
       email: 'j.rivera@northeastern.edu',
-      lastName: 'Rivera-Lee',
+      lastName: 'Rivera',
     });
     expect(await UserModel.count()).toEqual(1);
+  });
+
+  it('keeps a name edited in the app', async () => {
+    await getProfile('jordan').expect(200);
+    await supertest()
+      .patch('/profile')
+      .set('Authorization', 'Bearer jordan')
+      .send({ firstName: 'Jo' })
+      .expect(200);
+    const res = await getProfile('jordan').expect(200);
+    expect(res.body).toMatchObject({ firstName: 'Jo', lastName: 'Rivera' });
   });
 
   it('does not link to an existing user with the same email', async () => {
@@ -137,34 +148,5 @@ describe('Keycloak login (oauth2-proxy)', () => {
   it('rejects an invalid token and a request with no login', async () => {
     await getProfile('forged').expect(401);
     await supertest().get('/profile').expect(401);
-  });
-
-  it('lets the dev login cookie win over the Keycloak token', async () => {
-    const devUser = await UserFactory.create();
-    const res = await supertest({ userId: devUser.id })
-      .get('/profile')
-      .set('Authorization', 'Bearer jordan')
-      .expect(200);
-    expect(res.body.id).toEqual(devUser.id);
-    expect(await UserModel.count()).toEqual(1);
-  });
-
-  it('keeps POST /khoury_login away from Keycloak users', async () => {
-    await getProfile('jordan').expect(200);
-    await supertest()
-      .post('/khoury_login')
-      .send({
-        email: 'rivera.jo@northeastern.edu',
-        campus: 1,
-        first_name: 'Jordan',
-        last_name: 'Rivera',
-        courses: [],
-      })
-      .expect(201);
-
-    const users = await UserModel.find({
-      where: { email: 'rivera.jo@northeastern.edu' },
-    });
-    expect(users.map((u) => u.keycloakSub).sort()).toEqual([jordan.sub, null]);
   });
 });

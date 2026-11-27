@@ -1,21 +1,28 @@
-import {
-  CheckOutlined,
-  CloseOutlined,
-  DeleteRowOutlined,
-  EditOutlined,
-  TeamOutlined,
-  UndoOutlined,
-} from "@ant-design/icons";
 import { API } from "@koh/api-client";
 import { OpenQuestionStatus, Question } from "@koh/common";
-import { Button, Col, Popconfirm, Tooltip } from "antd";
-import React, { ReactElement } from "react";
+import { Check, ListX, Pencil, Undo2, Users, X } from "lucide-react";
+import React, { ReactElement, ReactNode } from "react";
 import styled from "styled-components";
 import { useQueue } from "../../../hooks/useQueue";
 import { useStudentQuestion } from "../../../hooks/useStudentQuestion";
 import { toOrdinal } from "../../../utils/ordinal";
 import Banner, { BannerButton, BannerDangerButton } from "../Banner";
-import { buttonDataCy } from "../../../utils/buttonDataCy";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const BoldNumber = styled.span`
   font-weight: bold;
@@ -34,7 +41,7 @@ const Bullets = styled.ul`
   color: #000;
 `;
 
-const ColWithRightMargin = styled(Col)`
+const ColWithRightMargin = styled.div`
   margin-right: 32px;
 `;
 
@@ -43,6 +50,26 @@ const PriorityQueuedBanner = styled.span`
   flex-direction: column;
   margin: 12px 0;
 `;
+
+// Icons sized like the old antd icons in a large circle button (18px)
+const icon = (Icon: typeof Pencil) => (
+  <Icon className="inline-block size-[18px] align-[-0.125em]" />
+);
+
+function WithTooltip({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent>{title}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 interface StudentBannerProps {
   queueId: number;
@@ -67,21 +94,23 @@ export default function StudentBanner({
           content="Your spot in queue has been temporarily reserved. Please finish describing your question to receive help and finish joining the queue."
           buttons={
             <>
-              <Tooltip title="Delete Draft">
+              <WithTooltip title="Delete Draft">
                 <BannerButton
-                  icon={<DeleteRowOutlined />}
+                  aria-label="Delete Draft"
+                  icon={icon(ListX)}
                   onClick={leaveQueue}
                 />
-              </Tooltip>
-              <Tooltip title="Finish Draft">
+              </WithTooltip>
+              <WithTooltip title="Finish Draft">
                 <BannerButton
                   data-cy="edit-question"
-                  icon={<EditOutlined />}
+                  aria-label="Finish Draft"
+                  icon={icon(Pencil)}
                   onClick={async () => {
                     editQuestion();
                   }}
                 />
-              </Tooltip>
+              </WithTooltip>
             </>
           }
         />
@@ -101,13 +130,14 @@ export default function StudentBanner({
           buttons={
             <>
               <LeaveQueueButton leaveQueue={leaveQueue} />
-              <Tooltip title="Edit Question">
+              <WithTooltip title="Edit Question">
                 <BannerButton
                   data-cy="edit-question"
-                  icon={<EditOutlined />}
+                  aria-label="Edit Question"
+                  icon={icon(Pencil)}
                   onClick={editQuestion}
                 />
-              </Tooltip>
+              </WithTooltip>
             </>
           }
           content={<QuestionDetailRow studentQuestion={studentQuestion} />}
@@ -128,16 +158,17 @@ export default function StudentBanner({
             <>
               <LeaveQueueButton leaveQueue={leaveQueue} />
               {isQueueOnline && (
-                <Tooltip title="Open Teams DM">
+                <WithTooltip title="Open Teams DM">
                   <BannerButton
-                    icon={<TeamOutlined />}
+                    aria-label="Open Teams DM"
+                    icon={icon(Users)}
                     onClick={() => {
                       window.open(
                         `https://teams.microsoft.com/l/chat/0/0?users=${studentQuestion.taHelped.email}`
                       );
                     }}
                   />
-                </Tooltip>
+                </WithTooltip>
               )}
             </>
           }
@@ -159,24 +190,21 @@ export default function StudentBanner({
           buttons={
             <>
               <LeaveQueueButton leaveQueue={leaveQueue} />
-              <Tooltip title="Rejoin Queue">
+              <WithTooltip title="Rejoin Queue">
                 <Button
-                  shape="circle"
-                  style={{
-                    marginLeft: "16px",
-                    border: 0,
-                  }}
-                  icon={<UndoOutlined />}
+                  size="icon"
+                  className="ml-4 size-10 rounded-full border-0"
                   onClick={async () => {
                     await API.questions.update(studentQuestion.id, {
                       status: OpenQuestionStatus.PriorityQueued,
                     });
                   }}
-                  type="primary"
                   data-cy="re-join-queue"
-                  size="large"
-                />
-              </Tooltip>
+                  aria-label="Rejoin Queue"
+                >
+                  <Undo2 className="!size-[18px]" />
+                </Button>
+              </WithTooltip>
             </>
           }
           content={
@@ -209,13 +237,14 @@ export default function StudentBanner({
           buttons={
             <>
               <LeaveQueueButton leaveQueue={leaveQueue} />
-              <Tooltip title="Edit Question">
+              <WithTooltip title="Edit Question">
                 <BannerButton
                   data-cy="edit-question"
-                  icon={<EditOutlined />}
+                  aria-label="Edit Question"
+                  icon={icon(Pencil)}
                   onClick={editQuestion}
                 />
-              </Tooltip>
+              </WithTooltip>
             </>
           }
           content={<QuestionDetailRow studentQuestion={studentQuestion} />}
@@ -228,40 +257,58 @@ export default function StudentBanner({
 
 function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => void }) {
   return (
-    <Popconfirm
-      title={`Are you sure you want to leave the queue?`}
-      okText="Yes"
-      okButtonProps={buttonDataCy("leave-queue-confirm")}
-      cancelText="No"
-      onConfirm={leaveQueue}
-    >
-      <Tooltip title="Leave Queue">
-        <BannerDangerButton
-          data-cy="leave-queue"
-          icon={<DeleteRowOutlined />}
-        />
+    <AlertDialog>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <AlertDialogTrigger asChild>
+            <BannerDangerButton
+              data-cy="leave-queue"
+              aria-label="Leave Queue"
+              icon={icon(ListX)}
+            />
+          </AlertDialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent>Leave Queue</TooltipContent>
       </Tooltip>
-    </Popconfirm>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            Are you sure you want to leave the queue?
+          </AlertDialogTitle>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>No</AlertDialogCancel>
+          {/* span: Cypress clicks span "Yes", as with the old antd button */}
+          <AlertDialogAction onClick={leaveQueue} data-cy="leave-queue-confirm">
+            <span>Yes</span>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
 function QuestionDetailRow({ studentQuestion }: { studentQuestion: Question }) {
   return (
     <QuestionDetails>
-      <ColWithRightMargin flex="4 4">
+      <ColWithRightMargin style={{ flex: "4 4" }}>
         <InfoHeader>question</InfoHeader>
         <div>{studentQuestion.text}</div>
       </ColWithRightMargin>
-      <Col flex="0.5 0.5 95px">
+      <div style={{ flex: "0.5 0.5 95px" }}>
         <InfoHeader>type</InfoHeader>
         <div>{studentQuestion.questionType}</div>
-      </Col>
-      <Col flex="0 0 89px">
+      </div>
+      <div style={{ flex: "0 0 89px" }}>
         <InfoHeader>groupable</InfoHeader>
         <div>
-          {studentQuestion.groupable ? <CheckOutlined /> : <CloseOutlined />}
+          {studentQuestion.groupable ? (
+            <Check className="size-[14px]" aria-label="Yes" />
+          ) : (
+            <X className="size-[14px]" aria-label="No" />
+          )}
         </div>
-      </Col>
+      </div>
     </QuestionDetails>
   );
 }

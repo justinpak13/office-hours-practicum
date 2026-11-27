@@ -3,7 +3,6 @@ import {
   IsArray,
   IsBoolean,
   IsDate,
-  IsDefined,
   IsEnum,
   IsInt,
   IsNumber,
@@ -329,39 +328,6 @@ export class GetProfileResponse extends User {
   nameManagedByAccount!: boolean;
 }
 
-export class KhouryDataParams {
-  @IsString()
-  email!: string;
-
-  @IsString()
-  first_name!: string;
-
-  @IsString()
-  last_name!: string;
-
-  @IsInt()
-  campus!: number;
-
-  @IsOptional()
-  @IsString()
-  photo_url!: string;
-
-  @IsOptional()
-  @IsDefined() // TODO: use ValidateNested instead, for some reason it's crunked
-  courses!: KhouryCourse[] | KhouryProfCourse[];
-}
-
-export class KhouryCourse {
-  @IsInt()
-  crn!: number;
-
-  @IsString()
-  semester!: string;
-
-  @IsEnum(String)
-  role!: "TA" | "Student";
-}
-
 export class KhouryProfCourse {
   // List of CRN's in the section group
   @IsArray()
@@ -389,24 +355,6 @@ export type RefreshRosterStatus =
 export class RefreshRosterResponse {
   status!: RefreshRosterStatus;
   message!: string;
-}
-
-export function isKhouryCourse(
-  c: KhouryCourse | KhouryProfCourse
-): c is KhouryCourse {
-  return (
-    (c as KhouryCourse).role !== undefined &&
-    (c as KhouryCourse).crn !== undefined
-  );
-}
-
-export interface KhouryRedirectResponse {
-  redirect: string;
-}
-
-// Where the browser goes after POST /logout
-export interface LogoutResponse {
-  redirect: string;
 }
 
 export class UpdateProfileParams {
@@ -870,13 +818,6 @@ export const ERROR_MESSAGES = {
     saveQError: "Unable to save a question",
     notFound: "Question not found",
     unableToNotifyUser: "Unable to notify user",
-  },
-  loginController: {
-    receiveDataFromKhoury: "Invalid request signature",
-    invalidPayload: "The decoded JWT payload is invalid",
-    invalidTempJWTToken: "Error occurred while signing a JWT token",
-    addUserFromKhoury:
-      "Error occurred while translating account from Khoury to Office Hours",
   },
   questionRoleGuard: {
     questionNotFound: "Question not found",

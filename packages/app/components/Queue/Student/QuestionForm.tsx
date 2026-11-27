@@ -1,12 +1,32 @@
 import { OpenQuestionStatus, Question, QuestionType } from "@koh/common";
-import { Alert, Button, Input, Modal, Radio } from "antd";
-import { RadioChangeEvent } from "antd/lib/radio";
+import { CircleCheck, Info } from "lucide-react";
 import { NextRouter, useRouter } from "next/router";
-import { default as React, ReactElement, useEffect, useState } from "react";
+import {
+  default as React,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import styled from "styled-components";
 import { useLocalStorage } from "../../../hooks/useLocalStorage";
 import { toOrdinal } from "../../../utils/ordinal";
 import { useHotkeys } from "react-hotkeys-hook";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 const Container = styled.div`
   max-width: 960px;
@@ -27,14 +47,19 @@ const QuestionCaption = styled.div`
   margin-bottom: 32px;
 `;
 
-const FormButton = styled(Button)`
-  margin-left: 8px;
-`;
+const CATEGORIES: [QuestionType, string][] = [
+  [QuestionType.Concept, "Concept"],
+  [QuestionType.Clarification, "Clarification"],
+  [QuestionType.Testing, "Testing"],
+  [QuestionType.Bug, "Bug"],
+  [QuestionType.Setup, "Setup"],
+  [QuestionType.Other, "Other"],
+];
 
-const SaveChangesButton = styled(Button)`
-  margin-left: 8px;
-  background: #3684c6;
-`;
+// The text box grows with its text from 3 to 6 lines, like antd's autoSize
+const LINE_PX = 22;
+const MIN_ROWS = 3;
+const MAX_ROWS = 6;
 
 interface QuestionFormProps {
   visible: boolean;
@@ -95,15 +120,15 @@ export default function QuestionForm({
   }, [question, visible]);
 
   // on question type change, update the question type state
-  const onCategoryChange = (e: RadioChangeEvent) => {
-    setQuestionTypeInput(e.target.value);
+  const onCategoryChange = (value: QuestionType) => {
+    setQuestionTypeInput(value);
 
     const questionFromStorage = storageQuestion ?? {};
 
     setStoredQuestion({
       id: question?.id,
       ...questionFromStorage,
-      questionType: e.target.value,
+      questionType: value,
     });
   };
 
@@ -122,14 +147,14 @@ export default function QuestionForm({
   };
 
   // on question groupable change, update the question groupable state
-  const onGroupableChange = (e: RadioChangeEvent) => {
-    setQuestionGroupable(e.target.value);
+  const onGroupableChange = (value: boolean) => {
+    setQuestionGroupable(value);
     const questionFromStorage = storageQuestion ?? {};
 
     setStoredQuestion({
       id: question?.id,
       ...questionFromStorage,
-      groupable: e.target.value,
+      groupable: value,
     });
   };
 
@@ -162,141 +187,193 @@ export default function QuestionForm({
     ]
   );
 
+  // Sized when it appears (the dialog mounts its content a render later) and
+  // whenever the text changes
+  const textArea = useRef<HTMLTextAreaElement | null>(null);
+  const resizeTextArea = (el: HTMLTextAreaElement) => {
+    const cs = getComputedStyle(el);
+    const padding = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    const border =
+      parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+    el.style.height = "auto";
+    const contentPx = el.scrollHeight - padding; // scrollHeight has no border
+    const rows = Math.min(
+      MAX_ROWS,
+      Math.max(MIN_ROWS, Math.ceil(contentPx / LINE_PX))
+    );
+    el.style.height = `${rows * LINE_PX + padding + border}px`;
+    el.style.overflowY = contentPx > MAX_ROWS * LINE_PX ? "auto" : "hidden";
+  };
+  const attachTextArea = useCallback((el: HTMLTextAreaElement | null) => {
+    textArea.current = el;
+    if (el) resizeTextArea(el);
+  }, []);
+  useLayoutEffect(() => {
+    if (textArea.current) resizeTextArea(textArea.current);
+  }, [questionText]);
+
+  // Esc, the X and an outside click reset the saved draft to the server copy
+  // (as the antd modal's onCancel did); the Cancel button doesn't. That
+  // difference predates the shadcn switch and has its own follow-up ticket.
+  const closeAndDiscardDraft = () => {
+    setStoredQuestion(question);
+    cancel();
+  };
+
   return (
-    <Modal
-      visible={visible}
-      // On the modal's wrapper, which is hidden when the modal closes
-      wrapProps={{ "data-cy": "question-form-modal" }}
-      closable={true}
-      onCancel={() => {
-        setStoredQuestion(question);
-        cancel();
-      }}
-      title={drafting ? "Describe your question" : "Edit your question"}
-      footer={
-        <div>
+    <Dialog
+      open={visible}
+      onOpenChange={(open) => !open && closeAndDiscardDraft()}
+    >
+      {/* Taller than a short screen: scroll inside, so the title stays reachable */}
+      <DialogContent
+        data-cy="question-form-modal"
+        className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[520px] overflow-y-auto rounded-lg"
+      >
+        <DialogHeader>
+          <DialogTitle>
+            {drafting ? "Describe your question" : "Edit your question"}
+          </DialogTitle>
+        </DialogHeader>
+        <Container>
+          {drafting && (
+            <Alert className="mb-8 border-[#b7eb8f] bg-[#f6ffed] [&>svg]:text-[#52c41a]">
+              <CircleCheck className="size-4" />
+              <AlertTitle className="text-base font-normal">
+                {`You are currently ${toOrdinal(position)} in queue`}
+              </AlertTitle>
+              <AlertDescription>
+                Your spot in queue has been temporarily reserved. Please
+                describe your question to finish joining the queue.
+              </AlertDescription>
+            </Alert>
+          )}
+          {helping && (
+            <Alert className="mb-8 border-[#91d5ff] bg-[#e6f7ff] [&>svg]:text-[#1890ff]">
+              <Info className="size-4" />
+              <AlertTitle className="text-base font-normal">
+                A TA is coming to help you
+              </AlertTitle>
+              <AlertDescription>
+                Please click &apos;Save Changes&apos; to submit what you&apos;ve
+                filled out
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <QuestionText id="question-category">
+            What category does your question fall under?
+          </QuestionText>
+          {/* Joined buttons like antd's solid Radio.Button group. Each is a
+              <label> around a real, visually hidden radio input, as in antd,
+              so the data-cy is on something that can be "checked"
+              (Cypress: question-type-… .should("be.checked")) */}
+          <div
+            role="radiogroup"
+            aria-labelledby="question-category"
+            className="mb-12 flex flex-wrap"
+          >
+            {CATEGORIES.map(([value, label]) => (
+              <label
+                key={value}
+                className={cn(
+                  "-ml-px flex h-8 cursor-pointer select-none items-center border border-[#d9d9d9] bg-white px-[15px] text-sm text-[rgba(0,0,0,0.85)] transition-colors first:ml-0 first:rounded-l-[2px] last:rounded-r-[2px] hover:text-primary has-[:focus-visible]:relative has-[:focus-visible]:z-10 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                  questionTypeInput === value &&
+                    "relative z-[1] border-primary bg-primary text-primary-foreground hover:text-primary-foreground"
+                )}
+              >
+                <input
+                  type="radio"
+                  name="question-category"
+                  value={value}
+                  data-cy={`question-type-${value}`}
+                  checked={questionTypeInput === value}
+                  onChange={() => onCategoryChange(value)}
+                  className="sr-only"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+
+          <QuestionText>What do you need help with?</QuestionText>
+          <Textarea
+            ref={attachTextArea}
+            data-cy="questionText"
+            value={questionText}
+            placeholder="I’m having trouble understanding list abstractions, particularly in Assignment 5."
+            rows={MIN_ROWS}
+            className="min-h-0 resize-none py-1 leading-[22px] md:leading-[22px]"
+            onChange={onQuestionTextChange}
+          />
+          <QuestionCaption>
+            Be as descriptive and specific as possible in your answer. Your name
+            will be hidden to other students, but your question will be visible
+            so don&apos;t frame your question in a way that gives away the
+            answer.
+          </QuestionCaption>
+
+          <QuestionText id="question-groupable">
+            Would you like the option of being helped in a group session?
+          </QuestionText>
+          <RadioGroup
+            value={String(questionGroupable)}
+            onValueChange={(v) => onGroupableChange(v === "true")}
+            aria-labelledby="question-groupable"
+            className="mb-[5px] flex gap-4"
+          >
+            <div className="flex items-center gap-2">
+              <RadioGroupItem
+                value="true"
+                id="groupable-yes"
+                data-cy="question-groupable-yes"
+              />
+              <Label htmlFor="groupable-yes" className="font-normal">
+                Yes
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem
+                value="false"
+                id="groupable-no"
+                data-cy="question-groupable-no"
+              />
+              <Label htmlFor="groupable-no" className="font-normal">
+                No
+              </Label>
+            </div>
+          </RadioGroup>
+          <QuestionCaption>
+            Clicking Yes may result in a shorter wait time if others have the
+            same question as you.
+          </QuestionCaption>
+        </Container>
+        {/* Stacked on phones: keep a gap between the buttons */}
+        <DialogFooter className="max-sm:gap-2">
           {drafting ? (
-            <FormButton
-              danger
+            <Button
+              variant="destructive"
               onClick={leaveQueue}
               data-cy="question-form-leave"
             >
               Leave Queue
-            </FormButton>
+            </Button>
           ) : (
-            <FormButton onClick={cancel}>Cancel</FormButton>
+            <Button variant="outline" onClick={cancel}>
+              Cancel
+            </Button>
           )}
-          <SaveChangesButton
+          <Button
             data-cy="finishQuestion"
-            type="primary"
             disabled={
               !questionTypeInput || !questionText || questionText === ""
             }
             onClick={onClickSubmit}
           >
             {drafting ? "Finish" : "Save Changes"}
-          </SaveChangesButton>
-        </div>
-      }
-    >
-      <Container>
-        {drafting && (
-          <Alert
-            style={{ marginBottom: "32px" }}
-            message={`You are currently ${toOrdinal(position)} in queue`}
-            description="Your spot in queue has been temporarily reserved. Please describe your question to finish joining the queue."
-            type="success"
-            showIcon
-          />
-        )}
-        {helping && (
-          <Alert
-            style={{ marginBottom: "32px" }}
-            message={`A TA is coming to help you`}
-            description="Please click 'Save Changes' to submit what you've filled out"
-            type="info"
-            showIcon
-          />
-        )}
-
-        <QuestionText>
-          What category does your question fall under?
-        </QuestionText>
-        <Radio.Group
-          value={questionTypeInput}
-          onChange={onCategoryChange}
-          buttonStyle="solid"
-          style={{ marginBottom: 48 }}
-        >
-          <Radio.Button
-            value={QuestionType.Concept}
-            data-cy="question-type-Concept"
-          >
-            Concept
-          </Radio.Button>
-          <Radio.Button
-            value={QuestionType.Clarification}
-            data-cy="question-type-Clarification"
-          >
-            Clarification
-          </Radio.Button>
-          <Radio.Button
-            value={QuestionType.Testing}
-            data-cy="question-type-Testing"
-          >
-            Testing
-          </Radio.Button>
-          <Radio.Button value={QuestionType.Bug} data-cy="question-type-Bug">
-            Bug
-          </Radio.Button>
-          <Radio.Button
-            value={QuestionType.Setup}
-            data-cy="question-type-Setup"
-          >
-            Setup
-          </Radio.Button>
-          <Radio.Button
-            value={QuestionType.Other}
-            data-cy="question-type-Other"
-          >
-            Other
-          </Radio.Button>
-        </Radio.Group>
-
-        <QuestionText>What do you need help with?</QuestionText>
-        <Input.TextArea
-          data-cy="questionText"
-          value={questionText}
-          placeholder="I’m having trouble understanding list abstractions, particularly in Assignment 5."
-          autoSize={{ minRows: 3, maxRows: 6 }}
-          onChange={onQuestionTextChange}
-        />
-        <QuestionCaption>
-          Be as descriptive and specific as possible in your answer. Your name
-          will be hidden to other students, but your question will be visible so
-          don&apos;t frame your question in a way that gives away the answer.
-        </QuestionCaption>
-
-        <QuestionText>
-          Would you like the option of being helped in a group session?
-        </QuestionText>
-        <Radio.Group
-          value={questionGroupable}
-          onChange={onGroupableChange}
-          style={{ marginBottom: 5 }}
-        >
-          <Radio value={true} data-cy="question-groupable-yes">
-            Yes
-          </Radio>
-          <Radio value={false} data-cy="question-groupable-no">
-            No
-          </Radio>
-        </Radio.Group>
-        <QuestionCaption>
-          Clicking Yes may result in a shorter wait time if others have the same
-          question as you.
-        </QuestionCaption>
-      </Container>
-    </Modal>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

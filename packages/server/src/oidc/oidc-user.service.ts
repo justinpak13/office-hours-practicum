@@ -32,14 +32,11 @@ export class OidcUserService {
       return UserModel.findOneOrFail({ where: { keycloakSub: claims.sub } });
     }
 
-    // Email, name and NUID can change in Keycloak, so keep them in sync
-    if (
-      user.email !== profile.email ||
-      user.firstName !== profile.firstName ||
-      user.lastName !== profile.lastName ||
-      user.nuid !== profile.nuid
-    ) {
-      await UserModel.update(user.id, profile);
+    // Email and NUID can change in Keycloak, so keep them in sync. The name is
+    // copied only on first login; after that the user edits it in Settings.
+    const synced = { email: profile.email, nuid: profile.nuid };
+    if (user.email !== synced.email || user.nuid !== synced.nuid) {
+      await UserModel.update(user.id, synced);
       user = await UserModel.findOneOrFail({ where: { id: user.id } });
     }
     return user;

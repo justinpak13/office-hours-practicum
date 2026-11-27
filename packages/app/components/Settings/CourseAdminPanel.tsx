@@ -1,7 +1,7 @@
-import { BellOutlined, EditOutlined, BookOutlined } from "@ant-design/icons";
-import { Col, Menu, Row, Space } from "antd";
+import { Bell, Book, Pencil } from "lucide-react";
 import React, { ReactElement, useState } from "react";
 import styled from "styled-components";
+import { Button } from "@/components/ui/button";
 import { useProfile } from "../../hooks/useProfile";
 import CourseRosterPage from "./CourseRosterPage";
 import { SettingsPanelAvatar } from "./SettingsSharedComponents";
@@ -26,9 +26,26 @@ const VerticalDivider = styled.div`
   }
 `;
 
-const CenteredText = styled.p`
-  text-align: center;
-`;
+const menuItems = [
+  {
+    key: CourseAdminOptions.CHECK_IN,
+    label: "TA Check In/Out Times",
+    Icon: Pencil,
+    dataCy: "admin-menu-check-in",
+  },
+  {
+    key: CourseAdminOptions.ROSTER,
+    label: "Course Roster",
+    Icon: Bell,
+    dataCy: "admin-menu-roster",
+  },
+  {
+    key: CourseAdminOptions.INFO,
+    label: "Course Information",
+    Icon: Book,
+    dataCy: "admin-menu-info",
+  },
+];
 
 export default function CourseAdminPanel({
   defaultPage,
@@ -40,45 +57,46 @@ export default function CourseAdminPanel({
   );
 
   return (
-    <Row>
-      <Col span={4} style={{ textAlign: "center" }}>
+    <div className="flex flex-wrap">
+      {/* antd Col span={4} = 4/24 of the row */}
+      <div className="max-w-[16.6667%] flex-none basis-[16.6667%] text-center">
         <SettingsPanelAvatar avatarSize={20} />
-        <CenteredText>
+        <p className="text-center">
           Welcome back
           <br />
           {profile?.firstName} {profile?.lastName}
-        </CenteredText>
-        <Menu
-          defaultSelectedKeys={[currentSettings]}
-          onClick={(e) => setCurrentSettings(e.key as CourseAdminOptions)}
-          style={{ background: "#f8f9fb", paddingTop: "20px" }}
+        </p>
+        <nav
+          aria-label="Course admin"
+          className="flex flex-col gap-1 bg-[#f8f9fb] pt-5"
         >
-          <Menu.Item
-            key={CourseAdminOptions.CHECK_IN}
-            icon={<EditOutlined />}
-            data-cy="admin-menu-check-in"
-          >
-            TA Check In/Out Times
-          </Menu.Item>
-          <Menu.Item
-            key={CourseAdminOptions.ROSTER}
-            icon={<BellOutlined />}
-            data-cy="admin-menu-roster"
-          >
-            Course Roster
-          </Menu.Item>
-          <Menu.Item
-            key={CourseAdminOptions.INFO}
-            icon={<BookOutlined />}
-            data-cy="admin-menu-info"
-          >
-            Course Information
-          </Menu.Item>
-        </Menu>
-      </Col>
+          {menuItems.map(({ key, label, Icon, dataCy }) => (
+            <Button
+              key={key}
+              variant={currentSettings === key ? "secondary" : "ghost"}
+              aria-current={currentSettings === key ? "page" : undefined}
+              className="w-full min-w-0 justify-start"
+              title={label}
+              data-cy={dataCy}
+              onClick={() => setCurrentSettings(key)}
+            >
+              {/* the label truncates in a narrow column, like antd Menu. Below
+                  767px (where VerticalDivider turns off) the column is too thin
+                  for even one letter, so show icon + "…" as antd did; the label
+                  stays the accessible name */}
+              <Icon className="shrink-0" />
+              <span className="truncate max-[766.98px]:sr-only">{label}</span>
+              <span aria-hidden="true" className="min-[767px]:hidden">
+                …
+              </span>
+            </Button>
+          ))}
+        </nav>
+      </div>
       <VerticalDivider />
-      <Space direction="vertical" size={40} style={{ flexGrow: 1 }}>
-        <Col span={20}>
+      <div className="flex min-w-0 grow flex-col gap-10">
+        {/* antd Col span={20}: in this column only its 20/24 max-width applies */}
+        <div className="max-w-[83.3333%]">
           {currentSettings === CourseAdminOptions.INFO && (
             <CourseInformation courseId={courseId} />
           )}
@@ -88,8 +106,8 @@ export default function CourseAdminPanel({
           {currentSettings === CourseAdminOptions.ROSTER && (
             <CourseRosterPage courseId={courseId} />
           )}
-        </Col>
-      </Space>
-    </Row>
+        </div>
+      </div>
+    </div>
   );
 }

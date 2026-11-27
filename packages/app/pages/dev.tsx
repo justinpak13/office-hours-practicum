@@ -1,9 +1,10 @@
 import { API } from "@koh/api-client";
 import { isProd } from "@koh/common";
-import { Button, Divider } from "antd";
 import DefaultErrorPage from "next/error";
 import React, { ReactElement } from "react";
 import styled from "styled-components";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 const Container = styled.div`
   width: auto;
@@ -13,20 +14,12 @@ const Container = styled.div`
   }
 `;
 
-const LoginContainer = styled.div`
-  margin-left: auto;
-  margin-right: auto;
-  text-align: center;
-
-  padding-top: 100px;
-`;
-
 const SeedingContainer = styled.div`
   margin-left: auto;
   margin-right: auto;
   text-align: center;
 
-  padding-top: 20px;
+  padding-top: 100px;
 `;
 
 const PageHeader = styled.div`
@@ -35,9 +28,16 @@ const PageHeader = styled.div`
   margin-top: 40px;
 `;
 
-const DevPageButton = styled(Button)`
-  margin-right: 15px;
-`;
+// antd <Divider plain> with a title: a line on each side of the text
+function SectionDivider({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="my-4 flex items-center whitespace-nowrap">
+      <Separator className="flex-1" />
+      <span className="inline-block px-[1em]">{children}</span>
+      <Separator className="flex-1" />
+    </div>
+  );
+}
 
 export default function DevPanel(): ReactElement {
   if (isProd()) {
@@ -48,62 +48,27 @@ export default function DevPanel(): ReactElement {
       <h1>
         <PageHeader>[ For Development Use Only ]</PageHeader>
       </h1>
-      <LoginContainer>
-        <Divider plain>
-          <h3>Login</h3>
-        </Divider>
-        <a href="/api/v1/login/dev?userId=1">
-          <DevPageButton type="default" htmlType="submit">
-            Login as <b> Student 1</b>
-          </DevPageButton>
-        </a>
-        <a href="/api/v1/login/dev?userId=2">
-          <DevPageButton type="default" htmlType="submit">
-            Login as <b> Student 2</b>
-          </DevPageButton>
-        </a>
-        <a href="/api/v1/login/dev?userId=3">
-          <DevPageButton type="default" htmlType="submit">
-            Login as <b> TA</b>
-          </DevPageButton>
-        </a>
-        <a href="/api/v1/login/dev?userId=4">
-          <DevPageButton type="default" htmlType="submit">
-            Login as <b> TA 2</b>
-          </DevPageButton>
-        </a>
-        <a href="/api/v1/login/dev?userId=5">
-          <DevPageButton type="default" htmlType="submit">
-            Login as <b> Professor </b>
-          </DevPageButton>
-        </a>
-        <a href="/api/v1/login/dev?userId=6">
-          <DevPageButton type="default" htmlType="submit">
-            Login as <b> No Course User</b>
-          </DevPageButton>
-        </a>
-      </LoginContainer>
       <SeedingContainer>
-        <Divider plain>
+        <SectionDivider>
           <h3>Seed</h3>
-        </Divider>
+        </SectionDivider>
         <Button
-          style={{ marginRight: "15px" }}
-          type="default"
+          variant="outline"
+          className="mr-[15px]"
           onClick={() => API.seeds.delete()}
         >
           Delete Data
         </Button>
         <Button
-          style={{ marginRight: "15px" }}
-          type="default"
+          variant="outline"
+          className="mr-[15px]"
           onClick={() => API.seeds.create()}
         >
           Seed Data
         </Button>
         <Button
-          style={{ marginRight: "15px" }}
-          type="default"
+          variant="outline"
+          className="mr-[15px]"
           onClick={() => API.seeds.fillQueue()}
         >
           Add Questions to Queue

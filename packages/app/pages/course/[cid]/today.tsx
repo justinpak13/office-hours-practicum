@@ -1,6 +1,5 @@
 import { API } from "@koh/api-client";
 import { Heatmap, QueuePartial, Role } from "@koh/common";
-import { Col, Row } from "antd";
 import { chunk, mean } from "lodash";
 import moment from "moment";
 import Head from "next/head";
@@ -10,7 +9,10 @@ import React, { ReactElement } from "react";
 import styled from "styled-components";
 import { StandardPageContainer } from "../../../components/common/PageContainer";
 import NavBar from "../../../components/Nav/NavBar";
-const SchedulePanel = dynamic(() => import("../../../components/Schedule/SchedulePanel"), { ssr: false });
+const SchedulePanel = dynamic(
+  () => import("../../../components/Schedule/SchedulePanel"),
+  { ssr: false }
+);
 import QueueCard, {
   QueueCardSkeleton,
 } from "../../../components/Today/QueueCard";
@@ -29,10 +31,6 @@ const Title = styled.div`
   font-weight: 500;
   font-size: 30px;
   color: #212934;
-`;
-
-const TodayCol = styled(Col)`
-  margin-bottom: 15px;
 `;
 
 const RoleColorSpan = styled.span`
@@ -105,20 +103,22 @@ export default function Today(): ReactElement {
       <WelcomeStudents />
       <NavBar courseId={Number(cid)} />
       <Container>
-        <Row gutter={64}>
-          <TodayCol md={12} xs={24}>
-            <Row justify="space-between">
+        {/* antd Row gutter={64}: -32px row margins, 32px column padding */}
+        <div className="-mx-8 flex min-w-0 flex-wrap">
+          {/* Col md={12} xs={24}: full width on phones, half from 768px */}
+          <div className="relative mb-[15px] min-h-px max-w-full flex-[0_0_100%] px-8 md:max-w-[50%] md:flex-[0_0_50%]">
+            <div className="flex min-w-0 flex-wrap justify-between">
               <Title>Current Office Hours</Title>
               <TodayPageCheckinButton />
-            </Row>
-            <Row>
+            </div>
+            <div className="flex min-w-0 flex-wrap">
               <div>
                 <i>
                   You are a <RoleColorSpan>{roleToString(role)}</RoleColorSpan>{" "}
                   for this course
                 </i>
               </div>
-            </Row>
+            </div>
             {course?.queues?.length === 0 ? (
               <h1 style={{ paddingTop: "100px" }}>
                 There are no queues for this course
@@ -147,11 +147,12 @@ export default function Today(): ReactElement {
                 />
               )
             }
-          </TodayCol>
-          <TodayCol md={12} sm={24}>
+          </div>
+          {/* Col md={12} sm={24}: full width from 576px, half from 768px */}
+          <div className="relative mb-[15px] min-h-px max-w-full px-8 min-[576px]:flex-[0_0_100%] md:max-w-[50%] md:flex-[0_0_50%]">
             <SchedulePanel courseId={Number(cid)} defaultView="timeGridDay" />
-          </TodayCol>
-        </Row>
+          </div>
+        </div>
       </Container>
     </StandardPageContainer>
   );
