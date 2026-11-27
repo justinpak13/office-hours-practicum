@@ -4,7 +4,7 @@ import { serialize } from 'class-transformer';
 import { Response } from 'express';
 import { RedisService } from '../redis/redis.module';
 import { ERROR_MESSAGES } from '@koh/common';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 
 /**
  * A connection to a particular frontend client

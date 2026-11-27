@@ -2,7 +2,7 @@
 const path = require('path');
 const webpack = require('webpack');
 const nodeExternals = require('webpack-node-externals');
-const SentryPlugin = require('@sentry/webpack-plugin');
+const { sentryWebpackPlugin } = require('@sentry/webpack-plugin');
 
 module.exports = function (options) {
   return {
@@ -38,11 +38,12 @@ module.exports = function (options) {
       process.env.SENTRY_AUTH_TOKEN && process.env.SERVICE_VERSION
         ? [
             // SERVICE_VERSION is the git hash, passed during build time.
-            new SentryPlugin({
+            sentryWebpackPlugin({
               org: 'sandboxnu',
               project: 'khoury-office-hours',
-              release: process.env.SERVICE_VERSION,
-              include: './dist',
+              authToken: process.env.SENTRY_AUTH_TOKEN,
+              release: { name: process.env.SERVICE_VERSION },
+              sourcemaps: { assets: './dist/**' },
             }),
             // Write the build-time value of SERVICE_VERSION so it can be read at runtime
             new webpack.EnvironmentPlugin(['SERVICE_VERSION']),

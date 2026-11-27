@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
+import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -24,6 +26,8 @@ import { OidcModule } from './oidc/oidc.module';
 
 @Module({
   imports: [
+    // Must come first so Sentry can name transactions by route
+    SentryModule.forRoot(),
     TypeOrmModule.forRoot(ormconfig),
     ScheduleModule.forRoot(),
     LoginModule,
@@ -52,6 +56,11 @@ import { OidcModule } from './oidc/oidc.module';
     AlertsModule,
     SemesterModule,
     OidcModule,
+  ],
+  providers: [
+    // Reports unhandled (non-HttpException) errors to Sentry, then falls back
+    // to Nest's default error response. Register before any other filters.
+    { provide: APP_FILTER, useClass: SentryGlobalFilter },
   ],
 })
 export class AppModule {}
