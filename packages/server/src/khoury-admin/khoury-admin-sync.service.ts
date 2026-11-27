@@ -143,7 +143,8 @@ export class KhouryAdminSyncService {
       // free for it and no sibling takes it. It blocks every sg_1 group with one of its CRNs until its old group empties;
       // that resolves on the next sign-in after the move completes.
       // A still listing the old id is a partial move: held without calling C. getRoster errors are always
-      // KhouryAdminError (the client wraps everything), so any other throw is a bug and aborts A's save by design.
+      // KhouryAdminError (the client wraps everything), so any other throw is a bug and
+      // stops the rest of A's save (the sections row and links already written stay).
       let held = false;
       for (const c of courses) {
         const old = c.khourySectionGroupId;
