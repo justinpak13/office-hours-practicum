@@ -11,7 +11,10 @@ import { KhouryAdminClient } from './khoury-admin.client';
 import { KhouryAdminError } from './khoury-admin.types';
 
 export function normalizeEmail(email: string): string {
-  return email.toLowerCase().replace(/@husky\.neu\.edu$/, '@northeastern.edu');
+  return email
+    .trim()
+    .toLowerCase()
+    .replace(/@husky\.neu\.edu$/, '@northeastern.edu');
 }
 
 export function khouryRoleToRole(r: 'Professor' | 'TA' | 'Student'): Role {
@@ -22,6 +25,9 @@ const RANK = { [Role.STUDENT]: 0, [Role.TA]: 1, [Role.PROFESSOR]: 2 };
 export function higherRole(a: Role, b: Role): Role {
   return RANK[b] > RANK[a] ? b : a;
 }
+
+// Minimum gap between syncs for one user (a constant on purpose, not config)
+const SYNC_HOURS = 24;
 
 @Injectable()
 export class KhouryAdminSyncService {
@@ -34,7 +40,7 @@ export class KhouryAdminSyncService {
     private dataSource: DataSource,
   ) {}
 
-  // NOTE: the advisory lock serializes sync; the legacy-only unique email index on user_model is the DB backstop (the old login path is not covered by the lock)
+  // NOTE: the advisory lock only serializes membership upserts per user and course; the sync itself is claimed by the conditional UPDATE in syncIfDue
   private locked<T>(
     key: string,
     fn: (m: EntityManager) => Promise<T>,
@@ -45,66 +51,100 @@ export class KhouryAdminSyncService {
     });
   }
 
-  async onSignIn(
-    email: string,
-    name: { first: string; last: string },
-  ): Promise<UserModel> {
-    const norm = normalizeEmail(email);
-    const user = await this.locked('koh:user:' + norm, async (m) => {
-      const find = () =>
-        m
-          .createQueryBuilder(UserModel, 'u')
-          .where('LOWER(u.email) = :email', { email: norm })
-          // NOTE: legacy rows only, a Keycloak user may share this email; T22 replaces this method
-          .andWhere('u."keycloakSub" IS NULL')
-          .getOne();
-      // NOTE: legacy mixed-case rows only match via LOWER(), so look first; orIgnore (ON CONFLICT DO NOTHING) keeps the transaction alive if an exact-email row appears anyway
-      const found = await find();
-      if (found) return found;
-      await m
-        .createQueryBuilder()
-        .insert()
-        .into(UserModel)
-        .values({ email: norm, firstName: name.first, lastName: name.last })
-        .orIgnore()
-        .execute();
-      return (await find())!;
-    });
+  // Runs the sync for a user at most once per 24h. The conditional UPDATE both checks the gate and claims the run, so concurrent requests can't both sync.
+  // NOTE: retry after 24h on failure; shorten if outages matter
+  // NOTE: a user whose first sync ran without a NUID gets B on the next due sync (up to 24h later), and a stale save() of a user loaded before the claim can null the stamp and cause one extra (idempotent) sync; both accepted
+  // NOTE: the in-memory check uses the app clock and the claim uses the DB clock; small drift only delays a sync or adds a no-op query, accepted
+  async syncIfDue(user: UserModel): Promise<void> {
+    // Cheap in-memory check; the UPDATE below stays the race-safe claim
+    if (
+      user.lastKhourySyncAt &&
+      Date.now() - user.lastKhourySyncAt.getTime() < SYNC_HOURS * 3600_000
+    )
+      return;
+    const claimed = await UserModel.createQueryBuilder()
+      .update()
+      .set({ lastKhourySyncAt: () => 'now()' })
+      .where(
+        `id = :id AND ("lastKhourySyncAt" IS NULL OR "lastKhourySyncAt" < now() - interval '${SYNC_HOURS} hours')`,
+        { id: user.id },
+      )
+      .execute();
+    if (claimed.affected !== 1) return;
+    await this.onSignIn(user);
+  }
+
+  async onSignIn(user: UserModel): Promise<void> {
+    // NOTE: a null or blank email skips both A and B (both URLs contain the email) instead of throwing
+    const norm = user.email?.trim() ? normalizeEmail(user.email) : null;
     // NOTE: single semester from env; must be bumped each term and profs can't see next term early; compute from date when going live
     const semester = this.config.get('KHOURY_SEMESTER');
+    const nuid = user.nuid?.trim();
 
     // NOTE: allSettled so both requests run together without an unhandled rejection
     const [a, b] = await Promise.allSettled([
-      this.client.getSectionGroups(norm, semester),
-      this.client.getCourses(norm, semester),
+      norm
+        ? this.client.getSectionGroups(norm, semester)
+        : Promise.resolve(null),
+      // NOTE: B needs the NUID; without one only A runs (and without an email, neither runs)
+      nuid && norm
+        ? this.client.getCourses(norm, semester, nuid)
+        : Promise.resolve(null),
     ]);
+    // NOTE: A and B are independent; an unexpected error (not KhouryAdminError) in one is kept, B still runs, and at the end one error is rethrown (an Error carrying both in `errors` if both failed). Each is tagged with its source (A or B) and keeps the original as `cause`. The JwtStrategy hook logs the failed sync once, (messages and stacks only); a KhouryAdminError is an expected outage and only warns here
+    const bugs: unknown[] = [];
     try {
       if (a.status === 'rejected') throw a.reason;
-      await this.saveSectionGroups(user, a.value.section_groups, semester);
+      if (a.value === null) {
+        this.logger.warn(
+          `Skipping Khoury Admin A: user ${user.id} has no email`,
+        );
+      } else {
+        await this.saveSectionGroups(user, a.value.section_groups, semester);
+      }
     } catch (e) {
-      this.logFailure('A', e);
+      if (this.logFailure('A', e))
+        bugs.push(
+          Object.assign(new Error('Khoury Admin A failed'), { cause: e }),
+        );
     }
     try {
       if (b.status === 'rejected') throw b.reason;
-      // NOTE: duplicate entries for one group collapse to the highest role
-      const best = new Map<string, Role>();
-      for (const c of b.value.courses) {
-        const r = khouryRoleToRole(c.role);
-        const prev = best.get(c.section_group_id);
-        best.set(c.section_group_id, prev ? higherRole(prev, r) : r);
-      }
-      for (const [groupId, role] of best) {
-        const course = await CourseModel.findOne({
-          where: { khourySectionGroupId: groupId },
-        });
-        if (course?.enabled) {
-          await this.upsertMembership(user.id, course.id, role);
+      if (b.value === null) {
+        this.logger.warn(
+          `Skipping Khoury Admin B: user ${user.id} has no ${
+            norm ? 'NUID' : 'email'
+          }`,
+        );
+      } else {
+        // NOTE: duplicate entries for one group collapse to the highest role
+        const best = new Map<string, Role>();
+        for (const c of b.value.courses) {
+          const r = khouryRoleToRole(c.role);
+          const prev = best.get(c.section_group_id);
+          best.set(c.section_group_id, prev ? higherRole(prev, r) : r);
+        }
+        for (const [groupId, role] of best) {
+          const course = await CourseModel.findOne({
+            where: { khourySectionGroupId: groupId },
+          });
+          if (course?.enabled) {
+            await this.upsertMembership(user.id, course.id, role);
+          }
         }
       }
     } catch (e) {
-      this.logFailure('B', e);
+      if (this.logFailure('B', e))
+        bugs.push(
+          Object.assign(new Error('Khoury Admin B failed'), { cause: e }),
+        );
     }
-    return user;
+    if (bugs.length === 1) throw bugs[0];
+    if (bugs.length > 1)
+      // NOTE: a plain Error with an `errors` list (AggregateError is missing from the es2017 lib typings); the hook logs it (messages and stacks only)
+      throw Object.assign(new Error('Khoury Admin A and B failed'), {
+        errors: bugs,
+      });
   }
 
   private async saveSectionGroups(
@@ -242,9 +282,10 @@ export class KhouryAdminSyncService {
     });
   }
 
-  // A failed call keeps what OH already has; anything else is a real bug
-  private logFailure(which: string, e: unknown) {
-    if (!(e instanceof KhouryAdminError)) throw e;
+  // A failed call keeps what OH already has. A KhouryAdminError only warns; returns true for any other error, which the caller keeps and rethrows (the hook logs it)
+  private logFailure(which: string, e: unknown): boolean {
+    if (!(e instanceof KhouryAdminError)) return true;
     this.logger.warn(`Khoury Admin ${which} failed: ${e.message}`);
+    return false;
   }
 }

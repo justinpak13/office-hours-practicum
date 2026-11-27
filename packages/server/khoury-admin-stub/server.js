@@ -100,6 +100,9 @@ function createStubServer(dataDir, opts = {}) {
         safe(key) &&
         safe(semester)
       ) {
+        if (!url.searchParams.get('nuid')) {
+          return send(res, 400, { error: 'nuid required' });
+        }
         const d = readJson(semester, 'users', `${norm(key)}.json`);
         return send(res, 200, d === MISSING ? { semester, courses: [] } : d);
       }

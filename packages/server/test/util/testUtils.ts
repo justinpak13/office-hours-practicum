@@ -8,6 +8,7 @@ import { addGlobalsToApp } from '../../src/app-globals';
 import { LoginModule } from '../../src/login/login.module';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testDb';
 import { resetUserSeq } from './factories';
+import { KhouryAdminSyncService } from '../../src/khoury-admin/khoury-admin-sync.service';
 import { QueueSSEService } from '../../src/queue/queue-sse.service';
 import {
   OidcClaims,
@@ -66,7 +67,10 @@ export function setupIntegrationTest(
       .overrideProvider(OidcTokenService)
       .useValue(testOidcTokenService)
       .overrideProvider(OidcUserService)
-      .useClass(TestOidcUserService);
+      .useClass(TestOidcUserService)
+      // NOTE: the Keycloak login path starts a background sync; no test may run it for real
+      .overrideProvider(KhouryAdminSyncService)
+      .useValue({ syncIfDue: jest.fn(() => Promise.resolve()) });
 
     if (modifyModule) {
       testModuleBuilder = modifyModule(testModuleBuilder);

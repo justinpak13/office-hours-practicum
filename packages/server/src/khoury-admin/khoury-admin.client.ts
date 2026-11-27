@@ -12,7 +12,10 @@ import {
 const isArr = Array.isArray;
 // NOTE: mirrors normalizeEmail in khoury-admin-sync.service.ts; importing it here would create an import cycle.
 const norm = (e: string) =>
-  e.toLowerCase().replace(/@husky\.neu\.edu$/, '@northeastern.edu');
+  e
+    .trim()
+    .toLowerCase()
+    .replace(/@husky\.neu\.edu$/, '@northeastern.edu');
 // NOTE: a lone surrogate makes encodeURIComponent throw URIError; surface it as a normal client failure
 const enc = (x: string) => {
   try {
@@ -61,9 +64,17 @@ export class KhouryAdminClient {
   async getCourses(
     email: string,
     semester: string,
+    nuid: string | null | undefined,
   ): Promise<UserCoursesResponse> {
+    // NOTE: Khoury Admin looks people up by NUID (Banner can't search by email), so B needs it
+    const cleanNuid = nuid?.trim();
+    if (!cleanNuid) {
+      throw new KhouryAdminError('getCourses needs a NUID');
+    }
     return this.get(
-      `/api/v1/users/${enc(norm(email))}/courses?semester=${enc(semester)}`,
+      `/api/v1/users/${enc(norm(email))}/courses?semester=${enc(
+        semester,
+      )}&nuid=${enc(cleanNuid)}`,
       (d) =>
         d.semester === semester &&
         every(
