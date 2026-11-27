@@ -1,17 +1,24 @@
 import { API } from "@koh/api-client";
 import { QueuePartial, Role } from "@koh/common";
-import { Button, message } from "antd";
 import { useRouter } from "next/router";
 import React, { ReactElement, useState } from "react";
+import { toast } from "sonner";
 import styled from "styled-components";
 import { useCourse } from "../../hooks/useCourse";
 import { useProfile } from "../../hooks/useProfile";
 import { useRoleInCourse } from "../../hooks/useRoleInCourse";
 import QueueCheckInModal from "./QueueCheckInModal";
-import QueueCreateModal from "./QueueCreateModal";
+import QueueCreateModal, { QueueCreateValues } from "./QueueCreateModal";
+import { queueButtonBase } from "../Queue/queueButtonStyles";
 import TACheckinButton, { CheckinButton } from "./TACheckinButton";
 
-const CreateQueueButton = styled(Button)`
+// antd's default-size button, without antd (same styles as the queue buttons)
+const CreateQueueButton = styled.button.attrs({ type: "button" })`
+  ${queueButtonBase}
+  height: 32px;
+  padding: 4px 15px;
+  font-size: 14px;
+  border-radius: 2px;
   color: white;
   background: #2a9187;
   &:hover,
@@ -52,14 +59,8 @@ export default function TodayPageCheckinButton(): ReactElement {
       : setCreateQueueModalVisible(true);
   };
 
-  const submitMakeQueue = async (submittedForm) => {
-    let queueRequest;
-    try {
-      queueRequest = await submittedForm.validateFields();
-    } catch {
-      // Invalid form: antd already shows the errors next to the fields
-      return;
-    }
+  // Only called with valid values: the form shows its own errors
+  const submitMakeQueue = async (queueRequest: QueueCreateValues) => {
     try {
       await API.taStatus.makeQueue(
         Number(cid),
@@ -67,7 +68,7 @@ export default function TodayPageCheckinButton(): ReactElement {
         !queueRequest.allowTA,
         queueRequest.notes
       );
-      message.success(
+      toast.success(
         `Created a new queue ${queueRequest.officeHourName}. Checking you in...`
       );
       const redirectID = await API.taStatus.checkIn(
@@ -81,7 +82,7 @@ export default function TodayPageCheckinButton(): ReactElement {
       );
       setCreateQueueModalVisible(false);
     } catch (err) {
-      message.error(err.response?.data?.message);
+      toast.error(err.response?.data?.message);
     }
   };
 
@@ -108,7 +109,7 @@ export default function TodayPageCheckinButton(): ReactElement {
                 `/course/${Number(cid)}/queue/${redirectID.id}`
               );
             } catch (err) {
-              message.error(err.response?.data?.message);
+              toast.error(err.response?.data?.message);
             }
           }}
           onCancel={() => setCheckInModalVisible(false)}

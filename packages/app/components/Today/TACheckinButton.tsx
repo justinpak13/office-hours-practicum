@@ -1,11 +1,51 @@
 import { API } from "@koh/api-client";
-import { Button, message } from "antd";
 import { useRouter } from "next/router";
-import { ReactElement } from "react";
+import React, { ReactElement } from "react";
+import { toast } from "sonner";
 import styled from "styled-components";
 import { useCourse } from "../../hooks/useCourse";
+import { queueButtonBase } from "../Queue/queueButtonStyles";
 
-export const CheckinButton = styled(Button)`
+type LargeButtonProps = Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "type"
+> & {
+  /** antd's button type; these are always default buttons */
+  type?: string;
+  /** antd's size; these are always large */
+  size?: string;
+  /** full width, like antd's block */
+  block?: boolean;
+  "data-cy"?: string;
+};
+
+// antd's large button (size="large", optionally block), without antd. Same
+// styles as the queue buttons, so the Today and TA queue pages look unchanged.
+const LargeButtonBase = styled.button<{ $block?: boolean }>`
+  ${queueButtonBase}
+  height: 40px;
+  padding: 6.4px 15px;
+  font-size: 16px;
+  border-radius: 2px;
+  ${({ $block }) => $block && "display: block; width: 100%;"}
+`;
+
+const LargeButton = React.forwardRef<HTMLButtonElement, LargeButtonProps>(
+  function LargeButton(
+    // type and size are antd's; these buttons are always default and large
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    { type, size, block, children, ...props }: LargeButtonProps,
+    ref: React.ForwardedRef<HTMLButtonElement>
+  ) {
+    return (
+      <LargeButtonBase ref={ref} type="button" $block={block} {...props}>
+        <span>{children}</span>
+      </LargeButtonBase>
+    );
+  }
+);
+
+export const CheckinButton = styled(LargeButton)`
   background: #1890ff;
   border-radius: 6px;
   color: white;
@@ -13,7 +53,7 @@ export const CheckinButton = styled(Button)`
   font-size: 14px;
 `;
 
-export const CheckOutButton = styled(Button)`
+export const CheckOutButton = styled(LargeButton)`
   color: #da3236;
   font-weight: 500;
   font-size: 14px;
@@ -55,7 +95,7 @@ export default function TACheckinButton({
         `/course/${courseId}/queue/${redirectID.id}`
       );
     } catch (err) {
-      message.error(err.response?.data?.message);
+      toast.error(err.response?.data?.message);
     }
   }
 
@@ -71,7 +111,7 @@ export default function TACheckinButton({
           onClick={async () => {
             await API.taStatus.checkOut(courseId, room);
             mutateCourse();
-            message.success("Checked out successfully");
+            toast.success("Checked out successfully");
           }}
         >
           Check Out
