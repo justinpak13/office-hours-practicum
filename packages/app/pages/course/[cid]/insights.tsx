@@ -2,19 +2,9 @@ import React, { ReactElement, useState } from "react";
 
 import { API } from "@koh/api-client";
 import useSWR from "swr";
-import {
-  Tooltip,
-  Card,
-  Space,
-  Drawer,
-  Button,
-  DatePicker,
-  Divider,
-  Row,
-  Spin,
-  CardProps,
-} from "antd";
-import { InfoCircleOutlined, QuestionCircleOutlined } from "@ant-design/icons";
+import { format } from "date-fns";
+import { CalendarIcon, CircleHelp, Info, Loader2 } from "lucide-react";
+import { DateRange } from "react-day-picker";
 import { useProfile } from "../../../hooks/useProfile";
 import {
   BarChartOutputType,
@@ -35,6 +25,54 @@ import { useRouter } from "next/router";
 import styled from "styled-components";
 import { SetStateAction } from "react";
 import { Dispatch } from "react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+
+// antd RangePicker's value format, which the insights API receives
+const API_DATE = "yyyy-MM-dd";
+
+// A "?" or "i" icon with a tooltip, reachable by keyboard
+function HelpTip({
+  label,
+  text,
+  children,
+}: {
+  label: string;
+  text: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        type="button"
+        aria-label={label}
+        className="inline-flex cursor-pointer border-0 bg-transparent p-0 text-inherit"
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent className="max-w-[260px]">{text}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 const InsightsRowContainer = styled.div`
   display: flex;
@@ -49,6 +87,16 @@ export default function Insights(): ReactElement {
   const { cid } = router.query;
 
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  // Like antd's RangePicker: the first click picks the start, the second the
+  // end (either order), and only then does dateRange change. The calendar's own
+  // range mode would report a one-day range on the first click, so the clicks
+  // are tracked here.
+  const [appliedRange, setAppliedRange] = useState<DateRange | undefined>();
+  const [rangeStart, setRangeStart] = useState<Date | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const shownRange: DateRange | undefined = rangeStart
+    ? { from: rangeStart, to: undefined }
+    : appliedRange;
   const [mostActiveStudentsPage, setMostActiveStudentsPage] = useState(1);
 
   const { data: allInsights } = useSWR(`api/v1/insights/listAll`, async () =>
@@ -68,29 +116,46 @@ export default function Insights(): ReactElement {
     [[], []]
   );
 
-  const { RangePicker } = DatePicker;
+  const onDayClick = (day: Date) => {
+    if (!rangeStart) {
+      setRangeStart(day);
+      return;
+    }
+    const [from, to] =
+      rangeStart <= day ? [rangeStart, day] : [day, rangeStart];
+    setRangeStart(null);
+    setAppliedRange({ from, to });
+    setDateRange({ start: format(from, API_DATE), end: format(to, API_DATE) });
+    setPickerOpen(false);
+  };
+  const clearRange = () => {
+    setRangeStart(null);
+    setAppliedRange(undefined);
+    setDateRange({ start: "", end: "" });
+    setPickerOpen(false);
+  };
+  // Closing halfway through keeps the previous range, as antd does
+  const onPickerOpenChange = (open: boolean) => {
+    setPickerOpen(open);
+    if (!open) setRangeStart(null);
+  };
 
   return (
     <>
       <StandardPageContainer>
         <NavBar courseId={Number(cid)} />
-        <Row
-          align={"middle"}
-          justify={"space-between"}
-          style={{ margin: "12px 0px" }}
-        >
+        <div className="my-3 flex flex-wrap items-center justify-between gap-3">
           <h1 style={{ display: "inline", margin: "0px" }}>
             Insights Dashboard
           </h1>
-          <Row>
-            <div style={{ maxWidth: "200 px" }}>
-              <Tooltip
-                title={
-                  "If no date range is selected results are from the data for the full semester so far"
-                }
+          <div className="flex flex-wrap items-center">
+            <div className="flex items-center">
+              <HelpTip
+                label="About the date range"
+                text="If no date range is selected results are from the data for the full semester so far"
               >
-                <QuestionCircleOutlined />
-              </Tooltip>
+                <CircleHelp className="size-[14px]" />
+              </HelpTip>
               <b
                 style={{
                   display: "inline-block",
@@ -100,32 +165,62 @@ export default function Insights(): ReactElement {
               >
                 Date Range
               </b>
-              <RangePicker
-                onChange={(_, dateString) =>
-                  setDateRange({ start: dateString[0], end: dateString[1] })
-                }
-              />
+              <Popover open={pickerOpen} onOpenChange={onPickerOpenChange}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-[260px] justify-start font-normal"
+                  >
+                    <CalendarIcon />
+                    {dateRange.start ? (
+                      `${dateRange.start} → ${dateRange.end}`
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Start date → End date
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="range"
+                    numberOfMonths={2}
+                    selected={shownRange}
+                    onSelect={(_range, day) => onDayClick(day)}
+                    defaultMonth={appliedRange?.from}
+                  />
+                  {(rangeStart || dateRange.start) && (
+                    <div className="flex justify-end border-t p-2">
+                      <Button variant="ghost" size="sm" onClick={clearRange}>
+                        Clear
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
             <Button
-              style={{ marginLeft: "24px" }}
+              variant="outline"
+              className="ml-6"
               onClick={() => setSettingsVisible(true)}
             >
               Edit Insights
             </Button>
-          </Row>
-        </Row>
-        <Divider style={{ margin: "0 0 16px 0" }} />
-        <Drawer
-          title="Display Options"
-          placement="left"
-          closable={true}
-          destroyOnClose={true}
-          onClose={() => setSettingsVisible(false)}
-          visible={settingsVisible}
-          width={400}
-        >
-          <InsightsDisplayOptions />
-        </Drawer>
+          </div>
+        </div>
+        <Separator className="mb-4" />
+        {/* was antd's left Drawer (400px, emptied when closed) */}
+        <Sheet open={settingsVisible} onOpenChange={setSettingsVisible}>
+          <SheetContent
+            side="left"
+            className="w-[400px] max-w-full overflow-y-auto sm:max-w-[400px]"
+          >
+            <SheetHeader className="mb-6">
+              <SheetTitle>Display Options</SheetTitle>
+            </SheetHeader>
+            <InsightsDisplayOptions />
+          </SheetContent>
+        </Sheet>
         <InsightsRowContainer>
           {smallInsights?.map((insightName: string) => {
             return (
@@ -221,7 +316,11 @@ function RenderInsight({
 
   let insightComponent;
   if (insightOutput === undefined) {
-    insightComponent = <Spin style={{ margin: "10% 45%" }} />;
+    insightComponent = (
+      <div role="status" aria-label="Loading" style={{ margin: "10% 45%" }}>
+        <Loader2 className="size-5 animate-spin text-primary" />
+      </div>
+    );
   } else {
     switch (insightDisplay.component) {
       case InsightComponent.SimpleDisplay:
@@ -256,26 +355,43 @@ function RenderInsight({
     }
   }
 
+  // Styled like antd's Card: "small" has a 38px header and 12px padding,
+  // "default" a 48px header and 24px padding
+  const small = insightDisplay.size === "small";
   return (
     <Card
-      size={insightDisplay.size as CardProps["size"]}
-      title={insightDisplay.displayName}
+      className="rounded-sm border-[#f0f0f0] shadow-none"
       style={{
         margin: "0.5%",
         padding: "2px",
         width: insightDisplay.size === "default" ? "50%" : "16.66%",
         maxWidth: insightDisplay.size === "default" ? "625px" : "200px",
       }}
-      bodyStyle={{ position: "relative" }}
-      extra={
-        <Space>
-          <Tooltip title={insightDisplay.description}>
-            <InfoCircleOutlined />
-          </Tooltip>
-        </Space>
-      }
     >
-      {insightComponent}
+      <CardHeader
+        className={cn(
+          "flex-row items-center justify-between gap-1 space-y-0 border-b border-[#f0f0f0] py-0",
+          small ? "min-h-[38px] px-3" : "min-h-[48px] px-6"
+        )}
+      >
+        <CardTitle
+          className={cn(
+            "font-medium leading-snug tracking-normal text-[rgba(0,0,0,0.85)]",
+            small ? "text-sm" : "text-base"
+          )}
+        >
+          {insightDisplay.displayName}
+        </CardTitle>
+        <HelpTip
+          label={`About ${insightDisplay.displayName}`}
+          text={insightDisplay.description}
+        >
+          <Info className="size-[14px] shrink-0" />
+        </HelpTip>
+      </CardHeader>
+      <CardContent className={cn("relative", small ? "p-3" : "p-6")}>
+        {insightComponent}
+      </CardContent>
     </Card>
   );
 }

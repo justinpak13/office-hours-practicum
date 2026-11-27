@@ -1,8 +1,9 @@
 import React, { ReactElement } from "react";
 import { API } from "@koh/api-client";
 import useSWR from "swr";
-import { Divider, Switch } from "antd";
 import styled from "styled-components";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 
 const Row = styled.div`
   display: flex;
@@ -43,13 +44,15 @@ export default function InsightsDisplayOptions(): ReactElement {
               <Row>
                 <div>{insightPartial.displayName}</div>
                 <Switch
-                  checked={profile?.insights?.includes(insightName)}
-                  onChange={(checked) =>
+                  aria-label={insightPartial.displayName}
+                  checked={!!profile?.insights?.includes(insightName)}
+                  onCheckedChange={(checked) =>
                     toggleInsightOnOrOff(checked, insightName)
                   }
                 />
               </Row>
-              <Divider />
+              {/* antd's Divider: 24px above and below */}
+              <Separator className="my-6" />
             </div>
           ))}
       </div>

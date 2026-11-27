@@ -5,10 +5,16 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import * as ICAL from "ical.js";
-import { Button, Spin, Tooltip } from "antd";
 import { useRoleInCourse } from "../../hooks/useRoleInCourse";
 import { Role } from "@koh/common";
+import { Loader2 } from "lucide-react";
 import styled from "styled-components";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const CalendarWrapper = styled.div`
   margin-bottom: 20px;
@@ -16,12 +22,6 @@ const CalendarWrapper = styled.div`
 const TimezoneNote = styled.div`
   margin-bottom: 8px;
   color: #8c8c8c;
-  font-size: 14px;
-`;
-const UpdateButton = styled(Button)`
-  border-radius: 6px;
-  color: white;
-  font-weight: 500;
   font-size: 14px;
 `;
 const SpinnerContainer = styled.div`
@@ -63,10 +63,13 @@ export default function SchedulePanel({
     // Only the week and day time-grid views get tooltips.
     if (arg.view.type.startsWith("timeGrid")) {
       return (
-        <Tooltip title={`${arg.timeText}: ${arg.event.title}`}>
-          <span>
-            <strong>{arg.timeText}</strong> {arg.event.title}
-          </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <strong>{arg.timeText}</strong> {arg.event.title}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{`${arg.timeText}: ${arg.event.title}`}</TooltipContent>
         </Tooltip>
       );
     }
@@ -171,8 +174,9 @@ export default function SchedulePanel({
 
   return (
     <div>
-      <SpinnerContainer ref={spinnerRef}>
-        <Spin />
+      <SpinnerContainer ref={spinnerRef} role="status" aria-label="Loading">
+        {/* antd's default Spin: a 20px spinner in the primary colour */}
+        <Loader2 className="size-5 animate-spin text-primary" />
       </SpinnerContainer>
       {isClientSide && !isNaN(courseId) && (
         <CalendarWrapper>
@@ -204,10 +208,11 @@ export default function SchedulePanel({
           />
         </CalendarWrapper>
       )}
+      {/* antd's default-size primary button: 32px high, 6px corners */}
       {role === Role.PROFESSOR && (
-        <UpdateButton type="primary" onClick={refetchEvents}>
+        <Button className="h-8 rounded-[6px]" onClick={refetchEvents}>
           Update Calendar
-        </UpdateButton>
+        </Button>
       )}
     </div>
   );
