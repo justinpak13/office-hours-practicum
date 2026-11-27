@@ -35,7 +35,7 @@ export function defineFactory<T extends BaseEntity>(Model: new () => T) {
   });
 }
 
-// Emails are unique per DB (UNIQUE(email)); the counter restarts with each DB reset so snapshots stay stable
+// Emails are unique among legacy rows (keycloakSub IS NULL, migration 1795100000000); the counter restarts with each DB reset so snapshots stay stable
 let userSeq = 0;
 export const resetUserSeq = () => {
   userSeq = 0;
