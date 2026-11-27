@@ -323,10 +323,7 @@ export type DesktopNotifBody = {
 // API route Params and Responses
 
 // Office Hours Response Types
-export class GetProfileResponse extends User {
-  // True for Keycloak users: their name is copied from the Northeastern account on every request
-  nameManagedByAccount!: boolean;
-}
+export class GetProfileResponse extends User {}
 
 export class KhouryProfCourse {
   // List of CRN's in the section group

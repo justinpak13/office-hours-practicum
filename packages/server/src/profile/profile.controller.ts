@@ -114,7 +114,6 @@ export class ProfileController {
 
     return {
       ...userResponse,
-      nameManagedByAccount: user.keycloakSub != null,
       courses,
       desktopNotifs,
       pendingCourses,

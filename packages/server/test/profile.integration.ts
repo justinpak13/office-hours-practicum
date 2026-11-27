@@ -25,16 +25,6 @@ describe('Profile Integration', () => {
       expect(res.body).toMatchSnapshot();
     });
 
-    it('flags names as managed by the account for Keycloak users only', async () => {
-      const legacy = await UserFactory.create();
-      const keycloak = await UserFactory.create({ keycloakSub: 'sub-1' });
-      const get = (id: number) =>
-        supertest({ userId: id }).get('/profile').expect(200);
-      expect((await get(legacy.id)).body.nameManagedByAccount).toBe(false);
-      expect((await get(keycloak.id)).body.nameManagedByAccount).toBe(true);
-      expect((await get(keycloak.id)).body.keycloakSub).toBeUndefined();
-    });
-
     it('returns only userCourses where course is enabled', async () => {
       const user = await UserFactory.create();
       const fundies = await CourseFactory.create({ name: 'CS 2500' });

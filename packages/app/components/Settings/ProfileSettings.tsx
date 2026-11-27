@@ -55,11 +55,7 @@ export default function ProfileSettings(): ReactElement {
     return newProfile;
   };
 
-  // NOTE: Keycloak users' names are overwritten from the token on every request, so edits would vanish
-  const nameLocked = profile?.nameManagedByAccount ?? false;
-
   const onSubmit = async (values: ProfileForm) => {
-    if (nameLocked) return;
     const previous = profile;
     try {
       await editProfile(values);
@@ -93,11 +89,7 @@ export default function ProfileSettings(): ReactElement {
                 <FormItem className="flex-1">
                   <FormLabel>First Name</FormLabel>
                   <FormControl>
-                    <Input
-                      data-cy="firstNameInput"
-                      disabled={nameLocked}
-                      {...field}
-                    />
+                    <Input data-cy="firstNameInput" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -110,29 +102,17 @@ export default function ProfileSettings(): ReactElement {
                 <FormItem className="flex-1">
                   <FormLabel>Last Name</FormLabel>
                   <FormControl>
-                    <Input
-                      data-cy="lastNameInput"
-                      disabled={nameLocked}
-                      {...field}
-                    />
+                    <Input data-cy="lastNameInput" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
-          {nameLocked && (
-            <p
-              data-cy="nameManagedHint"
-              className="text-muted-foreground text-sm"
-            >
-              Your name comes from your Northeastern account.
-            </p>
-          )}
           <Button
             type="submit"
             data-cy="saveButton"
-            disabled={form.formState.isSubmitting || nameLocked}
+            disabled={form.formState.isSubmitting}
           >
             Save
           </Button>
