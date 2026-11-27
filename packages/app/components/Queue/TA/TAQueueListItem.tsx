@@ -1,7 +1,7 @@
-import { HourglassOutlined, QuestionOutlined } from "@ant-design/icons";
 import { OpenQuestionStatus, Question } from "@koh/common";
-import { Badge, Checkbox } from "antd";
+import { CircleQuestionMark, Hourglass } from "lucide-react";
 import React, { ReactElement } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import styled from "styled-components";
 import { getWaitTime } from "../../../utils/TimeUtil";
 import { KOHAvatar } from "../../common/SelfAvatar";
@@ -22,9 +22,6 @@ export const Container = styled.div<{ selected: boolean }>`
   &:hover {
     background: ${({ selected }) => (selected ? "#EFF8FF" : "#ECF0F3")};
   }
-`;
-const StyledCheckbox = styled(Checkbox)`
-  margin-left: 8px;
 `;
 const BodyContainer = styled.div`
   display: flex;
@@ -61,10 +58,16 @@ export default function TAQueueListItem({
 
   const buildMetaInfo = (): [ReactElement, string][] => {
     const metaInfo: [ReactElement, string][] = [
-      [<HourglassOutlined key="h" />, getWaitTime(question)],
+      [
+        <Hourglass key="h" className="size-3.5" aria-hidden />,
+        getWaitTime(question),
+      ],
     ];
     if (!isDrafting) {
-      metaInfo.push([<QuestionOutlined key="q" />, question.questionType]);
+      metaInfo.push([
+        <CircleQuestionMark key="q" className="size-3.5" aria-hidden />,
+        question.questionType,
+      ]);
     }
     return metaInfo;
   };
@@ -74,21 +77,26 @@ export default function TAQueueListItem({
       data-cy={`queue-list-item-${question.id}`}
       onClick={onClick}
     >
-      {showCheckbox && <StyledCheckbox checked={selected} />}
+      {/* Shows the selection; the row's onClick does the selecting */}
+      {showCheckbox && (
+        <Checkbox checked={selected} className="ml-2" tabIndex={-1} />
+      )}
       <BodyContainer>
         <AvatarContainer>
-          <Badge
-            // 0 is not displayed, hide if no index
-            count={index ? `#${index}` : 0}
-            style={{ backgroundColor: "#3684c6" }}
-            offset={[-40, 0]}
-          >
+          {/* Was antd <Badge count offset={[-40, 0]}>: the place number,
+              centered on the avatar's top-left corner */}
+          <span className="relative inline-block leading-none">
             <KOHAvatar
               size={40}
               name={question.creator.name}
               photoURL={question.creator.photoURL}
             />
-          </Badge>
+            {index ? (
+              <span className="absolute right-10 top-0 z-[1] h-5 min-w-5 -translate-y-1/2 translate-x-1/2 whitespace-nowrap rounded-[10px] bg-[#3684c6] px-2 text-center text-xs font-normal leading-5 text-white shadow-[0_0_0_1px_#fff]">
+                #{index}
+              </span>
+            ) : null}
+          </span>
         </AvatarContainer>
         <QuestionInfoContainer>
           <Name>{question.creator.name}</Name>

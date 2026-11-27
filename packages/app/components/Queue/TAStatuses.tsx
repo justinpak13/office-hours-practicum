@@ -1,6 +1,6 @@
 import { Question } from "@koh/common";
-import { Badge, Col, Row } from "antd";
 import React, { ReactElement } from "react";
+import { cn } from "@/lib/utils";
 import styled from "styled-components";
 import { useQuestions } from "../../hooks/useQuestions";
 import { useQueue } from "../../hooks/useQueue";
@@ -34,9 +34,10 @@ export function TAStatuses({ queueId }: StatusRowProps): ReactElement {
   }
 
   return (
-    <Col style={{ marginBottom: "16px" }}>
+    // Was antd <Col>s with no span: plain blocks
+    <div className="mb-4">
       {staffList.map((ta) => (
-        <Col key={ta.id}>
+        <div key={ta.id}>
           <StatusCard
             taName={ta.name}
             taPhotoURL={ta.photoURL}
@@ -44,9 +45,9 @@ export function TAStatuses({ queueId }: StatusRowProps): ReactElement {
             helpedAt={taToQuestion[ta.id]?.helpedAt}
             grouped={groups.some((g) => g.creator.id === ta.id)}
           />
-        </Col>
+        </div>
       ))}
-    </Col>
+    </div>
   );
 }
 
@@ -99,13 +100,13 @@ function StatusCard({
         style={{ flexShrink: 0 }}
       />
       <CardContent>
-        <Row justify="space-between">
+        <div className="flex min-w-0 flex-wrap justify-between">
           <TAName>{taName}</TAName>
           <span>
-            <Badge status={isBusy ? "processing" : "success"} />
+            <StatusDot busy={isBusy} />
             {isBusy ? "Busy" : "Available"}
           </span>
-        </Row>
+        </div>
         <HelpingInfo>
           {grouped ? (
             "Helping a group"
@@ -117,6 +118,30 @@ function StatusCard({
         </HelpingInfo>
       </CardContent>
     </StyledCard>
+  );
+}
+
+// Was antd <Badge status="processing" | "success">: a 6px dot, blue with a
+// pulsing ring when busy, green when available
+function StatusDot({ busy }: { busy: boolean }): ReactElement {
+  const color = busy ? "bg-[#1890ff]" : "bg-[#52c41a]";
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "relative -top-px inline-block size-1.5 rounded-full align-middle",
+        color
+      )}
+    >
+      {busy && (
+        <span
+          className={cn(
+            "absolute inset-0 animate-ping rounded-full opacity-75",
+            color
+          )}
+        />
+      )}
+    </span>
   );
 }
 

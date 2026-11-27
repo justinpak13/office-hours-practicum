@@ -1,7 +1,6 @@
-import { ArrowLeftOutlined, QuestionCircleOutlined } from "@ant-design/icons";
 import { Question, RephraseQuestionPayload } from "@koh/common";
 import { useWindowWidth } from "@react-hook/window-size";
-import { Button, Skeleton, Tooltip } from "antd";
+import { ArrowLeft, CircleHelp } from "lucide-react";
 import Link from "next/link";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
@@ -14,6 +13,13 @@ import TAQueueDetail from "./TAQueueDetail";
 import TAQueueListSection from "./TAQueueListSection";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useLocalStorage } from "../../../hooks/useLocalStorage";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // The min screen width at which the list and detail become side-by-side
 const SPLIT_DETAIL_BKPT = 900;
@@ -42,10 +48,6 @@ const List = styled.div`
     width: 320px;
     overflow-y: scroll;
   }
-`;
-
-const PriorityQueueQuestionBubble = styled(QuestionCircleOutlined)`
-  margin-right: 8px;
 `;
 
 const Detail = styled.div`
@@ -191,7 +193,15 @@ export default function TAQueueListDetail({
   }
 
   if (!questions) {
-    return <Skeleton />;
+    // Was antd <Skeleton />: a title bar and three text lines
+    return (
+      <div className="w-full space-y-4 p-4">
+        <Skeleton className="h-4 w-[38%]" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-[61%]" />
+      </div>
+    );
   }
 
   if (allQuestionsList.length === 0) {
@@ -237,8 +247,20 @@ export default function TAQueueListDetail({
         <TAQueueListSection
           title={
             <span>
-              <Tooltip title="Students in the priority queue were at the top of the queue before for some reason (e.g. they were at the top but AFK, or a TA helped them previously, and then hit 'requeue student.' You should communicate with your fellow staff members to prioritize these students first.">
-                <PriorityQueueQuestionBubble />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <CircleHelp
+                    className="mr-2 inline size-4 align-[-0.125em]"
+                    aria-label="About the priority queue"
+                  />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[250px]">
+                  Students in the priority queue were at the top of the queue
+                  before for some reason (e.g. they were at the top but AFK, or
+                  a TA helped them previously, and then hit &apos;requeue
+                  student.&apos; You should communicate with your fellow staff
+                  members to prioritize these students first.
+                </TooltipContent>
               </Tooltip>
               Priority Queue
             </span>
@@ -293,7 +315,10 @@ export default function TAQueueListDetail({
       <Container>
         <BackToQueue onClick={() => onSelectQuestion(null)}>
           <span>
-            <ArrowLeftOutlined />
+            <ArrowLeft
+              className="inline size-3.5 align-[-0.125em]"
+              aria-hidden
+            />
             {" Back To Queue"}
           </span>
         </BackToQueue>
@@ -319,12 +344,6 @@ const NoQuestionsText = styled.div`
   color: #212934;
 `;
 
-const NotifRemindButton = styled(Button)`
-  margin-top: 16px;
-  border-radius: 6px;
-  background: #fff;
-`;
-
 function NotifReminderButton({ courseId }: { courseId: number }) {
   return (
     <>
@@ -334,7 +353,13 @@ function NotifReminderButton({ courseId }: { courseId: number }) {
           query: { cid: courseId, defaultPage: SettingsOptions.NOTIFICATIONS },
         }}
       >
-        <NotifRemindButton>Sign Up for Notifications</NotifRemindButton>
+        {/* Same size as the antd button it replaces: 32px tall, 6px corners */}
+        <Button
+          variant="outline"
+          className="mt-4 h-8 rounded-[6px] bg-white px-[15px] font-normal"
+        >
+          Sign Up for Notifications
+        </Button>
       </Link>
     </>
   );

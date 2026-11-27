@@ -1,5 +1,5 @@
 import { ReactElement } from "react";
-import { PlusOutlined } from "@ant-design/icons";
+import { Plus } from "lucide-react";
 import styled from "styled-components";
 import { Container } from "../TAQueueListItem";
 
@@ -31,7 +31,7 @@ export default function EmptyGroupList({
       data-cy={`queue-list-item-question-group`}
     >
       <EmptyGroupListText>Add Students</EmptyGroupListText>
-      <PlusOutlined style={{ paddingRight: "16px" }} />
+      <Plus className="mr-4 size-3.5 shrink-0" aria-hidden />
     </EmptyGroupListContainer>
   );
 }
