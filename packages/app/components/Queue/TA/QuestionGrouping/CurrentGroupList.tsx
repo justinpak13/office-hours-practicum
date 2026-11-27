@@ -1,8 +1,12 @@
-import { CheckOutlined } from "@ant-design/icons";
 import { API } from "@koh/api-client";
 import { QuestionGroup } from "@koh/common";
-import { Tooltip } from "antd";
+import { Check } from "lucide-react";
 import React, { ReactElement } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { FinishHelpingButton } from "../../Banner";
 import { Header } from "../TAQueueDetail";
 import TAQueueDetailQuestion from "../TAQueueDetailQuestion";
@@ -27,12 +31,21 @@ export function CurrentGroupList({
           </Description>
         </div>
         <div>
-          <Tooltip title="Finish Helping">
-            <FinishHelpingButton
-              icon={<CheckOutlined />}
-              onClick={() => API.questions.resolveGroup(group?.id, queueId)}
-              data-cy="finish-helping-button"
-            />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <FinishHelpingButton
+                // The "anticon" span is what Banner's circle buttons centre
+                // (antd's now, and the plain buttons from SH-05 / #33)
+                icon={
+                  <span className="anticon">
+                    <Check className="size-[18px]" aria-hidden />
+                  </span>
+                }
+                onClick={() => API.questions.resolveGroup(group?.id, queueId)}
+                data-cy="finish-helping-button"
+              />
+            </TooltipTrigger>
+            <TooltipContent>Finish Helping</TooltipContent>
           </Tooltip>
         </div>
       </Header>

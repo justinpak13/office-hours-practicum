@@ -1,8 +1,13 @@
-import { PhoneOutlined } from "@ant-design/icons";
 import { API } from "@koh/api-client";
 import { Question, User } from "@koh/common";
-import { Checkbox, Tooltip } from "antd";
+import { Phone } from "lucide-react";
 import React, { ReactElement, useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import styled from "styled-components";
 import { useDefaultMessage } from "../../../../hooks/useDefaultMessage";
 import { useTAInQueueInfo } from "../../../../hooks/useTAInQueueInfo";
@@ -65,8 +70,11 @@ export default function AllQuestionsCheckList({
       setCheckedQuestions(new Set(checkedQuestions));
     }
   };
-  const onToggleSelectAll = (e) => {
-    if (e.target.checked) {
+  const allChecked = allQuestions.length === checkedQuestions.size;
+  const someChecked = checkedQuestions.size > 0 && !allChecked;
+  // Like antd: clicking a partly-checked "Select All" selects everything
+  const onToggleSelectAll = (checked: boolean | "indeterminate") => {
+    if (checked === true) {
       setCheckedQuestions(new Set(allQuestions.map((q) => q.id)));
     } else {
       setCheckedQuestions(new Set());
@@ -96,36 +104,46 @@ export default function AllQuestionsCheckList({
           </Description>
         </div>
         <div>
-          <Tooltip title={helpTooltip}>
-            <span>
-              <BannerPrimaryButton
-                icon={<PhoneOutlined />}
-                onClick={() => {
-                  API.questions.group({
-                    questionIds: Array.from(checkedQuestions),
-                    queueId: queueId,
-                  });
-                  onStartCall();
-                  openTeams();
-                }}
-                disabled={!canHelp || checkedQuestions.size === 0}
-                data-cy="help-student"
-              />
-            </span>
+          <Tooltip>
+            {/* The span gets the hover even while the button is disabled */}
+            <TooltipTrigger asChild>
+              <span className="inline-block">
+                <BannerPrimaryButton
+                  // The "anticon" span is what Banner's circle buttons centre
+                  // (antd's now, and the plain buttons from SH-05 / #33)
+                  icon={
+                    <span className="anticon">
+                      <Phone className="size-[18px]" aria-hidden />
+                    </span>
+                  }
+                  onClick={() => {
+                    API.questions.group({
+                      questionIds: Array.from(checkedQuestions),
+                      queueId: queueId,
+                    });
+                    onStartCall();
+                    openTeams();
+                  }}
+                  disabled={!canHelp || checkedQuestions.size === 0}
+                  data-cy="help-student"
+                />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{helpTooltip}</TooltipContent>
           </Tooltip>
         </div>
       </Header>
       <SelectAllContainer>
-        <Checkbox
-          checked={allQuestions.length === checkedQuestions.size}
-          indeterminate={
-            checkedQuestions.size &&
-            checkedQuestions.size !== allQuestions.length
-          }
-          onChange={onToggleSelectAll}
-        >
-          <span style={{ paddingLeft: "9px" }}>Select All</span>
-        </Checkbox>
+        {/* Was an antd Checkbox with a label: the label text is clickable too */}
+        <label className="inline-flex cursor-pointer items-center align-top leading-[1.5715]">
+          <Checkbox
+            checked={allChecked ? true : someChecked ? "indeterminate" : false}
+            onCheckedChange={onToggleSelectAll}
+          />
+          <span className="px-2">
+            <span className="pl-[9px]">Select All</span>
+          </span>
+        </label>
       </SelectAllContainer>
       <QuestionsList>
         {allQuestions.map((q, i) => (
