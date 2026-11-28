@@ -7,9 +7,9 @@ import {
   Question,
   QuestionType,
 } from "@koh/common";
-import { Card, Col, notification, Popconfirm, Row } from "antd";
 import { Router, useRouter } from "next/router";
 import React, { ReactElement, useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import styled from "styled-components";
 import { mutate } from "swr";
 import { useDraftQuestion } from "../../../hooks/useDraftQuestion";
@@ -27,6 +27,15 @@ import CantFindModal from "./StudentCantFindModal";
 import StudentQueueCard from "./StudentQueueCard";
 import StudentRemovedFromQueueModal from "./StudentRemovedFromQueueModal";
 import { useHotkeys } from "react-hotkeys-hook";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Container = styled.div`
   flex: 1;
@@ -62,10 +71,10 @@ const VerticalDivider = styled.div`
   }
 `;
 
-const StudentHeaderCard = styled(Card)`
+// Same box as the old borderless antd Card: 24px body padding (plus 8px sides)
+const StudentHeaderCard = styled.div`
   height: 64px;
-  padding-left: 8px;
-  padding-right: 8px;
+  padding: 24px 32px;
   background: inherit;
 `;
 
@@ -75,14 +84,6 @@ const HeaderText = styled.div`
   line-height: 22px;
   color: #8895a6;
   font-variant: small-caps;
-`;
-
-const PopConfirmTitle = styled.div`
-  max-width: 400px;
-`;
-
-const CenterRow = styled(Row)`
-  align-items: center;
 `;
 
 interface StudentQueueProps {
@@ -262,18 +263,18 @@ export default function StudentQueue({
       finishQuestion(text, qt, groupable);
       closeEditModal();
       if (isFirstQuestion) {
-        notification.warn({
-          style: { cursor: "pointer" },
-          message: "Enable Notifications",
+        // Stays until dismissed, like the old notification (duration: 0)
+        toast.warning("Enable Notifications", {
           className: "hide-in-percy",
           description:
             "Turn on notifications for when it's almost your turn to get help.",
-          placement: "bottomRight",
-          duration: 0,
-          onClick: () => {
-            notification.destroy();
-            setIsFirstQuestion(false);
-            router.push(`/settings?cid=${cid}`);
+          duration: Infinity,
+          action: {
+            label: "Turn on",
+            onClick: () => {
+              setIsFirstQuestion(false);
+              router.push(`/settings?cid=${cid}`);
+            },
           },
         });
       }
@@ -329,35 +330,54 @@ export default function StudentQueue({
             isStaff={false}
             buttons={
               !studentQuestion && (
-                <Popconfirm
-                  title={
-                    <PopConfirmTitle>
-                      You already have a question in a queue for this course, so
-                      your previous question will be deleted in order to join
-                      this queue. Do you want to continue?
-                    </PopConfirmTitle>
+                <JoinButton
+                  type="primary"
+                  disabled={!queue?.allowQuestions || queue?.isDisabled}
+                  data-cy="join-queue-button"
+                  onClick={async () =>
+                    setShowJoinPopconfirm(!(await joinQueueOpenModal(false)))
                   }
-                  onConfirm={() => joinQueueOpenModal(true)}
-                  okText="Yes"
-                  cancelText="No"
-                  disabled
-                  visible={showJoinPopconfirm}
-                  onVisibleChange={setShowJoinPopconfirm}
                 >
-                  <JoinButton
-                    type="primary"
-                    disabled={!queue?.allowQuestions || queue?.isDisabled}
-                    data-cy="join-queue-button"
-                    onClick={async () =>
-                      setShowJoinPopconfirm(!(await joinQueueOpenModal(false)))
-                    }
-                  >
-                    Join Queue
-                  </JoinButton>
-                </Popconfirm>
+                  Join Queue
+                </JoinButton>
               )
             }
           />
+          {/* Opens only when the student already has a question in another
+              queue of this course (it used to be a Popconfirm with no trigger
+              of its own) */}
+          <AlertDialog
+            open={showJoinPopconfirm}
+            onOpenChange={setShowJoinPopconfirm}
+          >
+            <AlertDialogContent
+              onCloseAutoFocus={(e) => {
+                // Back to Join Queue. It's the shared antd button, which can't
+                // take a ref yet, so find it by its data-cy
+                e.preventDefault();
+                document
+                  .querySelector<HTMLElement>('[data-cy="join-queue-button"]')
+                  ?.focus();
+              }}
+            >
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-sm font-normal leading-[22px]">
+                  You already have a question in a queue for this course, so
+                  your previous question will be deleted in order to join this
+                  queue. Do you want to continue?
+                </AlertDialogTitle>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>No</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => joinQueueOpenModal(true)}
+                  data-cy="join-queue-confirm"
+                >
+                  <span>Yes</span>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <VerticalDivider />
           <QueueListContainer>
             {studentQuestion && (
@@ -422,18 +442,18 @@ function QueueQuestions({ questions, studentQuestion }: QueueProps) {
       ) : (
         <>
           <QueueHeader>Queue</QueueHeader>
-          <StudentHeaderCard bordered={false}>
-            <CenterRow>
-              <Col flex="0 0 64px">
+          <StudentHeaderCard>
+            <div className="flex flex-wrap items-center">
+              <div className="shrink-0 grow-0 basis-16">
                 <HeaderText>#</HeaderText>
-              </Col>
-              <Col flex="1 1">
+              </div>
+              <div className="min-w-0 flex-1">
                 <HeaderText>question</HeaderText>
-              </Col>
-              <Col flex="0 0 80px">
+              </div>
+              <div className="shrink-0 grow-0 basis-20">
                 <HeaderText>wait</HeaderText>
-              </Col>
-            </CenterRow>
+              </div>
+            </div>
           </StudentHeaderCard>
         </>
       )}

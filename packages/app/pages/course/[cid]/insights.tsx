@@ -12,8 +12,8 @@ import {
   Divider,
   Row,
   Spin,
+  CardProps,
 } from "antd";
-import { CardSize } from "antd/lib/card";
 import { InfoCircleOutlined, QuestionCircleOutlined } from "@ant-design/icons";
 import { useProfile } from "../../../hooks/useProfile";
 import {
@@ -258,7 +258,7 @@ function RenderInsight({
 
   return (
     <Card
-      size={insightDisplay.size as CardSize}
+      size={insightDisplay.size as CardProps["size"]}
       title={insightDisplay.displayName}
       style={{
         margin: "0.5%",

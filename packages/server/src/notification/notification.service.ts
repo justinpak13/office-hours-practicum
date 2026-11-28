@@ -6,17 +6,6 @@ import { UserModel } from '../profile/user.entity';
 import { DesktopNotifModel } from './desktop-notif.entity';
 
 export const NotifMsgs = {
-  phone: {
-    WRONG_MESSAGE:
-      'Please respond with either YES or NO. Text STOP at any time to stop receiving text messages',
-    COULD_NOT_FIND_NUMBER:
-      'Could not find an Office Hours account with your phone number.',
-    UNREGISTER:
-      "You've unregistered from text notifications for Khoury Office Hours. Feel free to re-register any time through the website",
-    DUPLICATE:
-      "You've already been verified to receive text notifications from Khoury Office Hours!",
-    OK: 'Thank you for verifying your number with Khoury Office Hours! You are now signed up for text notifications!',
-  },
   queue: {
     ALERT_BUTTON:
       "The TA couldn't reach you, please have Microsoft Teams open and confirm you are back!",
@@ -65,7 +54,7 @@ export class NotificationService {
       where: {
         id: userId,
       },
-      relations: ['desktopNotifs', 'phoneNotif'],
+      relations: ['desktopNotifs'],
     });
 
     // run the promises concurrently

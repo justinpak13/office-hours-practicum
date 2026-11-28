@@ -1,0 +1,97 @@
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+
+services:
+  fake-keycloak:
+    <<: *hardening
+    build: ./fake-keycloak
+    environment:
+      CLIENT_ID: ${OAUTH2_PROXY_CLIENT_ID}
+      CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET}
+      REDIRECT_URIS: https://localhost:4443/oauth2/callback
+    volumes:
+      - ./fake-keycloak/users.json:/app/users.json:ro
+    # oauth2-proxy and the app share this container's network, so
+    # http://localhost:8180 is the same address for them and for your browser.
+    ports:
+      - "127.0.0.1:4443:4443"
+      - "127.0.0.1:8180:8180"
+    # Lets oauth2-proxy reach an app running on the host at
+    # host.docker.internal. Docker Desktop provides that name on its own;
+    # plain Docker Engine on Linux (and GitHub's runners) needs this line.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8180/realms/staging/.well-known/openid-configuration', timeout=2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  oauth2-proxy:
+    <<: *hardening
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.5@sha256:8498b0d0ef0a7b29686414000a08aee467f02d0299c9ed1e006a8f33fc017916
+    network_mode: service:fake-keycloak
+    env_file: .env
+    environment:
+      OAUTH2_PROXY_PROVIDER: keycloak-oidc
+      OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
+      OAUTH2_PROXY_INSECURE_OIDC_SKIP_NONCE: "false"
+      OAUTH2_PROXY_SCOPE: openid email profile
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"
+      OAUTH2_PROXY_PROMPT: login 
+      # Served without a login: /signed-out; the Next.js build files and service
+      # worker it loads (the same for everyone, no user data); and the dev
+      # server's live-reload stream (development only). Otherwise these
+      # background requests each start a new login while you're logged out.
+      OAUTH2_PROXY_SKIP_AUTH_ROUTES: GET=^/signed-out$$,GET=^/_next/static/,GET=^/service-worker\.js$$,GET=^/_next/webpack-hmr$$
+      # One CSRF cookie per login, so a login started in the background or in
+      # another tab can't replace this one's PKCE verifier (500 "Code not valid")
+      OAUTH2_PROXY_COOKIE_CSRF_PER_REQUEST: "true"
+      OAUTH2_PROXY_BACKEND_LOGOUT_URL: ${OAUTH2_PROXY_OIDC_ISSUER_URL}/protocol/openid-connect/logout?id_token_hint={id_token}
+
+      OAUTH2_PROXY_HTTPS_ADDRESS: 0.0.0.0:4443
+      OAUTH2_PROXY_TLS_CERT_FILE: /run/secrets/tls_crt
+      OAUTH2_PROXY_TLS_KEY_FILE: /run/secrets/tls_key
+      OAUTH2_PROXY_TLS_MIN_VERSION: TLS1.3
+      OAUTH2_PROXY_REDIRECT_URL: https://localhost:4443/oauth2/callback
+      OAUTH2_PROXY_UPSTREAMS: http://host.docker.internal:3000
+
+      OAUTH2_PROXY_COOKIE_SECRET_FILE: /run/secrets/cookie_secret
+      OAUTH2_PROXY_COOKIE_NAME: __Host-oauth2_proxy
+      OAUTH2_PROXY_COOKIE_SECURE: "true"
+      OAUTH2_PROXY_COOKIE_HTTPONLY: "true"
+      OAUTH2_PROXY_COOKIE_SAMESITE: lax
+      OAUTH2_PROXY_COOKIE_EXPIRE: 8h
+      # Must be shorter than Keycloak's access token lifespan (5m by default)
+      # so the token forwarded to the app is never expired.
+      OAUTH2_PROXY_COOKIE_REFRESH: 4m
+
+      OAUTH2_PROXY_PASS_USER_HEADERS: "true"
+      OAUTH2_PROXY_PASS_ACCESS_TOKEN: "false"
+      OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER: "true"
+    secrets: [cookie_secret, tls_crt, tls_key]
+    depends_on:
+      fake-keycloak:
+        condition: service_healthy
+      app:
+        condition: service_started
+
+  app:
+    <<: *hardening
+    build: ./app
+    network_mode: service:fake-keycloak
+    environment:
+      OIDC_ISSUER_URL: ${OAUTH2_PROXY_OIDC_ISSUER_URL}
+      OIDC_CLIENT_ID: ${OAUTH2_PROXY_CLIENT_ID}
+    depends_on:
+      - fake-keycloak
+
+secrets:
+  cookie_secret:
+    file: ./secrets/cookie_secret
+  tls_crt:
+    file: ./secrets/tls.crt
+  tls_key:
+    file: ./secrets/tls.key

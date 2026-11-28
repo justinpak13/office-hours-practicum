@@ -3,7 +3,8 @@ import {
   checkInTA,
   createQueue,
   createQuestion,
-  createQueueWithoutOfficeHour, taOpenOnline,
+  createQueueWithoutOfficeHour,
+  taOpenOnline,
 } from "../../utils";
 
 describe("Can successfully check in and out of a queue when their is scheduled office hours", () => {
@@ -22,14 +23,12 @@ describe("Can successfully check in and out of a queue when their is scheduled o
     taOpenOnline();
 
     // check Queue tab exists with one queue
-    cy.get("[data-cy='queue-tab']").should('be.visible').contains("Queue");
-    cy.get("[data-cy='queue-tab']").should(
-        "have.length",
-        "1"
-    );
+    cy.get("[data-cy='queue-tab']").should("be.visible").contains("Queue");
+    cy.get("[data-cy='queue-tab']").should("have.length", "1");
 
     // wait for modal to close and then hover over Queue tab for submenu
-    cy.get(".ant-modal").should('not.exist');
+    cy.get("[data-cy='check-in-modal']").should("not.exist");
+    cy.wait(1500);
     cy.get("[data-cy='queue-tab']").trigger("mouseover");
 
     // click the available queue from dropdown to visit
@@ -64,19 +63,19 @@ describe("Can successfully check in and out of a queue when their is scheduled o
 
     // 1 student should be in the queue
     cy.get(`[data-cy="list-queue"] [data-cy^="queue-list-item"]`).should(
-        "have.length",
-        "1"
+      "have.length",
+      "1"
     );
 
     // Click "Check out"
     cy.get("[data-cy='check-out-button']").click();
-    cy.get("button").should("contain", "Check In");
+    cy.get("[data-cy='check-in-button']").should("contain", "Check In");
 
     // Other TA should still be checked in, and there should still be 1 student in the queue
     cy.get("[data-cy='ta-status-card']").should("have.length", "1");
     cy.get(`[data-cy="list-queue"] [data-cy^="queue-list-item"]`).should(
-        "have.length",
-        "1"
+      "have.length",
+      "1"
     );
     cy.percySnapshot("TA Queue Page - One TA Checked out One TA Checked In");
   });
@@ -95,7 +94,7 @@ describe("Can successfully check in and out of a queue when their is scheduled o
 
     // Click "Check out"
     cy.get("[data-cy='check-out-button']").click();
-    cy.get("button").should("contain", "Check In");
+    cy.get("[data-cy='check-in-button']").should("contain", "Check In");
 
     cy.contains("Schedule"); // Wait for nav to reload, then take snapshot
     cy.percySnapshot("TA Queue Page - TA Checked Out");
@@ -106,7 +105,7 @@ describe("Can successfully check in and out of a queue when their is scheduled o
     cy.visit(`/course/${this.queue.courseId}/today`);
 
     // Wait for page to load
-    cy.get("button").should("contain", "Check In");
+    cy.get("[data-cy='check-in-modal-button']").should("contain", "Check In");
 
     // Click "Check in"
     cy.wait(1500);
@@ -118,7 +117,7 @@ describe("Can successfully check in and out of a queue when their is scheduled o
 
     // Click "Check out"
     cy.get("[data-cy='check-out-button']").click();
-    cy.get("button").should("contain", "Check In");
+    cy.get("[data-cy='check-in-modal-button']").should("contain", "Check In");
   });
 });
 
@@ -165,7 +164,5 @@ describe("Checking in and out when there arent scheduled office hours, but the o
     cy.get(`[data-cy="list-queue"] [data-cy^="queue-list-item"]`).should(
       "exist"
     );
-
   });
-
 });

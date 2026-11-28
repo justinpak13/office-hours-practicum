@@ -122,7 +122,6 @@ describe('Profile Integration', () => {
     it('enables desktop notifs', async () => {
       const user = await UserFactory.create({
         desktopNotifsEnabled: false,
-        phoneNotifsEnabled: false,
       });
       const res = await supertest({ userId: user.id })
         .patch('/profile')
@@ -130,7 +129,6 @@ describe('Profile Integration', () => {
         .expect(200);
       expect(res.body).toMatchObject({
         desktopNotifsEnabled: true,
-        phoneNotifsEnabled: false,
       });
     });
     it('lets ta change default teams message', async () => {

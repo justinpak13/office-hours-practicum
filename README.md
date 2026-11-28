@@ -29,7 +29,7 @@ A special thank you to all developers who were on the team over the past 3 years
 
 - Professor Data Insights
 
-- Login integration with Khoury Admin
+- Northeastern login through Keycloak (Microsoft SSO)
 
 ## Contribute
 

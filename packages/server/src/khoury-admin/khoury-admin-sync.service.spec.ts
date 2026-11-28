@@ -470,7 +470,29 @@ describe('KhouryAdminSyncService', () => {
       expect(await UserModel.count()).toBe(1);
     });
 
-    it('DB rejects a second user with the same email', async () => {
+    it('never matches a Keycloak user with the same email; creates a legacy row', async () => {
+      const kc = await UserFactory.create({
+        email: 's@northeastern.edu',
+        keycloakSub: 'sub-1',
+      });
+      const course = await CourseFactory.create({
+        khourySectionGroupId: 'sg_1',
+      });
+      client.getCourses.mockResolvedValue({
+        semester: sem,
+        courses: [{ section_group_id: 'sg_1', role: 'Student' }],
+      });
+      const u = await service.onSignIn('s@northeastern.edu', name);
+      expect(u.id).not.toBe(kc.id);
+      expect(u.keycloakSub).toBeNull();
+      expect(await UserModel.count()).toBe(2);
+      expect(await UserCourseModel.countBy({ userId: kc.id })).toBe(0);
+      expect(
+        await UserCourseModel.countBy({ userId: u.id, courseId: course.id }),
+      ).toBe(1);
+    });
+
+    it('DB rejects a second legacy user with the same email', async () => {
       await UserFactory.create({ email: 'dup@northeastern.edu' });
       await expect(
         UserFactory.create({ email: 'dup@northeastern.edu' }),

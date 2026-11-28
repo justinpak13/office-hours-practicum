@@ -6,6 +6,7 @@ import { API } from "@koh/api-client";
 import { useQueue } from "../../../hooks/useQueue";
 import { UpdateQueueParams } from "@koh/common";
 import { pick } from "lodash";
+import { buttonDataCy } from "../../../utils/buttonDataCy";
 
 const NotesInput = styled(Input.TextArea)`
   border-radius: 6px;
@@ -40,6 +41,9 @@ export function EditQueueModal({
     <Modal
       title="Edit Queue Details"
       visible={visible}
+      // On the modal's wrapper, which is hidden when the modal closes
+      wrapProps={{ "data-cy": "edit-queue-modal" }}
+      okButtonProps={buttonDataCy("edit-queue-submit")}
       onCancel={onClose}
       onOk={async () => {
         const value = await form.validateFields();
@@ -50,7 +54,11 @@ export function EditQueueModal({
       {queue && (
         <Form form={form} initialValues={queue}>
           <Form.Item label="Queue Notes" name="notes">
-            <NotesInput allowClear={true} placeholder={""} />
+            <NotesInput
+              allowClear={true}
+              placeholder={""}
+              data-cy="queue-notes-input"
+            />
           </Form.Item>
           <Form.Item
             label="Allow New Questions"

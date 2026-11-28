@@ -3,15 +3,12 @@ import {
   IsArray,
   IsBoolean,
   IsDate,
-  IsDefined,
   IsEnum,
   IsInt,
-  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
   IsString,
-  ValidateIf,
 } from "class-validator";
 import "reflect-metadata";
 
@@ -69,8 +66,6 @@ export class User {
   desktopNotifsEnabled!: boolean;
   @Type(() => DesktopNotifPartial)
   desktopNotifs!: DesktopNotifPartial[];
-  phoneNotifsEnabled!: boolean;
-  phoneNumber!: string;
   insights!: string[];
 }
 
@@ -323,49 +318,12 @@ export type DesktopNotifBody = {
   name?: string;
 };
 
-export type PhoneNotifBody = {
-  phoneNumber: string;
-};
-
 // =================== API Route Types ===========================
 // On backend, validated with https://docs.nestjs.com/techniques/validation
 // API route Params and Responses
 
 // Office Hours Response Types
 export class GetProfileResponse extends User {}
-
-export class KhouryDataParams {
-  @IsString()
-  email!: string;
-
-  @IsString()
-  first_name!: string;
-
-  @IsString()
-  last_name!: string;
-
-  @IsInt()
-  campus!: number;
-
-  @IsOptional()
-  @IsString()
-  photo_url!: string;
-
-  @IsOptional()
-  @IsDefined() // TODO: use ValidateNested instead, for some reason it's crunked
-  courses!: KhouryCourse[] | KhouryProfCourse[];
-}
-
-export class KhouryCourse {
-  @IsInt()
-  crn!: number;
-
-  @IsString()
-  semester!: string;
-
-  @IsEnum(String)
-  role!: "TA" | "Student";
-}
 
 export class KhouryProfCourse {
   // List of CRN's in the section group
@@ -396,32 +354,10 @@ export class RefreshRosterResponse {
   message!: string;
 }
 
-export function isKhouryCourse(
-  c: KhouryCourse | KhouryProfCourse
-): c is KhouryCourse {
-  return (
-    (c as KhouryCourse).role !== undefined &&
-    (c as KhouryCourse).crn !== undefined
-  );
-}
-
-export interface KhouryRedirectResponse {
-  redirect: string;
-}
-
 export class UpdateProfileParams {
   @IsBoolean()
   @IsOptional()
   desktopNotifsEnabled?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  phoneNotifsEnabled?: boolean;
-
-  @ValidateIf((o) => o.phoneNotifsEnabled)
-  @IsString()
-  @IsNotEmpty()
-  phoneNumber?: string;
 
   @IsString()
   @IsOptional()
@@ -737,28 +673,6 @@ export class SSEQueueResponse {
   questions?: ListQuestionsResponse;
 }
 
-export interface TwilioBody {
-  ToCountry: string;
-  ToState: string;
-  SmsMessageSid: string;
-  NumMedia: string;
-  ToCity: string;
-  FromZip: string;
-  SmsSid: string;
-  FromState: string;
-  SmsStatus: string;
-  FromCity: string;
-  Body: string;
-  FromCountry: string;
-  To: string;
-  ToZip: string;
-  NumSegments: string;
-  MessageSid: string;
-  AccountSid: string;
-  From: string;
-  ApiVersion: string;
-}
-
 export interface GetReleaseNotesResponse {
   releaseNotes: unknown;
   lastUpdatedUnixTime: number;
@@ -901,19 +815,6 @@ export const ERROR_MESSAGES = {
     saveQError: "Unable to save a question",
     notFound: "Question not found",
     unableToNotifyUser: "Unable to notify user",
-  },
-  loginController: {
-    receiveDataFromKhoury: "Invalid request signature",
-    invalidPayload: "The decoded JWT payload is invalid",
-    invalidTempJWTToken: "Error occurred while signing a JWT token",
-    addUserFromKhoury:
-      "Error occurred while translating account from Khoury to Office Hours",
-  },
-  notificationController: {
-    messageNotFromTwilio: "Message not from Twilio",
-  },
-  notificationService: {
-    registerPhone: "phone number invalid",
   },
   questionRoleGuard: {
     questionNotFound: "Question not found",

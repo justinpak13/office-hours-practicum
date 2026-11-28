@@ -4,7 +4,7 @@
 
 | Tool | Version |
 |---|---|
-| [Node](https://nodejs.org/en/download/) | 20.x, matching CI ([nvm](https://github.com/nvm-sh/nvm) can install it) |
+| [Node](https://nodejs.org/en/download/) | 22.x (run `nvm use` in the repo root; [nvm](https://github.com/nvm-sh/nvm) reads `.nvmrc`) |
 | [Yarn](https://classic.yarnpkg.com/en/docs/install) | 1.x. Yarn 2+ does not work with this repo |
 | [Docker](https://docs.docker.com/get-docker/) | Runs Postgres 11.5 and Redis for development |
 
@@ -16,13 +16,14 @@
    ```ini
    DB_URL=postgres://postgres@localhost:5432/dev
    DOMAIN=http://localhost:3000
-   JWT_SECRET=dev-only-not-a-secret
    UPLOAD_LOCATION=uploads
    # Generate with: npx web-push generate-vapid-keys
    PUBLICKEY=<vapid public key>
    PRIVATEKEY=<vapid private key>
    EMAIL=mailto:you@example.com
    ADMIN_SESSION_SECRET=dev-only-not-a-secret
+   OIDC_ISSUER_URL=http://localhost:8180/realms/staging
+   OIDC_CLIENT_ID=dev-officehours
    ```
 
    This file is not committed. Use your own VAPID keypair here, not the test keypair in `.env.test` (see [Testing](#testing)).
@@ -33,19 +34,22 @@
 
 3. Create the uploads folder: `mkdir packages/server/uploads`.
 4. Run `yarn dev:db:up` to start Postgres and Redis in Docker. `yarn dev:db:down` stops them. The Postgres container creates the `dev` and `test` databases on first start.
-5. Run `yarn dev`, then open http://localhost:3000.
-6. Open http://localhost:3000/dev. **Seed Data** deletes all data in the dev database and loads test data (course CS 2500 with queues and questions). Then log in as one of the test users:
+5. Start oauth2-proxy and the fake Keycloak: follow `oauth2-proxy-demo/README.md` (`./init-secrets.sh`, copy `.env.example` to `.env`, then `docker compose up -d`). The app is only reachable through the proxy, because every API request needs the ID token it forwards.
+6. Run `yarn dev`, then open https://localhost:4443 and pick a test user on the fake Keycloak page.
+7. Open https://localhost:4443/dev. **Seed Data** deletes all data in the dev database and loads test data (course CS 2500 with queues and questions). The seed users are linked to these fake Keycloak users:
 
-   | User ID | Role |
+   | Fake Keycloak user | Role |
    |---|---|
-   | 1, 2 | Student |
-   | 3, 4 | TA |
-   | 5 | Professor |
-   | 6 | User with no courses |
+   | `liu.sta@northeastern.edu`, `takayama.a@northeastern.edu` | Student |
+   | `stenzel.w@northeastern.edu`, `chu.daj@northeastern.edu` | TA |
+   | `li.edwa@northeastern.edu` | Professor |
+   | any other user in `oauth2-proxy-demo/fake-keycloak/users.json` | User with no courses (created on first login) |
 
-7. For the admin panel, run `yarn cli create:admin <username>` and log in at http://localhost:3000/admin.
+   To switch users, log out from the profile menu and pick another user.
 
-In production, users log in through the Khoury Admin Portal, which sends the user and their courses to `POST /api/v1/khoury_login`. The `/dev` page and `/api/v1/login/dev` only work when `DOMAIN` is not the production URL.
+8. For the admin panel, run `yarn cli create:admin <username>` and log in at http://localhost:3000/admin.
+
+Users log in through oauth2-proxy and Keycloak. oauth2-proxy forwards each request with the user's ID token in `Authorization: Bearer …`, and the API verifies it and finds the user by their Keycloak `sub` (`packages/server/src/login/jwt.strategy.ts` and `packages/server/src/oidc`). Signing out goes to `/oauth2/sign_out?rd=/signed-out`. The `/dev` page and the `/api/v1/seeds/*` endpoints only work when `DOMAIN` is not the production URL.
 
 ### Ports
 
@@ -66,21 +70,20 @@ The server loads `packages/server/.env`, then `packages/server/.env.development`
 
 | Variable | Used for |
 |---|---|
-| `NODE_ENV` | `production` turns off TypeORM `synchronize`, skips `.env.development`, and turns on the Admin Portal signature check |
-| `DOMAIN` | Base URL for redirects. An `https://` value makes the auth cookie `secure`. The app treats itself as production only when this is `https://officehours.khoury.northeastern.edu` |
+| `NODE_ENV` | `production` turns off TypeORM `synchronize` and skips `.env.development` |
+| `DOMAIN` | Base URL of the app. The app treats itself as production only when this is `https://officehours.khoury.northeastern.edu` |
 | `DB_URL` | Postgres connection string |
-| `JWT_SECRET` | Signs the `auth_token` cookie |
+| `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` | The Keycloak realm and client whose ID tokens the API accepts from oauth2-proxy. For the fake Keycloak in `oauth2-proxy-demo`: `http://localhost:8180/realms/staging` and `dev-officehours` |
 | `PUBLICKEY`, `PRIVATEKEY`, `EMAIL` | VAPID keypair and contact (`mailto:` or `https:` URL) for web push. The server does not start without them |
 | `UPLOAD_LOCATION` | Folder for profile photos and course calendar files, relative to `packages/server` |
 | `ADMIN_SESSION_SECRET` | Signs admin panel sessions |
-| `KHOURY_HMAC_KEY` | Verifies the `X-Signature` header on `POST /api/v1/khoury_login` (production only) |
 | `KHOURY_ADMIN_URL` | Base URL of the Khoury Admin API that OH calls for course data. In dev this is the stub. `.env.development` is local and untracked, so add `KHOURY_ADMIN_URL=http://localhost:4100` yourself |
 | `KHOURY_SEMESTER` | Semester code the server asks Khoury Admin about, such as `202710` (Fall 2026). Add `KHOURY_SEMESTER=202710` to your `.env.development`. This is the single term used by sign-in sync, so bump it each term |
 | `KHOURY_STUB_PORT` | Port for the fake Khoury Admin stub (default 4100). Read by the stub, not the server |
 | `KHOURY_STUB_FAIL` | Makes the stub fail every request: `500`, `slow` or `badshape`. Read by the stub, not the server |
 | `SENTRY_APM_DSN`, `SERVICE_VERSION` | Optional Sentry setup |
 
-User emails are now `UNIQUE`, so a local dev database that already holds duplicate emails will fail `synchronize` at boot. Remove the duplicates or run `yarn dev:db:reset`.
+User emails are unique only among legacy rows (`keycloakSub IS NULL`, index `IDX_user_model_email_legacy`), so a Keycloak user can share an email with a legacy row. A local dev database that already holds duplicate legacy emails will fail `synchronize` at boot. Remove the duplicates or run `yarn dev:db:reset`, which wipes all local data.
 
 **When you add a required variable**, add it to your `.env.development`, to this table, and to `packages/server/.env.test` with a test-only value. Otherwise tests will pass on machines that have the variable and fail in CI.
 
@@ -174,8 +177,10 @@ Tests read their environment from **`packages/server/.env.test`**, which is comm
 
 #### End to end tests
 
-End to end (E2E) tests are in the `cypress` folder and run against http://localhost:3000, so `yarn dev` has to be running. They use the `/api/v1/seeds/*` and `/api/v1/login/dev` endpoints.
+End to end (E2E) tests are in the `cypress` folder and run through oauth2-proxy at https://localhost:4443, so `yarn dev` and the containers in `oauth2-proxy-demo` (`docker compose up -d`) both have to be running. They use the `/api/v1/seeds/*` endpoints to create test data.
+Before each test, the `proxyLogin` command logs in to oauth2-proxy as the fake Keycloak user in the `OAUTH_PROXY_USER` setting in `cypress.json`, so the seed requests get through. Each user a test creates (`createAndLoginTA` and so on in `cypress/utils.js`) is linked to the next `cypress.*` user in `oauth2-proxy-demo/fake-keycloak/users.json`, so tests never change the roles of the dev seed users, and the test logs in as them through the fake Keycloak. A test that needs more users than that file has fails with a message saying to add some.
 To run them headlessly, do `yarn cypress:run`. To watch them run interactively, use `yarn cypress:open`.
+`.github/workflows/cypress.yml` runs them the same way as locally: it starts the containers in `oauth2-proxy-demo` (creating `.env` from `.env.example` and a self-signed certificate with `init-secrets.sh`), then runs `yarn ci:start` and the tests through https://localhost:4443. If they fail only in CI, the workflow prints the containers' logs at the end.
 
 ### Installing new packages
 

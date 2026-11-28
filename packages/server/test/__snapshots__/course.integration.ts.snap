@@ -224,7 +224,7 @@ exports[`Course Integration POST /courses/:id/ta_location/:room checks a TA into
   "isDisabled": false,
   "isProfessorQueue": false,
   "notes": null,
-  "room": "online",
+  "room": "Online",
   "staffList": [
     {
       "defaultMessage": null,

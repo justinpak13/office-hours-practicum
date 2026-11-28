@@ -1,6 +1,8 @@
 import { Role } from '@koh/common';
 import { QuestionModel } from '../../server/src/question/question.entity';
 import { SeedModule } from '../../server/src/seed/seed.module';
+import { SEED_KEYCLOAK_SUBS } from '../../server/src/seed/seed.controller';
+import { UserModel } from '../../server/src/profile/user.entity';
 import { CourseFactory, QuestionFactory, QueueFactory } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 
@@ -33,6 +35,20 @@ describe('Seed Integration', () => {
     expect(numQuestions).toBe(4);
   });
 
+  it('GET /seeds/create gives seeded users their fake Keycloak IDs', async () => {
+    await supertest().get('/seeds/create').expect(200);
+
+    for (const sub of Object.values(SEED_KEYCLOAK_SUBS)) {
+      expect(await UserModel.count({ where: { keycloakSub: sub } })).toBe(1);
+    }
+    const ta = await UserModel.findOneOrFail({
+      where: { keycloakSub: SEED_KEYCLOAK_SUBS.TA_1 },
+      relations: ['courses'],
+    });
+    expect(ta.email).toBe('stenzel.w@northeastern.edu');
+    expect(ta.courses.map((c) => c.role)).toEqual([Role.TA]);
+  });
+
   it('GET /seeds/createUser', async () => {
     const res = await supertest()
       .post('/seeds/createUser')
@@ -47,11 +63,35 @@ describe('Seed Integration', () => {
         email: 'user@neu.edu',
         id: 1,
         includeDefaultMessage: true,
-        phoneNotifsEnabled: false,
         photoURL: null,
       },
       userId: 1,
     });
+  });
+
+  it('POST /seeds/createUser with a Keycloak user', async () => {
+    const user = {
+      keycloakSub: '2a99da1b-bc99-47fd-ad46-280fba3941a3',
+      email: 'Rivera.Jo@northeastern.edu',
+      firstName: 'Jordan',
+      lastName: 'Rivera',
+      nuid: '000000001',
+    };
+    const res = await supertest()
+      .post('/seeds/createUser')
+      .send({ role: Role.STUDENT, user })
+      .expect(201);
+    expect(
+      await UserModel.findOneOrFail({ where: { id: res.body.userId } }),
+    ).toMatchObject({ ...user, email: 'rivera.jo@northeastern.edu' });
+
+    // The same Keycloak user again is the same app user, in another course
+    const again = await supertest()
+      .post('/seeds/createUser')
+      .send({ role: Role.TA, user })
+      .expect(201);
+    expect(again.body.userId).toBe(res.body.userId);
+    expect(await UserModel.count()).toBe(1);
   });
 
   it('GET /seeds/createQueue', async () => {
@@ -63,7 +103,7 @@ describe('Seed Integration', () => {
       courseId: 1,
       id: 1,
       notes: null,
-      room: 'online',
+      room: 'Online',
     });
   });
 
@@ -92,7 +132,7 @@ describe('Seed Integration', () => {
       courseId: 1,
       id: 1,
       notes: null,
-      room: 'online',
+      room: 'Online',
     });
   });
 });

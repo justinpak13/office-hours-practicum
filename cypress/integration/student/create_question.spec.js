@@ -17,14 +17,13 @@ describe("Student can create a question", () => {
     cy.visit(`/course/${this.queue.courseId}/queue/${this.queue.id}`).then(
       () => {
         // Click "Join Queue"
-        cy.get("body").should("contain", "Join Queue");
+        cy.get("[data-cy='join-queue-button']").should("be.visible");
         cy.percySnapshot("Student Queue Page - Empty Student Queue");
-        cy.get("button").contains("Join Queue").click();
+        cy.get("[data-cy='join-queue-button']").click();
 
         cy.get("[data-cy=finishQuestion]").should("be.disabled");
 
-        cy.get("body").should("contain", "Concept");
-        cy.get("label").contains("Concept").click({
+        cy.get("[data-cy='question-type-Concept']").click({
           force: true,
         });
         cy.get("[data-cy=finishQuestion]").should("be.disabled");
@@ -39,7 +38,8 @@ describe("Student can create a question", () => {
         // Click Submit
         cy.get("[data-cy='finishQuestion']").click();
 
-        cy.get(".ant-modal-content").should("not.visible");
+        // The form closed (a closed shadcn dialog is removed from the page)
+        cy.get("[data-cy='question-form-modal']").should("not.exist");
         cy.percySnapshot("Student Queue Page - Non Empty Student Queue");
 
         // See that the question shows in the queue list

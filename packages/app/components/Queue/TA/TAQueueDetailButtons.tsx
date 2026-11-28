@@ -31,6 +31,7 @@ import {
 } from "../Banner";
 import { useTeams } from "../../../hooks/useTeams";
 import { useHotkeys } from "react-hotkeys-hook";
+import { buttonDataCy } from "../../../utils/buttonDataCy";
 
 const PRORITY_QUEUED_MESSAGE_TEXT =
   "This student has been temporarily removed from the queue. They must select to rejoin the queue and will then be placed in the Priority Queue.";
@@ -110,6 +111,7 @@ export default function TAQueueDetailButtons({
         <Popconfirm
           title="Are you sure you want to send this student back to the queue?"
           okText="Yes"
+          okButtonProps={buttonDataCy("requeue-confirm")}
           cancelText="No"
           onConfirm={async () => {
             message.success(PRORITY_QUEUED_MESSAGE_TEXT, 2);
@@ -126,6 +128,7 @@ export default function TAQueueDetailButtons({
         <Popconfirm
           title="Are you sure you can't find this student?"
           okText="Yes"
+          okButtonProps={buttonDataCy("cant-find-confirm")}
           cancelText="No"
           onConfirm={async () => {
             message.success(PRORITY_QUEUED_MESSAGE_TEXT, 2);
@@ -186,6 +189,7 @@ export default function TAQueueDetailButtons({
           title="Are you sure you want to delete this question from the queue?"
           disabled={!isCheckedIn}
           okText="Yes"
+          okButtonProps={buttonDataCy("remove-from-queue-confirm")}
           cancelText="No"
           onConfirm={async () => {
             await deleteQuestion();

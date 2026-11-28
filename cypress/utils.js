@@ -1,3 +1,5 @@
+import keycloakUsersFile from "../oauth2-proxy-demo/fake-keycloak/users.json";
+
 export const checkNavbarLoaded = () => {
   cy.get("nav").should("contain", "CS 2500");
   cy.get("nav").should("contain", "Schedule");
@@ -31,13 +33,58 @@ const makeRequest = (request, identifier, { ...params }) => {
   }
 };
 
+// Fake Keycloak users (oauth2-proxy-demo/fake-keycloak/users.json) that tests
+// can log in as: only the cypress.* ones, so tests never give a role to the
+// users that the dev seed data (/api/v1/seeds/create) and manual testing use.
+// Each user a test creates gets the next one, so one test can have up to
+// this many users.
+const keycloakUsers = keycloakUsersFile.filter((u) =>
+  u.username.startsWith("cypress.")
+);
+let nextKeycloakUser = 0;
+// Each test starts again from the first user (seeds/delete removed them all).
+// The hook is here rather than in support/index.js because Cypress bundles
+// the support file separately, with its own copy of this counter.
+beforeEach(() => {
+  nextKeycloakUser = 0;
+});
+
+const takeKeycloakUser = () => {
+  const user = keycloakUsers[nextKeycloakUser++];
+  if (!user) {
+    throw new Error(
+      `This test creates more than ${keycloakUsers.length} users. Add more cypress.* users to oauth2-proxy-demo/fake-keycloak/users.json.`
+    );
+  }
+  return user;
+};
+
+// The fake Keycloak user the browser is logged in to oauth2-proxy as.
+// support/index.js logs in as OAUTH_PROXY_USER before each test.
+let currentKeycloakUsername;
+beforeEach(() => {
+  currentKeycloakUsername = Cypress.env("OAUTH_PROXY_USER");
+});
+
+const proxyLoginAs = (username) =>
+  cy.proxyLogin(username).then(() => {
+    currentKeycloakUsername = username;
+  });
+
+/**
+ * Logs the browser in to oauth2-proxy as the given user's fake Keycloak user.
+ * @param {object} userCourse - a userCourse aliased by createUserAndLogin.
+ */
+const logInAs = (userCourse) => proxyLoginAs(userCourse.keycloakUsername);
+
 /**
  * Logs in a user with the given identifier alias for cypress.
  * @param {string} identifier - the identifier alias of the user for cypress.
  */
 export const loginUser = (identifier) => {
   cy.get(`@${identifier}`).then((userCourse) => {
-    cy.visit(`/api/v1/login/dev?userId=${userCourse.user.id}`);
+    logInAs(userCourse);
+    cy.visit("/");
     // wait for the defaultCourseRedirect
     cy.url({ timeout: 30000 }).should("include", "today");
   });
@@ -45,32 +92,40 @@ export const loginUser = (identifier) => {
 
 /**
  * Creates a user and logs them in with the given role into the given course, then aliases the userCourse to cypress using the identifier.
+ * The user is a fake Keycloak user, and the alias also has their Keycloak
+ * username and the Cookie header that makes requests as them.
  * @param {string} role - One of "ta" or "student", represents a role a user has in our application.
  * @param {stirng} courseId - The id of the course this user is being added to.
  * @param {string} identifier -  The id that cypress will alias this logged-in user to.
  */
 const createUserAndLogin = ({ role, courseId, identifier }) => {
+  const keycloakUser = takeKeycloakUser();
   const req = (parsedId) => {
-
-    cy.window().then(win => win.localStorage.setItem('firstTime', false));
-    cy.window().then(win => win.localStorage.setItem('seenApplyModal', false));
+    cy.window().then((win) => win.localStorage.setItem("firstTime", false));
+    cy.window().then((win) =>
+      win.localStorage.setItem("seenApplyModal", false)
+    );
     // create the user
     cy.request("POST", "/api/v1/seeds/createUser", {
       role: role,
       courseId: parsedId,
+      user: {
+        keycloakSub: keycloakUser.id,
+        email: keycloakUser.email,
+        firstName: keycloakUser.firstName,
+        lastName: keycloakUser.lastName,
+        nuid: keycloakUser.nuid,
+      },
     })
-      .then((res) => res.body)
+      .then((res) => ({
+        ...res.body,
+        keycloakUsername: keycloakUser.username,
+      }))
       .then((userCourse) => {
         // log them in
-        cy.visit(`/api/v1/login/dev?userId=${userCourse.user.id}`);
+        logInAs(userCourse);
         cy.visit(`/course/${userCourse.courseId}/today`);
-        // save the auth token incase it is needed for future requests
-        cy.getCookie("auth_token")
-          .then((auth_token) => ({
-            ...userCourse,
-            auth_token: auth_token.value,
-          }))
-          .as(identifier);
+        cy.wrap(userCourse).as(identifier);
       });
   };
 
@@ -196,18 +251,46 @@ export const createQuestion = ({ queueId, studentId, data, identifier }) => {
 export const checkInTA = ({ ta = "ta", queue = "queue" } = {}) => {
   cy.get(`@${ta}`).then((ta) => {
     cy.get(`@${queue}`).then((queue) => {
-      cy.request({
-        method: "POST",
-        url: `/api/v1/courses/${queue.courseId}/ta_location/${queue.room}`,
-        headers: {
-          Cookie: `auth_token=${ta.auth_token}`,
-        },
+      const url = `/api/v1/courses/${queue.courseId}/ta_location/${queue.room}`;
+      // Log in as the TA for this request, then switch back. (A Cookie header doesn't work: Cypress adds the browser's own
+      // cookies to it, so the request would carry two proxy sessions.)
+      const previous = currentKeycloakUsername;
+      if (previous === ta.keycloakUsername) {
+        cy.request({ method: "POST", url });
+        return;
+      }
+      // Switching users leaves the open page (see proxyLogin), so reopen
+      // it afterwards for tests that keep using it
+      cy.location().then(({ pathname, search }) => {
+        proxyLoginAs(ta.keycloakUsername);
+        cy.request({ method: "POST", url });
+        proxyLoginAs(previous);
+        if (pathname !== "blank" && pathname !== "/signed-out") {
+          cy.visit(pathname + search);
+        }
       });
     });
   });
 };
 
+/**
+ * Clicks the visible element with the given data-cy. antd keeps popups
+ * (Popconfirm, Modal) in the page after they close, so an earlier popup's
+ * button can match the same selector.
+ * @param {string} dataCy - the element's data-cy attribute.
+ * @param {object} options - options for .click(), such as { force: true }.
+ */
+export const clickVisible = (dataCy, options) =>
+  cy.get(`[data-cy="${dataCy}"]:visible`).click(options);
 
+/**
+ * Checks that the browser ended up logged out: the app's logout signs out of
+ * oauth2-proxy and lands on /signed-out.
+ */
+export const expectLoggedOut = () => {
+  cy.location("pathname").should("eq", "/signed-out");
+  cy.get("body").should("contain", "You have signed out");
+};
 
 /**
  * Helps the question with the given id. Keeps the question selected after helping them.
@@ -218,26 +301,23 @@ export const helpQuestionWithID = (id) => {
     .should("be.visible")
     .click();
   cy.get('[data-cy="help-student"]').click();
+  // Cypress never moves the mouse away, so the tooltip of the button that now
+  // sits under it ("Finish Helping") stays open and can cover other buttons
+  // (React builds onMouseLeave from mouseout events)
+  cy.get('[data-cy="finish-helping-button"]:visible').trigger("mouseout");
 };
 
 /**
  * Opens up the modal and checks into the default option (usually online if created)
  */
 export const taOpenOnline = () => {
-  cy.get("[data-cy='check-in-modal-button']").click();
+  // disabled until the course has loaded
+  cy.get("[data-cy='check-in-modal-button']").should("not.be.disabled").click();
   cy.wait(500);
-  cy.get("[data-cy=\"select-existing-queue\"]").click();
+  cy.get('[data-cy="select-existing-queue"]').click();
   cy.get('[data-cy="select-queue-Online"]').click();
 
-  cy.get("[id^=rcDialogTitle]")
-    .contains("Check into a queue")
-    .parent()
-    .parent()
-    .should('have.class', 'ant-modal-content')
-    .within(($content) => {
-      cy.get("span").contains("Check In")
-        .parent()
-        .should('have.class', 'ant-btn-primary')
-        .click();
-    });
-}
+  cy.get('[data-cy="check-in-modal"]').should("contain", "Check into a queue");
+  cy.get('[data-cy="check-in-submit"]').should("not.be.disabled").click();
+};
+

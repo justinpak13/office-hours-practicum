@@ -1,15 +1,15 @@
 {
   "projectId": "8crkwu",
-  "baseUrl": "http://localhost:3000",
+  "baseUrl": "https://localhost:4443",
   "numTestsKeptInMemory": 1,
   "defaultCommandTimeout": 10000,
   "experimentalStudio": true,
-  "numTestsKeptInMemory": 1,
   "retries": {
     "runMode": 2
   },
   "env": {
     "USE_LIVE_API": false,
-    "UPDATE_FIXTURES": false
+    "UPDATE_FIXTURES": false,
+    "OAUTH_PROXY_USER": "rivera.jo@northeastern.edu"
   }
 }

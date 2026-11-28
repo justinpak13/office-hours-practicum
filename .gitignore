@@ -63,3 +63,7 @@ packages/*/dist/
 
 # local design docs (not committed)
 docs/superpowers/
+
+# TypeScript incremental build cache (Next 12+ turns on "incremental")
+# Typescript build info
+*.tsbuildinfo

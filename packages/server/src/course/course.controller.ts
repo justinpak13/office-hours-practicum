@@ -32,7 +32,7 @@ import {
 import async from 'async';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { Roles } from '../decorators/roles.decorator';
 import { User, UserId } from '../decorators/user.decorator';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
@@ -484,6 +484,12 @@ export class CourseController {
     };
   }
 
+  // NOTE: a Keycloak user can share an email with a legacy row. Adding an override picks the Keycloak account (the one that logs in now); deleting removes the override from every account with that email, so a legacy override can still be cleared
+  private async findUserByEmail(email: string): Promise<UserModel | null> {
+    const users = await UserModel.find({ where: { email } });
+    return users.find((u) => u.keycloakSub !== null) ?? users[0] ?? null;
+  }
+
   @Post(':id/update_override')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
@@ -491,9 +497,7 @@ export class CourseController {
     @Param('id') courseId: number,
     @Body() overrideInfo: UpdateCourseOverrideBody,
   ): Promise<UpdateCourseOverrideResponse> {
-    const user = await UserModel.findOne({
-      where: { email: overrideInfo.email },
-    });
+    const user = await this.findUserByEmail(overrideInfo.email);
     if (!user)
       throw new BadRequestException(
         ERROR_MESSAGES.courseController.noUserFound,
@@ -545,18 +549,21 @@ export class CourseController {
     @Param('id') courseId: number,
     @Body() overrideInfo: UpdateCourseOverrideBody,
   ): Promise<void> {
-    const user = await UserModel.findOne({
+    const users = await UserModel.find({
       where: { email: overrideInfo.email },
     });
-    if (!user)
+    if (users.length === 0)
       throw new BadRequestException(
         ERROR_MESSAGES.courseController.noUserFound,
       );
-    const userId = user.id;
-    const userCourse = await UserCourseModel.findOne({
-      where: { courseId, userId, override: true },
+    const userCourses = await UserCourseModel.find({
+      where: { courseId, userId: In(users.map((u) => u.id)), override: true },
     });
-    await this.courseService.removeUserFromCourse(userCourse);
+    if (userCourses.length === 0)
+      // 404 when no account with this email has an override
+      await this.courseService.removeUserFromCourse(undefined);
+    for (const userCourse of userCourses)
+      await this.courseService.removeUserFromCourse(userCourse);
   }
 
   @Delete(':id/withdraw_course')
