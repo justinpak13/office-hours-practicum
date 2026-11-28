@@ -20,8 +20,12 @@ async function listen(opts?: Record<string, string>, dir = dataDir) {
 }
 
 describe('KhouryAdminClient', () => {
+  const auth = { Authorization: 'Token dev-khoury-admin-token' };
   const client = new KhouryAdminClient(new HttpService(), new ConfigService());
   const servers: any[] = [];
+  beforeEach(() => {
+    process.env.KHOURY_ADMIN_TOKEN = 'dev-khoury-admin-token';
+  });
   const point = async (opts?: Record<string, string>) => {
     const s = await listen(opts);
     servers.push(s.server);
@@ -100,7 +104,7 @@ describe('KhouryAdminClient', () => {
     const r = await new Promise<any>((resolve) =>
       http
         .request(
-          { host: '127.0.0.1', port: s.port, method, path: p },
+          { host: '127.0.0.1', port: s.port, method, path: p, headers: auth },
           (res) => {
             let b = '';
             res.on('data', (c) => (b += c));
@@ -140,6 +144,7 @@ describe('KhouryAdminClient', () => {
           host: '127.0.0.1',
           port: s.port,
           path: '/api/v1/users/doe.j@northeastern.edu/courses?semester=%E0%A4%A',
+          headers: auth,
         },
         (res) => {
           res.resume();
@@ -293,7 +298,12 @@ describe('KhouryAdminClient', () => {
     const bad = await new Promise<number>((resolve, reject) =>
       http
         .get(
-          { host: '127.0.0.1', port, path: '/api/v1/users/%E0%A4%A/courses' },
+          {
+            host: '127.0.0.1',
+            port,
+            path: '/api/v1/users/%E0%A4%A/courses',
+            headers: auth,
+          },
           (r) => {
             r.resume();
             resolve(r.statusCode as number);
@@ -473,5 +483,142 @@ describe('KhouryAdminClient', () => {
     await expect(
       client.getSectionGroups('prof.a@northeastern.edu', '202710'),
     ).rejects.toBeInstanceOf(KhouryAdminError);
+  });
+
+  describe('token', () => {
+    const record = async () => {
+      const seen: (string | undefined)[] = [];
+      const srv = http.createServer((req, res) => {
+        seen.push(req.headers.authorization);
+        res.statusCode = 500;
+        res.end('{}');
+      });
+      await new Promise<void>((r) => srv.listen(0, '127.0.0.1', r));
+      servers.push(srv);
+      process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${
+        (srv.address() as AddressInfo).port
+      }`;
+      return seen;
+    };
+
+    it('sends Authorization: Token <key> on A, B and C', async () => {
+      const seen = await record();
+      process.env.KHOURY_ADMIN_TOKEN = 'abc123';
+      await client
+        .getSectionGroups('a@northeastern.edu', '202710')
+        .catch(() => 0);
+      await client.getCourses('a@northeastern.edu', '202710').catch(() => 0);
+      await client.getRoster('sg_1001').catch(() => 0);
+      expect(seen).toEqual(Array(3).fill('Token abc123'));
+    });
+
+    it.each(['', '   ', undefined])(
+      'fails without sending a request when the token is %p',
+      async (v) => {
+        const seen = await record();
+        if (v === undefined) delete process.env.KHOURY_ADMIN_TOKEN;
+        else process.env.KHOURY_ADMIN_TOKEN = v;
+        await expect(client.getRoster('sg_1001')).rejects.toBeInstanceOf(
+          KhouryAdminError,
+        );
+        expect(seen).toEqual([]);
+      },
+    );
+
+    it('a wrong token gets 401 from the stub and fails', async () => {
+      await point({ token: 'right' });
+      process.env.KHOURY_ADMIN_TOKEN = 'wrong';
+      const err = await client
+        .getSectionGroups('prof.a@northeastern.edu', '202710')
+        .catch((e) => e);
+      expect(err).toBeInstanceOf(KhouryAdminError);
+      expect(err.message).toContain('401');
+      expect(err.message).not.toContain('wrong');
+    });
+
+    it('the stub rejects a missing header with 401 before any route', async () => {
+      const s = await listen();
+      servers.push(s.server);
+      const r = await new Promise<any>((resolve) =>
+        http.get(`http://127.0.0.1:${s.port}/nope`, (res) => {
+          let b = '';
+          res.on('data', (c) => (b += c));
+          res.on('end', () => resolve({ status: res.statusCode, b }));
+        }),
+      );
+      expect(r.status).toBe(401);
+      expect(JSON.parse(r.b)).toEqual({ error: 'unauthorized' });
+    });
+
+    it('sends a padded token trimmed', async () => {
+      const seen = await record();
+      process.env.KHOURY_ADMIN_TOKEN = '  padded  ';
+      await client.getRoster('sg_1001').catch(() => 0);
+      expect(seen).toEqual(['Token padded']);
+    });
+
+    it('does not leak the token in a transport failure message', async () => {
+      process.env.KHOURY_ADMIN_TOKEN = 'distinctive-secret-xyz';
+      const svc = new HttpService();
+      jest.spyOn(svc, 'get').mockImplementation(() => {
+        throw new Error('boom Token distinctive-secret-xyz boom');
+      });
+      const c = new KhouryAdminClient(svc, new ConfigService());
+      const err = await c.getRoster('sg_1001').catch((e) => e);
+      expect(err).toBeInstanceOf(KhouryAdminError);
+      expect(err.message).toContain('boom');
+      expect(err.message).not.toContain('distinctive-secret-xyz');
+    });
+
+    it('turns a null rejection into a KhouryAdminError', async () => {
+      const svc = new HttpService();
+      jest.spyOn(svc, 'get').mockImplementation(() => {
+        throw null;
+      });
+      const c = new KhouryAdminClient(svc, new ConfigService());
+      await expect(c.getRoster('sg_1001')).rejects.toBeInstanceOf(
+        KhouryAdminError,
+      );
+    });
+
+    it('the stub trims a padded env token', async () => {
+      process.env.KHOURY_ADMIN_TOKEN = '  padded-env  ';
+      expect(await raw('Token padded-env')).toBe(200);
+    });
+
+    const raw = async (authorization: string) => {
+      const s = await listen();
+      servers.push(s.server);
+      return new Promise<number>((r) =>
+        http.get(
+          `http://127.0.0.1:${s.port}/api/v1/section-groups/sg_1001/roster`,
+          { headers: { Authorization: authorization } },
+          (res) => {
+            res.resume();
+            r(res.statusCode as number);
+          },
+        ),
+      );
+    };
+
+    it('the stub rejects another token when its env token is set', async () => {
+      process.env.KHOURY_ADMIN_TOKEN = 'env-token';
+      expect(await raw('Token other')).toBe(401);
+      expect(await raw('Token env-token')).toBe(200);
+    });
+
+    it('the stub falls back to the dev token when its env is unset', async () => {
+      delete process.env.KHOURY_ADMIN_TOKEN;
+      expect(await raw('Token dev-khoury-admin-token')).toBe(200);
+    });
+
+    it('reads the token on every call', async () => {
+      const seen = await record();
+      process.env.KHOURY_ADMIN_TOKEN = 'one';
+      await client.getRoster('sg_1001').catch(() => 0);
+      process.env.KHOURY_ADMIN_TOKEN = 'two';
+      await client.getRoster('sg_1001').catch(() => 0);
+      expect(seen).toEqual(['Token one', 'Token two']);
+    });
   });
 });

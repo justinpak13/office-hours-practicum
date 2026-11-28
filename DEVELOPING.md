@@ -24,6 +24,9 @@
    ADMIN_SESSION_SECRET=dev-only-not-a-secret
    OIDC_ISSUER_URL=http://localhost:8180/realms/staging
    OIDC_CLIENT_ID=dev-officehours
+   KHOURY_ADMIN_URL=http://localhost:4100
+   KHOURY_ADMIN_TOKEN=dev-khoury-admin-token
+   KHOURY_SEMESTER=202710
    ```
 
    This file is not committed. Use your own VAPID keypair here, not the test keypair in `.env.test` (see [Testing](#testing)).
@@ -66,7 +69,7 @@ These are hardcoded.
 
 ### Server environment variables
 
-The server loads `packages/server/.env`, then `packages/server/.env.development` when `NODE_ENV` isn't `production`. Tests do not read either file; they use `packages/server/.env.test` (see [Testing](#testing)).
+The server loads `packages/server/.env`, then `packages/server/.env.development` when `NODE_ENV` isn't `production`. If both set a variable, the value in `.env` wins. `yarn dev:stub` reads both files too, so `NODE_ENV=production` set there stops the stub. Tests do not read either file; they use `packages/server/.env.test` (see [Testing](#testing)).
 
 | Variable | Used for |
 |---|---|
@@ -78,6 +81,7 @@ The server loads `packages/server/.env`, then `packages/server/.env.development`
 | `UPLOAD_LOCATION` | Folder for profile photos and course calendar files, relative to `packages/server` |
 | `ADMIN_SESSION_SECRET` | Signs admin panel sessions |
 | `KHOURY_ADMIN_URL` | Base URL of the Khoury Admin API that OH calls for course data. In dev this is the stub. `.env.development` is local and untracked, so add `KHOURY_ADMIN_URL=http://localhost:4100` yourself |
+| `KHOURY_ADMIN_TOKEN` | Application token sent as `Authorization: Token <key>` on every Khoury Admin call. There is no default: if it is empty, calls fail before any request is sent. Add `KHOURY_ADMIN_TOKEN=dev-khoury-admin-token` to your `.env.development`. `yarn dev:stub` reads `packages/server/.env` and `.env.development` when they exist, with `.env` winning like it does for the server, so the stub and the server share this value. The stub expects it unless its own `KHOURY_ADMIN_TOKEN` env var says otherwise, and answers 401 to anything else |
 | `KHOURY_SEMESTER` | Semester code the server asks Khoury Admin about, such as `202710` (Fall 2026). Add `KHOURY_SEMESTER=202710` to your `.env.development`. This is the single term used by sign-in sync, so bump it each term |
 | `KHOURY_STUB_PORT` | Port for the fake Khoury Admin stub (default 4100). Read by the stub, not the server |
 | `KHOURY_STUB_FAIL` | Makes the stub fail every request: `500`, `slow` or `badshape`. Read by the stub, not the server |
@@ -153,7 +157,7 @@ Server unit tests (`*.spec.ts`) are colocated with the file they test. Server in
 
 Tests read their environment from **`packages/server/.env.test`**, which is committed to the repo. It holds test-only values (including a throwaway VAPID keypair) so tests run the same way on every machine and in CI, without needing `.env.development` or repository secrets.
 
-- Never put real or production secrets in `.env.test`, and never reuse its keys or secrets in `.env.development` or production.
+- Never put real or production secrets in `.env.test`, and never reuse its keys or secrets in `.env.development` or production. The one exception is the placeholder `KHOURY_ADMIN_TOKEN=dev-khoury-admin-token`: it is a fake-server value, not a secret.
 - Keep the file named `.env.test`. The server only loads `.env` and `.env.development`, so these values can never reach a running server.
 - The test database connection is hard-coded in `TestTypeOrmModule` (`packages/server/test/util/`), so `DB_URL` is not needed in `.env.test`.
 

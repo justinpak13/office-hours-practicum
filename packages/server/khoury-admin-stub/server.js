@@ -26,6 +26,16 @@ function createStubServer(dataDir, opts = {}) {
     e.toLowerCase().replace(/@husky\.neu\.edu$/, '@northeastern.edu');
 
   return http.createServer((req, res) => {
+    // NOTE: checked before any route or file lookup; opts.token lets tests use a token other than the env one
+    // NOTE: each source is trimmed like the client trims its token. The dev fallback is stub-only; the client refuses a blank token.
+    const t = (v) => String(v ?? '').trim();
+    const expected =
+      t(opts.token) ||
+      t(process.env.KHOURY_ADMIN_TOKEN) ||
+      'dev-khoury-admin-token';
+    if (req.headers.authorization !== `Token ${expected}`) {
+      return send(res, 401, { error: 'unauthorized' });
+    }
     let url, kind, key, leaf;
     // NOTE: exact route from the raw path (before any URL normalization), static segments undecoded
     const m =
