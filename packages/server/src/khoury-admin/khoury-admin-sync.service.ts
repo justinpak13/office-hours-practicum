@@ -124,12 +124,36 @@ export class KhouryAdminSyncService {
     ]);
 
     const cOld = new Map<string, 'gone' | 'kept' | 'error'>(); // C result per old id: one call and one warn per sign-in
-    for (const g of groups) {
+    const currentIds = groups.map((x) => x.id);
+    const movable = (g: { id: string }, old: string | null) =>
+      !!old?.startsWith('sg_2') && g.id.startsWith('sg_1');
+    const loadCourses = async (crns: number[]) => {
       const courses: CourseModel[] = [];
-      for (const crn of g.crns) {
+      for (const crn of crns) {
         const c = await this.loginCourse.courseCRNToCourse(crn, semester);
         if (c) courses.push(c);
       }
+      return courses;
+    };
+    // NOTE: C lookups for every group's distinct old ids run together in one pass (each can take the client's 5 s timeout),
+    // so the save waits for the slowest call, not the sum. Groups that are already linked or held by A skip C. The loop below
+    // re-reads the courses, so its bound UPDATE still compares against the id it just read.
+    // NOTE: getRoster errors are always KhouryAdminError (the client wraps everything), so any other throw is a bug. It
+    // rejects this Promise.all before any group is linked, so the sign-in sync rejects with only the sections row written.
+    const toCheck = new Set<string>();
+    for (const g of groups) {
+      if (!g.id.startsWith('sg_1')) continue; // only sg_1 groups take moved courses
+      const courses = await loadCourses(g.crns);
+      if (courses.some((c) => c.khourySectionGroupId === g.id)) continue;
+      const olds = courses
+        .map((c) => c.khourySectionGroupId)
+        .filter((old) => movable(g, old));
+      if (olds.some((old) => currentIds.includes(old))) continue;
+      for (const old of olds) toCheck.add(old);
+    }
+    await Promise.all([...toCheck].map((id) => this.oldGroupState(id, cOld)));
+    for (const g of groups) {
+      const courses = await loadCourses(g.crns);
       if (courses.some((c) => c.khourySectionGroupId === g.id)) continue;
       // NOTE: conditional update; the unique index turns "another course holds this id" (or a race) into a 23505 we skip.
       // Alex's move rule: a course group's (sg_2) sections can move into a set-up group (sg_1), and the old id 404s once empty.
@@ -143,26 +167,25 @@ export class KhouryAdminSyncService {
       // A held course (C returned a roster, or failed) blocks the whole group, whatever the CRN order, so its sg_1 id stays
       // free for it and no sibling takes it. It blocks every sg_1 group with one of its CRNs until its old group empties;
       // that resolves on the next sign-in after the move completes.
-      // A still listing the old id is a partial move: held without calling C. getRoster errors are always
-      // KhouryAdminError (the client wraps everything), so any other throw is a bug and
-      // stops the rest of A's save (the sections row and links already written stay).
-      const currentIds = groups.map((x) => x.id);
-      const movable = (old: string | null) =>
-        !!old?.startsWith('sg_2') && g.id.startsWith('sg_1');
-      let held = false;
-      for (const c of courses) {
+      // A still listing the old id is a partial move: held without calling C. An old id first seen after the pre-pass
+      // read has no C result, so it counts as held.
+      const held = courses.some((c) => {
         const old = c.khourySectionGroupId;
-        if (!movable(old)) continue;
-        held =
-          currentIds.includes(old) ||
-          (await this.oldGroupState(old, cOld)) !== 'gone';
-        if (held) break;
-      }
+        return (
+          movable(g, old) &&
+          (currentIds.includes(old) || cOld.get(old) !== 'gone')
+        );
+      });
       if (held) continue;
-      for (const course of courses) {
+      // NOTE: a moving course goes before never-linked ones, so a null sibling can't take the id and strand it on its dead sg_2 id
+      const ordered = [
+        ...courses.filter((c) => c.khourySectionGroupId !== null),
+        ...courses.filter((c) => c.khourySectionGroupId === null),
+      ];
+      for (const course of ordered) {
         const old = course.khourySectionGroupId;
         const eligible =
-          old === null || (movable(old) && !currentIds.includes(old));
+          old === null || (movable(g, old) && !currentIds.includes(old));
         if (!eligible) continue; // belongs to another group, try the next CRN
         try {
           const res = await CourseModel.createQueryBuilder()
@@ -178,7 +201,12 @@ export class KhouryAdminSyncService {
             )
             .execute();
           // Success or a lost race both stop the group, so no sibling takes the id; a lost race resolves on the next sign-in.
-          if (res.affected !== 1)
+          // A concurrent sign-in that linked this same course to g.id (co-teaching) is not a loss.
+          if (
+            res.affected !== 1 &&
+            (await CourseModel.findOneBy({ id: course.id }))
+              ?.khourySectionGroupId !== g.id
+          )
             this.logger.warn(
               `Course ${course.id}: group id changed during sign-in, ${g.id} not linked`,
             );
@@ -198,18 +226,15 @@ export class KhouryAdminSyncService {
     id: string,
     cache: Map<string, 'gone' | 'kept' | 'error'>,
   ) {
-    if (!cache.has(id)) {
-      try {
-        cache.set(id, (await this.client.getRoster(id)) ? 'kept' : 'gone');
-      } catch (e) {
-        if (!(e instanceof KhouryAdminError)) throw e;
-        this.logger.warn(
-          `Khoury Admin C ${id} failed, not re-linking: ${e.message}`,
-        );
-        cache.set(id, 'error');
-      }
+    try {
+      cache.set(id, (await this.client.getRoster(id)) ? 'kept' : 'gone');
+    } catch (e) {
+      if (!(e instanceof KhouryAdminError)) throw e;
+      this.logger.warn(
+        `Khoury Admin C ${id} failed, not re-linking: ${e.message}`,
+      );
+      cache.set(id, 'error');
     }
-    return cache.get(id);
   }
 
   private upsertMembership(userId: number, courseId: number, role: Role) {
