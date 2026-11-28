@@ -135,9 +135,9 @@ describe('KhouryAdminClient', () => {
     );
   });
 
-  it('C returns null for sg_9999', async () => {
+  it('C returns null for an unknown group id', async () => {
     await point();
-    expect(await client.getRoster('sg_9999')).toBeNull();
+    expect(await client.getRoster('sg_120271999999999999')).toBeNull();
   });
 
   it('C throws on a 404 that is not the agreed not-found body', async () => {
@@ -327,13 +327,86 @@ describe('KhouryAdminClient', () => {
         status: 200,
         data: {
           semester: '202710',
-          courses: [{ section_group_id: ' sg_1', role: 'TA' }],
+          courses: [{ section_group_id: ' sg_120271000000000001', role: 'TA' }],
         },
       } as any),
     );
     await expect(
       c.getCourses('a@northeastern.edu', '202710'),
     ).rejects.toBeInstanceOf(KhouryAdminError);
+  });
+
+  it.each([
+    'sg_1001',
+    'sg_12027100000000000',
+    'sg_1202710000000000012',
+    'SG_120271000000000001',
+    'sg_12027100000000000a',
+  ])('rejects group id %s on A, B and C', async (bad) => {
+    const svc = new HttpService();
+    const get = jest.spyOn(svc, 'get');
+    const c = new KhouryAdminClient(svc, new ConfigService());
+    get.mockReturnValue(
+      of({
+        status: 200,
+        data: {
+          semester: '202710',
+          section_groups: [{ id: bad, name: 'x', crns: [1] }],
+        },
+      } as any),
+    );
+    await expect(
+      c.getSectionGroups('a@northeastern.edu', '202710'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
+    get.mockReturnValue(
+      of({
+        status: 200,
+        data: {
+          semester: '202710',
+          courses: [{ section_group_id: bad, role: 'TA' }],
+        },
+      } as any),
+    );
+    await expect(
+      c.getCourses('a@northeastern.edu', '202710'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
+    get.mockClear();
+    await expect(c.getRoster(bad)).rejects.toBeInstanceOf(KhouryAdminError);
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it('rejects a numeric group id and accepts an 18-digit one on A and B', async () => {
+    const svc = new HttpService();
+    const get = jest.spyOn(svc, 'get');
+    const c = new KhouryAdminClient(svc, new ConfigService());
+    const a = (id: any) =>
+      of({
+        status: 200,
+        data: {
+          semester: '202710',
+          section_groups: [{ id, name: 'x', crns: [1] }],
+        },
+      } as any);
+    get.mockReturnValue(a(1202710));
+    await expect(
+      c.getSectionGroups('a@northeastern.edu', '202710'),
+    ).rejects.toBeInstanceOf(KhouryAdminError);
+    get.mockReturnValue(a('sg_120271000000000001'));
+    expect(
+      (await c.getSectionGroups('a@northeastern.edu', '202710')).section_groups,
+    ).toHaveLength(1);
+    get.mockReturnValue(
+      of({
+        status: 200,
+        data: {
+          semester: '202710',
+          courses: [{ section_group_id: 'sg_120271000000000001', role: 'TA' }],
+        },
+      } as any),
+    );
+    expect(
+      (await c.getCourses('a@northeastern.edu', '202710')).courses,
+    ).toHaveLength(1);
   });
 
   it('rejects, not throws, on an email with a lone surrogate', async () => {
@@ -350,7 +423,9 @@ describe('KhouryAdminClient', () => {
         status: 200,
         data: {
           semester: '202710',
-          courses: [{ section_group_id: 'sg_1', role: 'Admin' }],
+          courses: [
+            { section_group_id: 'sg_120271000000000001', role: 'Admin' },
+          ],
         },
       } as any),
     );
@@ -361,7 +436,7 @@ describe('KhouryAdminClient', () => {
       of({
         status: 200,
         data: {
-          id: 'sg_1',
+          id: 'sg_120271000000000001',
           name: 'x',
           semester: '202710',
           generated_at: '2026-09-01T12:00:00Z',
@@ -371,7 +446,9 @@ describe('KhouryAdminClient', () => {
         },
       } as any),
     );
-    await expect(c.getRoster('sg_1')).rejects.toBeInstanceOf(KhouryAdminError);
+    await expect(c.getRoster('sg_120271000000000001')).rejects.toBeInstanceOf(
+      KhouryAdminError,
+    );
   });
 
   it('C requires a clean nuid on every person', async () => {
@@ -382,7 +459,7 @@ describe('KhouryAdminClient', () => {
       of({
         status: 200,
         data: {
-          id: 'sg_1',
+          id: 'sg_120271000000000001',
           name: 'x',
           semester: '202710',
           generated_at: '2026-09-01T12:00:00Z',
@@ -399,12 +476,14 @@ describe('KhouryAdminClient', () => {
       { ...p, nuid: 4 },
     ]) {
       get.mockReturnValue(roster(bad));
-      await expect(c.getRoster('sg_1')).rejects.toBeInstanceOf(
+      await expect(c.getRoster('sg_120271000000000001')).rejects.toBeInstanceOf(
         KhouryAdminError,
       );
     }
     get.mockReturnValue(roster({ ...p, nuid: '000000004' }));
-    expect((await c.getRoster('sg_1'))?.professors[0].nuid).toBe('000000004');
+    expect(
+      (await c.getRoster('sg_120271000000000001'))?.professors[0].nuid,
+    ).toBe('000000004');
   });
 
   it('survives a malformed percent-encoded URL', async () => {
@@ -461,7 +540,10 @@ describe('KhouryAdminClient', () => {
         path.join(dir, '202710/users/x@northeastern.edu.json'),
         '{oops',
       );
-      fs.writeFileSync(path.join(dir, 'rosters/sg_x.json'), '{oops');
+      fs.writeFileSync(
+        path.join(dir, 'rosters/sg_120271000000000009.json'),
+        '{oops',
+      );
       const s = await listen(undefined, dir);
       servers.push(s.server);
       process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${s.port}`;
@@ -471,9 +553,9 @@ describe('KhouryAdminClient', () => {
       await expect(
         client.getCourses('x@northeastern.edu', '202710'),
       ).rejects.toBeInstanceOf(KhouryAdminError);
-      await expect(client.getRoster('sg_x')).rejects.toBeInstanceOf(
-        KhouryAdminError,
-      );
+      await expect(
+        client.getRoster('sg_120271000000000009'),
+      ).rejects.toBeInstanceOf(KhouryAdminError);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -495,7 +577,10 @@ describe('KhouryAdminClient', () => {
           path.join(dir, '202710/users/x@northeastern.edu.json'),
           content,
         );
-        fs.writeFileSync(path.join(dir, 'rosters/sg_x.json'), content);
+        fs.writeFileSync(
+          path.join(dir, 'rosters/sg_120271000000000009.json'),
+          content,
+        );
         const s = await listen(undefined, dir);
         servers.push(s.server);
         process.env.KHOURY_ADMIN_URL = `http://127.0.0.1:${s.port}`;
@@ -505,9 +590,9 @@ describe('KhouryAdminClient', () => {
         await expect(
           client.getCourses('x@northeastern.edu', '202710'),
         ).rejects.toBeInstanceOf(KhouryAdminError);
-        await expect(client.getRoster('sg_x')).rejects.toBeInstanceOf(
-          KhouryAdminError,
-        );
+        await expect(
+          client.getRoster('sg_120271000000000009'),
+        ).rejects.toBeInstanceOf(KhouryAdminError);
       } finally {
         fs.rmSync(dir, { recursive: true, force: true });
       }
@@ -569,7 +654,7 @@ describe('KhouryAdminClient', () => {
       of({
         status: 200,
         data: {
-          id: 'sg_other',
+          id: 'sg_120271000000000009',
           name: 'x',
           semester: '202710',
           generated_at: '2026-09-01T12:00:00Z',
@@ -647,9 +732,9 @@ describe('KhouryAdminClient', () => {
         const seen = await record();
         if (v === undefined) delete process.env.KHOURY_ADMIN_TOKEN;
         else process.env.KHOURY_ADMIN_TOKEN = v;
-        await expect(client.getRoster('sg_120271000000000001')).rejects.toBeInstanceOf(
-          KhouryAdminError,
-        );
+        await expect(
+          client.getRoster('sg_120271000000000001'),
+        ).rejects.toBeInstanceOf(KhouryAdminError);
         expect(seen).toEqual([]);
       },
     );

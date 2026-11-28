@@ -23,6 +23,8 @@ const enc = (x: string) => {
 };
 const isStr = (x: any) => typeof x === 'string';
 const isId = (x: any) => isStr(x) && x !== '' && x === x.trim();
+// NOTE: group ids are sg_ + 18 digits; NUID keeps the looser isId
+const isGid = (x: any) => isStr(x) && /^sg_\d{18}$/.test(x);
 const every = (a: any, f: (x: any) => boolean) => isArr(a) && a.every(f);
 const isPerson = (p: any) =>
   !!p &&
@@ -49,7 +51,7 @@ export class KhouryAdminClient {
           d.section_groups,
           (g) =>
             !!g &&
-            isId(g.id) &&
+            isGid(g.id) &&
             isStr(g.name) &&
             every(g.crns, (n) => typeof n === 'number'),
         ),
@@ -68,7 +70,7 @@ export class KhouryAdminClient {
           d.courses,
           (c) =>
             !!c &&
-            isId(c.section_group_id) &&
+            isGid(c.section_group_id) &&
             ['Professor', 'TA', 'Student'].includes(c.role),
         ),
     );
@@ -76,9 +78,9 @@ export class KhouryAdminClient {
 
   /** null only on a 404 whose body is {error:'not found'} */
   async getRoster(id: string): Promise<RosterResponse | null> {
-    if (!id || id !== id.trim()) {
+    if (!isGid(id)) {
       return Promise.reject(
-        new KhouryAdminError('getRoster needs a clean group id'),
+        new KhouryAdminError('getRoster needs an sg_ + 18 digit group id'),
       );
     }
     return this.get(
