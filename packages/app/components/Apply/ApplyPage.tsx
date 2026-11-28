@@ -3,11 +3,13 @@ import React, { ReactElement, useState } from "react";
 import ConfirmCourses from "./ConfirmCourses";
 import EditCourse, { EditCourseInfo } from "./EditCourse";
 import SelectCourses from "./SelectCourses";
-import { message, Progress } from "antd";
 import styled from "styled-components";
 import { API } from "@koh/api-client";
 import useSWR from "swr";
 import Router from "next/router";
+import { toast } from "sonner";
+import { CircleCheck } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 export interface RegisterCourseInfo {
   name: string;
@@ -18,13 +20,36 @@ export interface RegisterCourseInfo {
   timezone?: string;
 }
 
-const ProgressBar = styled(Progress)`
-  padding-bottom: 2.5em;
+// antd's Progress clamped the value to 0-100 (0/0 before any course is
+// chosen gives NaN, and choosing none gives Infinity), so keep doing that
+function clampPercent(n: number): number {
+  if (!Number.isFinite(n)) return n > 0 ? 100 : 0;
+  return Math.min(100, Math.max(0, n));
+}
 
-  & .ant-progress-inner {
-    border: 1px solid #d9d9d9;
-  }
-`;
+function ProgressBar({ percent }: { percent: number }): ReactElement {
+  const value = clampPercent(percent);
+  return (
+    <div className="flex items-center gap-2 pb-[2.5em]">
+      <Progress
+        value={value}
+        aria-label="Application progress"
+        className="h-3 flex-1 border border-[#d9d9d9] bg-white [&>div]:rounded-full [&>div]:bg-[#408FEA]"
+      />
+      {/* Like antd: a green check at 100%, but text for the Infinity case */}
+      {Number.isFinite(percent) && percent >= 100 ? (
+        <span className="flex w-10 shrink-0">
+          <CircleCheck
+            aria-label="Done"
+            className="size-[14px] fill-[#52c41a] text-white"
+          />
+        </span>
+      ) : (
+        <span className="w-10 shrink-0 text-sm text-black/85">{value}%</span>
+      )}
+    </div>
+  );
+}
 
 export function createSGString({
   name,
@@ -79,7 +104,7 @@ export default function ApplyPage(): ReactElement {
           timezone: courseInfo.timezone,
         }))
       );
-      message.success(
+      toast.success(
         "Successfully registered courses. Redirecting you to the app..."
       );
       await mutateProfile();
@@ -88,7 +113,7 @@ export default function ApplyPage(): ReactElement {
         `/course/${profile.courses[0].course.id}/today`
       );
     } catch (e) {
-      message.error(e.response?.data?.message);
+      toast.error(e.response?.data?.message);
     }
   };
 
@@ -99,12 +124,7 @@ export default function ApplyPage(): ReactElement {
   return (
     <div style={{ padding: "3% 12%" }}>
       <h1>Apply for Khoury Office Hours</h1>
-      <ProgressBar
-        percent={calculateProgress()}
-        strokeColor="#408FEA"
-        trailColor="white"
-        strokeWidth={12}
-      />
+      <ProgressBar percent={calculateProgress()} />
       {currentCourse < 0 ? (
         <SelectCourses
           onSubmit={handleSelectCourses}

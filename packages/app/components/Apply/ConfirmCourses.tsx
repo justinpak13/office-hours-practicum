@@ -1,5 +1,6 @@
-import { Button, Space, Divider } from "antd";
 import { ReactElement } from "react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { RegisterCourseInfo, createSGString, Highlight } from "./ApplyPage";
 import { TimezoneCampusMapping } from "./EditCourse";
 
@@ -64,18 +65,18 @@ export default function ConfirmCourses({
           </h3>
           {courses.map((course, index) => (
             <div key={course.name}>
-              {index > 0 && <Divider style={{ backgroundColor: "#d9d9d9" }} />}
+              {index > 0 && <Separator className="my-6 bg-[#d9d9d9]" />}
               <FormattedCourse course={course} />
             </div>
           ))}
         </>
       )}
-      <Space style={{ marginTop: "1.5em" }}>
-        <Button onClick={onBack}>Back</Button>
-        <Button onClick={onSubmit} type="primary">
-          Submit
+      <div className="mt-[1.5em] flex gap-2">
+        <Button variant="outline" onClick={onBack}>
+          Back
         </Button>
-      </Space>
+        <Button onClick={onSubmit}>Submit</Button>
+      </div>
     </div>
   );
 }
