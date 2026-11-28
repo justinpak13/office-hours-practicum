@@ -34,7 +34,7 @@ export class KhouryAdminSyncService {
     private dataSource: DataSource,
   ) {}
 
-  // NOTE: the advisory lock serializes sync; the legacy-only unique email index on user_model is the DB backstop (the old login path is not covered by the lock)
+  // NOTE: the advisory lock serializes sync; the legacy-only unique email index on user_model is the DB backstop
   private locked<T>(
     key: string,
     fn: (m: EntityManager) => Promise<T>,

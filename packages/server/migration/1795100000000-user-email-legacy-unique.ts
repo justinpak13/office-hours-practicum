@@ -23,7 +23,7 @@ export class userEmailLegacyUnique1795100000000 implements MigrationInterface {
       `ALTER TABLE "user_model" DROP CONSTRAINT IF EXISTS "${UQ}"`,
     );
     await queryRunner.query(
-      `CREATE UNIQUE INDEX "${IDX}" ON "user_model" ("email") WHERE "keycloakSub" IS NULL`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS "${IDX}" ON "user_model" ("email") WHERE "keycloakSub" IS NULL`,
     );
   }
 
