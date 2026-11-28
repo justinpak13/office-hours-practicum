@@ -26,8 +26,29 @@ export function higherRole(a: Role, b: Role): Role {
   return RANK[b] > RANK[a] ? b : a;
 }
 
+// NOTE: not util.inspect: a QueryFailedError carries the query, parameters and driver detail (user emails). Prints only messages and stacks, following `cause` and `errors`.
+export function describeError(e: unknown, depth = 0): string {
+  let text: string;
+  try {
+    text =
+      e instanceof Error && e.stack
+        ? e.stack
+        : String((e as any)?.message ?? String(e));
+  } catch {
+    text = 'unknown error';
+  }
+  if (depth >= 4 || e === null || typeof e !== 'object') return text;
+  const kids = [
+    ...('cause' in e ? [(e as any).cause] : []),
+    ...(Array.isArray((e as any).errors) ? (e as any).errors : []),
+  ];
+  return [text, ...kids.map((k) => describeError(k, depth + 1))].join('\n  ');
+}
+
 // Minimum gap between syncs for one user (a constant on purpose, not config)
 const SYNC_HOURS = 24;
+// NOTE: after a failed sync the user is due again this many minutes later instead of after SYNC_HOURS
+const RETRY_MINUTES = 15;
 
 @Injectable()
 export class KhouryAdminSyncService {
@@ -52,7 +73,7 @@ export class KhouryAdminSyncService {
   }
 
   // Runs the sync for a user at most once per 24h. The conditional UPDATE both checks the gate and claims the run, so concurrent requests can't both sync.
-  // NOTE: retry after 24h on failure; shorten if outages matter
+  // NOTE: a failed sync (onSignIn returned false or threw) moves the stamp back so the user is due again RETRY_MINUTES later
   // NOTE: a user whose first sync ran without a NUID gets B on the next due sync (up to 24h later), and a stale save() of a user loaded before the claim can null the stamp and cause one extra (idempotent) sync; both accepted
   // NOTE: the in-memory check uses the app clock and the claim uses the DB clock; small drift only delays a sync or adds a no-op query, accepted
   async syncIfDue(user: UserModel): Promise<void> {
@@ -64,17 +85,49 @@ export class KhouryAdminSyncService {
       return;
     const claimed = await UserModel.createQueryBuilder()
       .update()
-      .set({ lastKhourySyncAt: () => 'now()' })
+      // NOTE: truncated to ms so the returned JS Date matches the stored value exactly in releaseClaim
+      .set({ lastKhourySyncAt: () => "date_trunc('milliseconds', now())" })
       .where(
         `id = :id AND ("lastKhourySyncAt" IS NULL OR "lastKhourySyncAt" < now() - interval '${SYNC_HOURS} hours')`,
         { id: user.id },
       )
+      .returning('"lastKhourySyncAt"')
       .execute();
     if (claimed.affected !== 1) return;
-    await this.onSignIn(user);
+    const stamp: Date = claimed.raw[0].lastKhourySyncAt;
+    user.lastKhourySyncAt = stamp;
+    let ok = false;
+    try {
+      ok = await this.onSignIn(user);
+    } finally {
+      if (!ok) await this.releaseClaim(user, stamp);
+    }
   }
 
-  async onSignIn(user: UserModel): Promise<void> {
+  // NOTE: moves our claim back so the user is due again in RETRY_MINUTES. Only if the stamp is still ours, so a newer sync is never overwritten. A DB error here is caught and logged, so the sync's own error (if any) is still what reaches the hook.
+  private async releaseClaim(user: UserModel, stamp: Date): Promise<void> {
+    const retryAt = new Date(
+      stamp.getTime() - SYNC_HOURS * 3600_000 + RETRY_MINUTES * 60_000,
+    );
+    try {
+      const res = await UserModel.createQueryBuilder()
+        .update()
+        .set({ lastKhourySyncAt: retryAt })
+        .where('id = :id AND "lastKhourySyncAt" = :stamp', {
+          id: user.id,
+          stamp,
+        })
+        .execute();
+      if (res.affected === 1) user.lastKhourySyncAt = retryAt;
+    } catch (e) {
+      this.logger.error(
+        `Khoury Admin sync claim release failed: ${describeError(e)}`,
+      );
+    }
+  }
+
+  // NOTE: returns true when every fetch that ran and every save succeeded (a skipped A or B is not a failure); false when a KhouryAdminError was swallowed; throws on any other error
+  async onSignIn(user: UserModel): Promise<boolean> {
     // NOTE: a null or blank email skips both A and B (both URLs contain the email) instead of throwing
     const norm = user.email?.trim() ? normalizeEmail(user.email) : null;
     // NOTE: single semester from env; must be bumped each term and profs can't see next term early; compute from date when going live
@@ -93,6 +146,7 @@ export class KhouryAdminSyncService {
     ]);
     // NOTE: A and B are independent; an unexpected error (not KhouryAdminError) in one is kept, B still runs, and at the end one error is rethrown (an Error carrying both in `errors` if both failed). Each is tagged with its source (A or B) and keeps the original as `cause`. The JwtStrategy hook logs the failed sync once, (messages and stacks only); a KhouryAdminError is an expected outage and only warns here
     const bugs: unknown[] = [];
+    let failed = false;
     try {
       if (a.status === 'rejected') throw a.reason;
       if (a.value === null) {
@@ -103,6 +157,7 @@ export class KhouryAdminSyncService {
         await this.saveSectionGroups(user, a.value.section_groups, semester);
       }
     } catch (e) {
+      failed = true;
       if (this.logFailure('A', e))
         bugs.push(
           Object.assign(new Error('Khoury Admin A failed'), { cause: e }),
@@ -134,6 +189,7 @@ export class KhouryAdminSyncService {
         }
       }
     } catch (e) {
+      failed = true;
       if (this.logFailure('B', e))
         bugs.push(
           Object.assign(new Error('Khoury Admin B failed'), { cause: e }),
@@ -145,6 +201,7 @@ export class KhouryAdminSyncService {
       throw Object.assign(new Error('Khoury Admin A and B failed'), {
         errors: bugs,
       });
+    return !failed;
   }
 
   private async saveSectionGroups(

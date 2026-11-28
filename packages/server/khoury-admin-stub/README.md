@@ -4,6 +4,8 @@ Dev-only fake of Khoury Admin (`node server.js`, port 4100). It serves the hand-
 
 Layout: `data/<semester>/instructors/<email>.json` (endpoint A), `data/<semester>/users/<email>.json` (endpoint B), `data/rosters/<group id>.json` (endpoint C). Unknown person gives an empty list; unknown roster gives 404.
 
+Endpoint B requires the `nuid` query param (`?nuid=<NUID>`) and returns 400 without it.
+
 Semester is `202710` (Fall 2026). Group ids are `sg_` + 18 digits: `sg_1...` is a set-up group, `sg_2...` is a course group.
 
 ## People

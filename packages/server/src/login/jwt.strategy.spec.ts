@@ -33,6 +33,20 @@ describe('JwtStrategy Khoury Admin sync hook', () => {
     expect(sync.syncIfDue).toHaveBeenCalledWith(user);
   });
 
+  it('a failed token verify does not start the sync', async () => {
+    oidcTokenService.verify.mockRejectedValue(new Error('bad token'));
+    await expect(strategy.validate(req)).rejects.toThrow('bad token');
+    await new Promise((r) => setImmediate(r));
+    expect(sync.syncIfDue).not.toHaveBeenCalled();
+  });
+
+  it('a failed findOrCreate does not start the sync', async () => {
+    oidcUserService.findOrCreate.mockRejectedValue(new Error('db down'));
+    await expect(strategy.validate(req)).rejects.toThrow('db down');
+    await new Promise((r) => setImmediate(r));
+    expect(sync.syncIfDue).not.toHaveBeenCalled();
+  });
+
   it('a rejected sync does not fail validate', async () => {
     sync.syncIfDue.mockRejectedValue(new Error('boom'));
     await expect(strategy.validate(req)).resolves.toEqual({ userId: 7 });

@@ -520,8 +520,7 @@ describe('KhouryAdminSyncService', () => {
     });
     client.getSectionGroups.mockRejectedValue(new KhouryAdminError('down'));
     client.getCourses.mockRejectedValue(new KhouryAdminError('down'));
-    const res = await signIn('s@northeastern.edu');
-    expect(res.id).toBe(u.id);
+    await expect(service.onSignIn(u)).resolves.toBe(false);
     expect(await UserCourseModel.count()).toBe(1);
     expect((await UserCourseModel.findOneBy({ id: uc.id })).role).toBe(Role.TA);
   });
@@ -863,6 +862,11 @@ describe('KhouryAdminSyncService', () => {
         't@northeastern.edu',
         sem,
       );
+      expect(warn).toHaveBeenCalledWith(
+        `Skipping Khoury Admin B: user ${v.id} has no NUID`,
+      );
+      // NOTE: a skipped B is not a failure, so the stamp keeps the full 24h
+      expect(Date.now() - (await synced(v)).getTime()).toBeLessThan(60_000);
     });
 
     it('a recent in-memory stamp returns early without touching the DB', async () => {
@@ -943,6 +947,10 @@ describe('KhouryAdminSyncService', () => {
       await expect(service.syncIfDue(u)).rejects.toMatchObject({
         message: 'Khoury Admin A failed',
       });
+      // NOTE: a thrown sync also releases the claim
+      expect(Date.now() - (await synced(u)).getTime()).toBeGreaterThan(
+        23 * 3600_000,
+      );
     });
 
     it('an unexpected B failure keeps the saved A row and rethrows', async () => {
@@ -998,7 +1006,7 @@ describe('KhouryAdminSyncService', () => {
         section_groups: [],
       });
       client.getCourses.mockRejectedValue(new KhouryAdminError('down'));
-      await expect(service.onSignIn(u)).resolves.toBeUndefined();
+      await expect(service.onSignIn(u)).resolves.toBe(false);
       expect(error).not.toHaveBeenCalled();
       expect(warn).toHaveBeenCalledTimes(1);
     });
@@ -1035,6 +1043,88 @@ describe('KhouryAdminSyncService', () => {
       await expect(service.syncIfDue(u)).resolves.toBeUndefined();
       expect(await UserCourseModel.count()).toBe(1);
       expect(await synced(u)).not.toBeNull();
+    });
+
+    describe('retry after a failed sync', () => {
+      const MIN = 60_000;
+      const reload = (u: UserModel) => UserModel.findOneByOrFail({ id: u.id });
+      // NOTE: simulates time passing by moving the stored stamp back
+      const age = async (u: UserModel, minutes: number) =>
+        UserModel.update(u.id, {
+          lastKhourySyncAt: new Date(
+            (await synced(u)).getTime() - minutes * MIN,
+          ),
+        });
+      let u: UserModel;
+      beforeEach(async () => {
+        u = await UserFactory.create({
+          nuid: NUID,
+          email: 's@northeastern.edu',
+        });
+      });
+
+      it('a partial failure (A ok, B rejected) is due again after 15 minutes, not 24h', async () => {
+        client.getCourses.mockRejectedValue(new KhouryAdminError('down'));
+        await expect(service.syncIfDue(u)).resolves.toBeUndefined();
+        const due = (await synced(u)).getTime() + 24 * 3600_000;
+        expect(Math.abs(due - (Date.now() + 15 * MIN))).toBeLessThan(MIN);
+        expect(u.lastKhourySyncAt).toEqual(await synced(u)); // in-memory stamp follows
+
+        client.getSectionGroups.mockClear();
+        await service.syncIfDue(await reload(u));
+        expect(client.getSectionGroups).not.toHaveBeenCalled(); // not yet due
+
+        await age(u, 16);
+        await service.syncIfDue(await reload(u));
+        expect(client.getSectionGroups).toHaveBeenCalledTimes(1);
+      });
+
+      it('A rejected with a KhouryAdminError, B ok: due again in 15 minutes', async () => {
+        client.getSectionGroups.mockRejectedValue(new KhouryAdminError('down'));
+        await expect(service.syncIfDue(u)).resolves.toBeUndefined();
+        expect(client.getCourses).toHaveBeenCalledTimes(1);
+        const due = (await synced(u)).getTime() + 24 * 3600_000;
+        expect(Math.abs(due - (Date.now() + 15 * MIN))).toBeLessThan(MIN);
+      });
+
+      it('a successful sync keeps the full 24h', async () => {
+        await service.syncIfDue(u);
+        expect(Date.now() - (await synced(u)).getTime()).toBeLessThan(MIN);
+        await age(u, 16);
+        client.getSectionGroups.mockClear();
+        await service.syncIfDue(await reload(u));
+        expect(client.getSectionGroups).not.toHaveBeenCalled();
+      });
+
+      it('the rollback does not clobber a newer stamp', async () => {
+        const newer = new Date(Date.now() + 5 * MIN);
+        client.getSectionGroups.mockImplementation(async () => {
+          await UserModel.update(u.id, { lastKhourySyncAt: newer });
+          throw new KhouryAdminError('down');
+        });
+        await service.syncIfDue(u);
+        expect(await synced(u)).toEqual(newer);
+      });
+
+      it('a failing rollback is logged and does not replace the sync result', async () => {
+        const real = UserModel.createQueryBuilder.bind(UserModel);
+        const spy = jest
+          .spyOn(UserModel, 'createQueryBuilder')
+          .mockImplementationOnce(real)
+          .mockImplementationOnce(() => {
+            throw new Error('release boom');
+          });
+        client.getSectionGroups.mockRejectedValue(new KhouryAdminError('down'));
+        try {
+          await expect(service.syncIfDue(u)).resolves.toBeUndefined();
+        } finally {
+          spy.mockRestore();
+        }
+        expect(error).toHaveBeenCalledWith(
+          expect.stringContaining('claim release failed'),
+        );
+        expect(error.mock.calls[0][0]).toContain('release boom');
+      });
     });
   });
 });

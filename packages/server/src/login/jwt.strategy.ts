@@ -2,7 +2,10 @@ import { Strategy as PassportBaseStrategy } from 'passport';
 import { PassportStrategy } from '@nestjs/passport';
 import { ConsoleLogger, Injectable } from '@nestjs/common';
 import { Request } from 'express';
-import { KhouryAdminSyncService } from '../khoury-admin/khoury-admin-sync.service';
+import {
+  describeError,
+  KhouryAdminSyncService,
+} from '../khoury-admin/khoury-admin-sync.service';
 import { OidcTokenService } from '../oidc/oidc-token.service';
 import { OidcUserService } from '../oidc/oidc-user.service';
 
@@ -29,25 +32,6 @@ class RequestStrategy extends PassportBaseStrategy {
       this.success(user);
     });
   }
-}
-
-// NOTE: not util.inspect: a QueryFailedError carries the query, parameters and driver detail (user emails). Prints only messages and stacks, following `cause` and `errors`.
-function describeError(e: unknown, depth = 0): string {
-  let text: string;
-  try {
-    text =
-      e instanceof Error && e.stack
-        ? e.stack
-        : String((e as any)?.message ?? String(e));
-  } catch {
-    text = 'unknown error';
-  }
-  if (depth >= 4 || e === null || typeof e !== 'object') return text;
-  const kids = [
-    ...('cause' in e ? [(e as any).cause] : []),
-    ...(Array.isArray((e as any).errors) ? (e as any).errors : []),
-  ];
-  return [text, ...kids.map((k) => describeError(k, depth + 1))].join('\n  ');
 }
 
 export interface AuthenticatedUser {
